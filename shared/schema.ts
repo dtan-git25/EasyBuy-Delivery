@@ -93,6 +93,42 @@ export const wallets = pgTable("wallets", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Transaction types enum
+export const transactionTypeEnum = pgEnum("transaction_type", [
+  'deposit',
+  'withdrawal', 
+  'order_payment',
+  'order_refund',
+  'rider_payout',
+  'merchant_payout',
+  'fee_charge',
+  'promotion_credit'
+]);
+
+// Transaction status enum  
+export const transactionStatusEnum = pgEnum("transaction_status", [
+  'pending',
+  'completed',
+  'failed',
+  'cancelled'
+]);
+
+// Wallet transactions table
+export const walletTransactions = pgTable("wallet_transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  walletId: varchar("wallet_id").notNull(),
+  orderId: varchar("order_id"), // Optional, for order-related transactions
+  type: transactionTypeEnum("type").notNull(),
+  status: transactionStatusEnum("status").default('pending'),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  description: text("description"),
+  paymentMethodId: text("payment_method_id"), // Stripe payment method ID
+  stripePaymentIntentId: text("stripe_payment_intent_id"), // Stripe payment intent ID
+  metadata: jsonb("metadata"), // Additional transaction data
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Orders table
 export const orders = pgTable("orders", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -162,8 +198,14 @@ export const ridersRelations = relations(riders, ({ one, many }) => ({
   orders: many(orders),
 }));
 
-export const walletsRelations = relations(wallets, ({ one }) => ({
+export const walletsRelations = relations(wallets, ({ one, many }) => ({
   user: one(users, { fields: [wallets.userId], references: [users.id] }),
+  transactions: many(walletTransactions),
+}));
+
+export const walletTransactionsRelations = relations(walletTransactions, ({ one }) => ({
+  wallet: one(wallets, { fields: [walletTransactions.walletId], references: [wallets.id] }),
+  order: one(orders, { fields: [walletTransactions.orderId], references: [orders.id] }),
 }));
 
 export const ordersRelations = relations(orders, ({ one, many }) => ({
@@ -214,6 +256,12 @@ export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
   timestamp: true,
 });
 
+export const insertWalletTransactionSchema = createInsertSchema(walletTransactions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -228,4 +276,6 @@ export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 export type Wallet = typeof wallets.$inferSelect;
+export type WalletTransaction = typeof walletTransactions.$inferSelect;
+export type InsertWalletTransaction = z.infer<typeof insertWalletTransactionSchema>;
 export type SystemSettings = typeof systemSettings.$inferSelect;
