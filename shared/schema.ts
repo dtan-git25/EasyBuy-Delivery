@@ -112,6 +112,8 @@ export const orders = pgTable("orders", {
   deliveryLatitude: decimal("delivery_latitude", { precision: 10, scale: 8 }),
   deliveryLongitude: decimal("delivery_longitude", { precision: 11, scale: 8 }),
   customerNotes: text("customer_notes"),
+  paymentMethod: text("payment_method").notNull().default('cash'),
+  phoneNumber: text("phone_number").notNull(),
   estimatedDeliveryTime: timestamp("estimated_delivery_time"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

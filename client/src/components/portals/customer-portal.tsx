@@ -1,11 +1,16 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useCart } from "@/contexts/cart-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Clock, Star, Search, Filter, Navigation, ArrowLeft, ShoppingCart, Plus, Minus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import { MapPin, Clock, Star, Search, Filter, Navigation, ArrowLeft, ShoppingCart, Plus, Minus, X } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface Restaurant {
   id: string;
@@ -14,7 +19,22 @@ interface Restaurant {
   rating: number;
   image: string;
   deliveryFee: number;
+  markup: number;
   address: string;
+  phone: string;
+  isActive: boolean;
+}
+
+interface MenuItem {
+  id: string;
+  restaurantId: string;
+  name: string;
+  description?: string;
+  price: number;
+  category: string;
+  image?: string;
+  isAvailable: boolean;
+  variants?: any;
 }
 
 export default function CustomerPortal() {
@@ -22,9 +42,53 @@ export default function CustomerPortal() {
   const [sortBy, setSortBy] = useState("distance");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
+  const [showCart, setShowCart] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [specialInstructions, setSpecialInstructions] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("cash");
+  
+  const cart = useCart();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const { data: restaurants = [], isLoading } = useQuery({
+  const { data: restaurants = [], isLoading } = useQuery<Restaurant[]>({
     queryKey: ["/api/restaurants"],
+  });
+
+  // Fetch menu items for selected restaurant
+  const { data: menuItems = [] } = useQuery<MenuItem[]>({
+    queryKey: ["/api/menu-items", selectedRestaurant?.id],
+    enabled: !!selectedRestaurant,
+    queryFn: async () => {
+      const response = await fetch(`/api/menu-items?restaurantId=${selectedRestaurant!.id}`);
+      return response.json();
+    }
+  });
+
+  // Create order mutation
+  const createOrderMutation = useMutation({
+    mutationFn: async (orderData: any) => {
+      const response = await apiRequest("POST", "/api/orders", orderData);
+      return response.json();
+    },
+    onSuccess: () => {
+      cart.clearCart();
+      setShowCheckout(false);
+      toast({
+        title: "Order placed successfully!",
+        description: "Your order has been submitted and you'll receive updates soon.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error placing order",
+        description: "There was an error processing your order. Please try again.",
+        variant: "destructive",
+      });
+    }
   });
 
   const categories = [
@@ -53,18 +117,124 @@ export default function CustomerPortal() {
   const filteredRestaurants = restaurants.filter((restaurant: Restaurant) => {
     const matchesSearch = restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          restaurant.cuisine.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = !selectedCategory || restaurant.cuisine.toLowerCase().includes(selectedCategory);
-    return matchesSearch && matchesCategory;
+    const matchesCategory = !selectedCategory || restaurant.cuisine.toLowerCase().includes(selectedCategory.toLowerCase());
+    return matchesSearch && matchesCategory && restaurant.isActive;
   });
 
-  // Restaurant Detail View
+  // Group menu items by category
+  const menuItemsByCategory = menuItems.reduce((acc: Record<string, MenuItem[]>, item) => {
+    if (!acc[item.category]) {
+      acc[item.category] = [];
+    }
+    acc[item.category].push(item);
+    return acc;
+  }, {});
+
+  const addToCart = (menuItem: MenuItem) => {
+    if (!selectedRestaurant) return;
+    
+    cart.addItem({
+      menuItemId: menuItem.id,
+      name: menuItem.name,
+      price: parseFloat(menuItem.price.toString()),
+      restaurant: {
+        id: selectedRestaurant.id,
+        name: selectedRestaurant.name,
+        deliveryFee: parseFloat(selectedRestaurant.deliveryFee.toString()),
+        markup: parseFloat(selectedRestaurant.markup.toString())
+      }
+    });
+    
+    toast({
+      title: "Added to cart",
+      description: `${menuItem.name} has been added to your cart.`,
+    });
+  };
+
+  const handleCheckout = () => {
+    // Validate cart and restaurant context
+    if (cart.items.length === 0) {
+      toast({
+        title: "Cart is empty",
+        description: "Please add items to your cart before checkout.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!cart.restaurantId) {
+      toast({
+        title: "No restaurant selected",
+        description: "Please select a restaurant first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!deliveryAddress.trim() || !phoneNumber.trim()) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in your delivery address and phone number.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!paymentMethod) {
+      toast({
+        title: "Payment method required",
+        description: "Please select a payment method.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const orderData = {
+      restaurantId: cart.restaurantId,
+      items: cart.items.map(item => ({
+        menuItemId: item.menuItemId,
+        quantity: item.quantity,
+        price: item.price,
+        name: item.name
+      })),
+      subtotal: cart.getSubtotal().toFixed(2),
+      markup: cart.getMarkupAmount().toFixed(2),
+      deliveryFee: cart.getDeliveryFee().toFixed(2),
+      total: cart.getTotal().toFixed(2),
+      deliveryAddress,
+      phoneNumber,
+      specialInstructions,
+      paymentMethod,
+      status: 'pending'
+    };
+
+    createOrderMutation.mutate(orderData);
+  };
+
+  // Restaurant Detail View with Real Menu Items
   if (selectedRestaurant) {
     return (
       <div className="min-h-screen bg-background">
+        {/* Fixed Cart Button */}
+        {cart.getItemCount() > 0 && (
+          <div className="fixed bottom-4 right-4 z-50">
+            <Button
+              onClick={() => setShowCart(true)}
+              className="rounded-full h-16 w-16 shadow-lg"
+              data-testid="button-view-cart"
+            >
+              <div className="flex flex-col items-center">
+                <ShoppingCart className="h-6 w-6" />
+                <span className="text-xs">{cart.getItemCount()}</span>
+              </div>
+            </Button>
+          </div>
+        )}
+
         {/* Restaurant Header */}
         <div className="relative h-64 bg-cover bg-center" style={{backgroundImage: `url(${selectedRestaurant.image})`}}>
           <div className="absolute inset-0 bg-black/50" />
-          <div className="absolute top-4 left-4">
+          <div className="absolute top-4 left-4 flex gap-2">
             <Button
               variant="ghost"
               size="sm"
@@ -97,32 +267,263 @@ export default function CustomerPortal() {
 
         {/* Menu Section */}
         <div className="max-w-4xl mx-auto px-4 py-8">
-          <h2 className="text-2xl font-bold mb-6">Menu</h2>
-          <p className="text-muted-foreground mb-8">Currently, menu items are being loaded. Please check back soon for available items.</p>
-          
-          {/* Sample Menu Items for Demo */}
-          <div className="space-y-4">
-            {[
-              { name: "Signature Meal", price: 199, description: "Popular combo meal with drink" },
-              { name: "Classic Burger", price: 129, description: "Beef patty with cheese and vegetables" },
-              { name: "Chicken Special", price: 149, description: "Crispy fried chicken with rice" }
-            ].map((item, index) => (
-              <Card key={index} className="p-4">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{item.name}</h3>
-                    <p className="text-sm text-muted-foreground mb-2">{item.description}</p>
-                    <p className="text-lg font-bold text-primary">₱{item.price}</p>
-                  </div>
-                  <Button size="sm" data-testid={`button-add-${item.name.toLowerCase().replace(' ', '-')}`}>
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add to Cart
-                  </Button>
-                </div>
-              </Card>
-            ))}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold">Menu</h2>
+            {cart.getItemCount() > 0 && (
+              <Button
+                variant="outline"
+                onClick={() => setShowCart(true)}
+                data-testid="button-view-cart-menu"
+              >
+                <ShoppingCart className="mr-2 h-4 w-4" />
+                Cart ({cart.getItemCount()})
+              </Button>
+            )}
           </div>
+          
+          {menuItems.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No menu items available at this restaurant.</p>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {Object.entries(menuItemsByCategory).map(([category, items]) => (
+                <div key={category}>
+                  <h3 className="text-xl font-semibold mb-4 text-foreground">{category}</h3>
+                  <div className="space-y-4">
+                    {items.map((item) => (
+                      <Card key={item.id} className="p-4" data-testid={`menu-item-${item.id}`}>
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-foreground">{item.name}</h4>
+                            {item.description && (
+                              <p className="text-sm text-muted-foreground mb-2">{item.description}</p>
+                            )}
+                            <div className="flex items-center justify-between mt-2">
+                              <span className="text-lg font-bold text-green-600">₱{item.price.toFixed(2)}</span>
+                              <div className="flex items-center space-x-2">
+                                {!item.isAvailable ? (
+                                  <Badge variant="destructive">Unavailable</Badge>
+                                ) : (
+                                  <Button
+                                    onClick={() => addToCart(item)}
+                                    data-testid={`button-add-to-cart-${item.id}`}
+                                  >
+                                    <ShoppingCart className="mr-2 h-4 w-4" />
+                                    Add to Cart
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+
+        {/* Cart Modal */}
+        <Dialog open={showCart} onOpenChange={setShowCart}>
+          <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Your Cart</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {cart.items.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">Your cart is empty</p>
+              ) : (
+                <>
+                  <div className="space-y-3">
+                    {cart.items.map((item) => (
+                      <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex-1">
+                          <h4 className="font-medium">{item.name}</h4>
+                          <p className="text-sm text-muted-foreground">₱{item.price.toFixed(2)} each</p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => cart.updateQuantity(item.id, item.quantity - 1)}
+                            data-testid={`button-decrease-${item.id}`}
+                          >
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                          <span className="w-8 text-center">{item.quantity}</span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => cart.updateQuantity(item.id, item.quantity + 1)}
+                            data-testid={`button-increase-${item.id}`}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => cart.removeItem(item.id)}
+                            data-testid={`button-remove-${item.id}`}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Subtotal:</span>
+                      <span>₱{cart.getSubtotal().toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Markup ({cart.markup}%):</span>
+                      <span>₱{cart.getMarkupAmount().toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Delivery Fee:</span>
+                      <span>₱{cart.getDeliveryFee().toFixed(2)}</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between font-semibold text-lg">
+                      <span>Total:</span>
+                      <span>₱{cart.getTotal().toFixed(2)}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex space-x-2 pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => cart.clearCart()}
+                      className="flex-1"
+                      data-testid="button-clear-cart"
+                    >
+                      Clear Cart
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        if (cart.items.length === 0) {
+                          toast({
+                            title: "Cart is empty",
+                            description: "Add items to proceed to checkout.",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        setShowCart(false);
+                        setShowCheckout(true);
+                      }}
+                      className="flex-1"
+                      data-testid="button-checkout"
+                      disabled={cart.items.length === 0}
+                    >
+                      Checkout
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Checkout Modal */}
+        <Dialog open={showCheckout} onOpenChange={setShowCheckout}>
+          <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Checkout</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Delivery Address *</label>
+                <Input
+                  value={deliveryAddress}
+                  onChange={(e) => setDeliveryAddress(e.target.value)}
+                  placeholder="Enter your delivery address"
+                  data-testid="input-delivery-address"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Phone Number *</label>
+                <Input
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="Enter your phone number"
+                  data-testid="input-phone-number"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Special Instructions</label>
+                <Input
+                  value={specialInstructions}
+                  onChange={(e) => setSpecialInstructions(e.target.value)}
+                  placeholder="Any special instructions (optional)"
+                  data-testid="input-special-instructions"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Payment Method *</label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <SelectTrigger data-testid="select-payment-method">
+                    <SelectValue placeholder="Select payment method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash on Delivery</SelectItem>
+                    <SelectItem value="gcash">GCash</SelectItem>
+                    <SelectItem value="paymaya">PayMaya</SelectItem>
+                    <SelectItem value="card">Credit/Debit Card</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <Separator />
+              
+              <div className="space-y-2">
+                <h4 className="font-medium">Order Summary</h4>
+                <div className="text-sm space-y-1">
+                  {cart.items.map((item) => (
+                    <div key={item.id} className="flex justify-between">
+                      <span>{item.name} x{item.quantity}</span>
+                      <span>₱{(item.price * item.quantity).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+                <Separator />
+                <div className="flex justify-between font-semibold">
+                  <span>Total:</span>
+                  <span>₱{cart.getTotal().toFixed(2)}</span>
+                </div>
+              </div>
+              
+              <div className="flex space-x-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowCheckout(false)}
+                  className="flex-1"
+                  data-testid="button-back-to-cart"
+                >
+                  Back to Cart
+                </Button>
+                <Button
+                  onClick={handleCheckout}
+                  disabled={createOrderMutation.isPending}
+                  className="flex-1"
+                  data-testid="button-place-order"
+                >
+                  {createOrderMutation.isPending ? "Placing Order..." : "Place Order"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -143,17 +544,11 @@ export default function CustomerPortal() {
                 <Input
                   type="text"
                   placeholder="Enter delivery address"
-                  className="flex-1 border-none bg-transparent text-foreground placeholder-muted-foreground"
-                  data-testid="input-delivery-address"
+                  className="border-0 bg-transparent"
+                  data-testid="input-delivery-location"
                 />
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={handleUseCurrentLocation}
-                  data-testid="button-use-location"
-                >
-                  <Navigation className="mr-2 h-4 w-4" />
-                  Use Current Location
+                <Button size="sm" onClick={handleUseCurrentLocation} data-testid="button-use-location">
+                  <Navigation className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -161,72 +556,66 @@ export default function CustomerPortal() {
         </div>
       </section>
 
-      {/* Categories */}
-      <section className="py-8 bg-background">
+      {/* Category Filter */}
+      <section className="py-6 bg-card border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h3 className="text-2xl font-bold text-foreground mb-6">Browse by Category</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+          <div className="flex space-x-6 overflow-x-auto">
             {categories.map((category) => (
-              <Card
+              <button
                 key={category.id}
-                className={`cursor-pointer transition-transform hover:scale-105 ${
-                  selectedCategory === category.id ? 'ring-2 ring-primary' : ''
-                }`}
                 onClick={() => setSelectedCategory(selectedCategory === category.id ? "" : category.id)}
+                className={`flex flex-col items-center space-y-2 p-3 rounded-lg min-w-max transition-colors ${
+                  selectedCategory === category.id
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-background hover:bg-muted"
+                }`}
                 data-testid={`category-${category.id}`}
               >
-                <CardContent className="p-4 text-center">
-                  <div className="text-4xl mb-2">{category.image}</div>
-                  <p className="font-medium text-foreground">{category.name}</p>
-                </CardContent>
-              </Card>
+                <span className="text-2xl">{category.image}</span>
+                <span className="text-sm font-medium">{category.name}</span>
+              </button>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Filters and Search */}
+      {/* Search and Filter */}
       <section className="py-6 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-            <div className="flex items-center space-x-4">
+          <div className="flex flex-col lg:flex-row gap-4 mb-6">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search restaurants or cuisines..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+                data-testid="input-restaurant-search"
+              />
+            </div>
+            <div className="flex gap-2">
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-48" data-testid="select-sort">
-                  <SelectValue />
+                <SelectTrigger className="w-48" data-testid="select-sort-by">
+                  <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="distance">Sort by Distance</SelectItem>
-                  <SelectItem value="nearest">Nearest First</SelectItem>
-                  <SelectItem value="farthest">Farthest First</SelectItem>
-                  <SelectItem value="rating">Highest Rated</SelectItem>
-                  <SelectItem value="delivery-fee">Lowest Delivery Fee</SelectItem>
+                  <SelectItem value="distance">Distance</SelectItem>
+                  <SelectItem value="rating">Rating</SelectItem>
+                  <SelectItem value="delivery-time">Delivery Time</SelectItem>
+                  <SelectItem value="price">Price</SelectItem>
                 </SelectContent>
               </Select>
-              
-              <Button variant="outline" size="sm" data-testid="button-filters">
+              <Button variant="outline" data-testid="button-filters">
                 <Filter className="mr-2 h-4 w-4" />
                 Filters
               </Button>
-            </div>
-            
-            <div className="w-full sm:w-auto">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  type="text"
-                  placeholder="Search restaurants..."
-                  className="w-full sm:w-80 pl-10"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  data-testid="input-search-restaurants"
-                />
-              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Restaurant Listings */}
+      {/* Restaurant Grid */}
       <section className="py-8 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {isLoading ? (
@@ -281,23 +670,21 @@ export default function CustomerPortal() {
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-2">
                       <h4 className="text-lg font-semibold text-foreground">{restaurant.name}</h4>
-                      <div className="flex items-center space-x-1">
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                        <span className="text-sm text-muted-foreground">{restaurant.rating}</span>
-                      </div>
+                      <Badge variant="secondary">
+                        {restaurant.isActive ? 'Open' : 'Closed'}
+                      </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground mb-3">{restaurant.cuisine}</p>
                     <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center text-muted-foreground">
-                        <Clock className="mr-1 h-4 w-4" />
+                      <div className="flex items-center space-x-1">
+                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        <span>{restaurant.rating}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
                         <span>25-35 min</span>
                       </div>
-                      <div className="flex items-center text-muted-foreground">
-                        <span>₱{restaurant.deliveryFee} delivery</span>
-                      </div>
-                      <Badge variant="secondary">
-                        1.2 km
-                      </Badge>
+                      <span className="text-green-600 font-medium">₱{restaurant.deliveryFee} delivery</span>
                     </div>
                   </CardContent>
                 </Card>
