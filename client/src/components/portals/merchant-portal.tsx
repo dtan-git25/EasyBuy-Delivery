@@ -41,11 +41,11 @@ export default function MerchantPortal() {
     category: ''
   });
 
-  const { data: restaurants = [] } = useQuery({
+  const { data: restaurants = [] } = useQuery<any[]>({
     queryKey: ["/api/restaurants"],
   });
 
-  const { data: orders = [] } = useQuery({
+  const { data: orders = [] } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
   });
 
@@ -62,12 +62,20 @@ export default function MerchantPortal() {
   const createMenuItemMutation = useMutation({
     mutationFn: async (menuItemData: any) => {
       const response = await apiRequest("POST", "/api/menu-items", menuItemData);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create menu item');
+      }
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/menu-items"] });
       setIsAddMenuItemOpen(false);
       setMenuItemForm({ name: '', description: '', price: '', category: '' });
+    },
+    onError: (error: Error) => {
+      console.error('Failed to create menu item:', error.message);
+      // You can add toast notification here if available
     },
   });
 
@@ -313,15 +321,28 @@ export default function MerchantPortal() {
 
             {/* Menu Management */}
             <TabsContent value="menu" className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-foreground">Menu Items</h3>
-                <Dialog open={isAddMenuItemOpen} onOpenChange={setIsAddMenuItemOpen}>
-                  <DialogTrigger asChild>
-                    <Button data-testid="button-add-menu-item">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Menu Item
-                    </Button>
-                  </DialogTrigger>
+              {!userRestaurant ? (
+                <div className="text-center py-12">
+                  <Store className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No Restaurant Found</h3>
+                  <p className="text-muted-foreground mb-4">
+                    You need to have a restaurant associated with your account to manage menu items.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Please contact support to set up your restaurant profile.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-foreground">Menu Items</h3>
+                    <Dialog open={isAddMenuItemOpen} onOpenChange={setIsAddMenuItemOpen}>
+                      <DialogTrigger asChild>
+                        <Button data-testid="button-add-menu-item">
+                          <Plus className="mr-2 h-4 w-4" />
+                          Add Menu Item
+                        </Button>
+                      </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Add New Menu Item</DialogTitle>
@@ -450,6 +471,8 @@ export default function MerchantPortal() {
                     </Card>
                   ))}
                 </div>
+              )}
+                </>
               )}
             </TabsContent>
 
