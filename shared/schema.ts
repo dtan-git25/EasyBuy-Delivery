@@ -8,6 +8,13 @@ import { z } from "zod";
 export const userRoleEnum = pgEnum('user_role', ['customer', 'rider', 'merchant', 'admin']);
 export const orderStatusEnum = pgEnum('order_status', ['pending', 'accepted', 'preparing', 'ready', 'picked_up', 'delivered', 'cancelled']);
 export const riderStatusEnum = pgEnum('rider_status', ['offline', 'online', 'busy']);
+
+export const documentApprovalEnum = pgEnum('document_approval', [
+  'pending',
+  'approved', 
+  'rejected',
+  'incomplete'
+]);
 export const approvalStatusEnum = pgEnum('approval_status', ['pending', 'approved', 'rejected']);
 
 // Users table
@@ -75,6 +82,12 @@ export const riders = pgTable("riders", {
   orcrDocument: text("orcr_document"),
   motorImage: text("motor_image"),
   idDocument: text("id_document"),
+  // Document approval workflow
+  documentsStatus: documentApprovalEnum("documents_status").default('pending'),
+  approvedBy: varchar("approved_by"), // Admin user ID who approved
+  rejectedReason: text("rejected_reason"),
+  documentsSubmittedAt: timestamp("documents_submitted_at"),
+  documentsReviewedAt: timestamp("documents_reviewed_at"),
   status: riderStatusEnum("status").default('offline'),
   currentLatitude: decimal("current_latitude", { precision: 10, scale: 8 }),
   currentLongitude: decimal("current_longitude", { precision: 11, scale: 8 }),

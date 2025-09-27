@@ -71,6 +71,12 @@ export interface IStorage {
   processMayaPayment(walletId: string, amount: number, transactionId: string, paymentId: string): Promise<WalletTransaction>;
   processCashTransaction(walletId: string, amount: number, handledBy: string, description: string): Promise<WalletTransaction>;
 
+  // Rider document management
+  updateRiderDocuments(riderId: string, documents: { orcrDocument?: string; motorImage?: string; idDocument?: string }): Promise<Rider | undefined>;
+  submitRiderDocuments(riderId: string): Promise<Rider | undefined>;
+  reviewRiderDocuments(riderId: string, approved: boolean, reviewedBy: string, reason?: string): Promise<Rider | undefined>;
+  getRidersForApproval(): Promise<Rider[]>;
+
   sessionStore: SessionStore;
 }
 
@@ -419,6 +425,51 @@ export class DatabaseStorage implements IStorage {
         .set({ balance: newBalance.toString(), updatedAt: new Date() })
         .where(eq(wallets.id, walletId));
     }
+  }
+
+  // Rider document management
+  async updateRiderDocuments(riderId: string, documents: { orcrDocument?: string; motorImage?: string; idDocument?: string }): Promise<Rider | undefined> {
+    const [result] = await db.update(riders)
+      .set({ 
+        ...documents, 
+        updatedAt: new Date() 
+      })
+      .where(eq(riders.id, riderId))
+      .returning();
+    return result;
+  }
+
+  async submitRiderDocuments(riderId: string): Promise<Rider | undefined> {
+    const [result] = await db.update(riders)
+      .set({ 
+        documentsStatus: 'pending',
+        documentsSubmittedAt: new Date(),
+        updatedAt: new Date() 
+      })
+      .where(eq(riders.id, riderId))
+      .returning();
+    return result;
+  }
+
+  async reviewRiderDocuments(riderId: string, approved: boolean, reviewedBy: string, reason?: string): Promise<Rider | undefined> {
+    const [result] = await db.update(riders)
+      .set({ 
+        documentsStatus: approved ? 'approved' : 'rejected',
+        approvedBy: approved ? reviewedBy : null,
+        rejectedReason: approved ? null : reason,
+        documentsReviewedAt: new Date(),
+        updatedAt: new Date() 
+      })
+      .where(eq(riders.id, riderId))
+      .returning();
+    return result;
+  }
+
+  async getRidersForApproval(): Promise<Rider[]> {
+    return await db.query.riders.findMany({
+      where: eq(riders.documentsStatus, 'pending'),
+      orderBy: asc(riders.documentsSubmittedAt)
+    });
   }
 }
 

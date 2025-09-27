@@ -11,9 +11,55 @@ import { insertRestaurantSchema, insertMenuItemSchema, insertOrderSchema, insert
 import { z } from "zod";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
+
+  // Configure multer for direct object storage uploads
+  const upload = multer({
+    storage: multer.diskStorage({
+      destination: (req, file, cb) => {
+        // Get private object storage directory
+        const privateDir = process.env.PRIVATE_OBJECT_DIR;
+        if (!privateDir) {
+          return cb(new Error("Object storage not configured - PRIVATE_OBJECT_DIR missing"));
+        }
+        
+        // Create rider-specific directory
+        const userId = (req as any).user?.id;
+        if (!userId) {
+          return cb(new Error("User not authenticated"));
+        }
+        
+        const riderDir = path.join(privateDir, 'riders', userId);
+        fs.mkdirSync(riderDir, { recursive: true });
+        cb(null, riderDir);
+      },
+      filename: (req, file, cb) => {
+        // Generate unique filename with timestamp
+        const fileExtension = path.extname(file.originalname);
+        const fileName = `${file.fieldname}_${Date.now()}${fileExtension}`;
+        cb(null, fileName);
+      }
+    }),
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB limit
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = /jpeg|jpg|png|pdf/;
+      const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+      const mimetype = allowedTypes.test(file.mimetype);
+      
+      if (mimetype && extname) {
+        return cb(null, true);
+      } else {
+        cb(new Error('Only JPEG, PNG, and PDF files are allowed'));
+      }
+    }
+  });
 
   // Restaurant routes
   app.get("/api/restaurants", async (req, res) => {
@@ -729,6 +775,264 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating wallet transaction:", error);
       res.status(500).json({ error: "Failed to update wallet transaction" });
+    }
+  });
+
+  // Rider Profile Route
+  app.get("/api/rider/profile", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'rider') {
+      return res.status(401).json({ error: "Unauthorized - Riders only" });
+    }
+
+    try {
+      const rider = await storage.getRiderByUserId(req.user.id);
+      if (!rider) {
+        return res.status(404).json({ error: "Rider profile not found" });
+      }
+
+      res.json(rider);
+    } catch (error) {
+      console.error("Error fetching rider profile:", error);
+      res.status(500).json({ error: "Failed to fetch rider profile" });
+    }
+  });
+
+  // Rider Document Upload Routes
+  app.post("/api/rider/upload-documents", 
+    upload.fields([
+      { name: 'orcrDocument', maxCount: 1 },
+      { name: 'motorImage', maxCount: 1 },
+      { name: 'idDocument', maxCount: 1 }
+    ]), 
+    async (req, res) => {
+      if (!req.isAuthenticated() || req.user.role !== 'rider') {
+        return res.status(401).json({ error: "Unauthorized - Riders only" });
+      }
+
+      try {
+        const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+        
+        // Get the rider record for this user
+        const rider = await storage.getRiderByUserId(req.user.id);
+        if (!rider) {
+          return res.status(404).json({ error: "Rider profile not found" });
+        }
+
+        const documentUrls: { orcrDocument?: string; motorImage?: string; idDocument?: string } = {};
+
+        // Process files that are already stored in object storage by multer
+        for (const [fieldName, fileArray] of Object.entries(files)) {
+          if (fileArray && fileArray.length > 0) {
+            const file = fileArray[0];
+            
+            // Verify file was stored successfully in object storage
+            if (!fs.existsSync(file.path)) {
+              throw new Error(`File storage failed for ${fieldName}`);
+            }
+            
+            // Get relative path for database storage
+            const privateDir = process.env.PRIVATE_OBJECT_DIR;
+            if (!privateDir) {
+              throw new Error("Object storage not configured - PRIVATE_OBJECT_DIR missing");
+            }
+            
+            const relativePath = path.relative(privateDir, file.path);
+            
+            // Store the relative path in the database
+            documentUrls[fieldName as keyof typeof documentUrls] = relativePath;
+            
+            console.log(`Successfully stored ${fieldName} at ${file.path}`);
+          }
+        }
+
+        // Update rider documents in database
+        const updatedRider = await storage.updateRiderDocuments(rider.id, documentUrls);
+        
+        res.json({ 
+          message: "Documents uploaded successfully", 
+          rider: updatedRider,
+          uploadedDocuments: Object.keys(documentUrls) 
+        });
+      } catch (error) {
+        console.error("Error uploading rider documents:", error);
+        res.status(500).json({ error: "Failed to upload documents" });
+      }
+    }
+  );
+
+  app.post("/api/rider/submit-documents", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'rider') {
+      return res.status(401).json({ error: "Unauthorized - Riders only" });
+    }
+
+    try {
+      const rider = await storage.getRiderByUserId(req.user.id);
+      if (!rider) {
+        return res.status(404).json({ error: "Rider profile not found" });
+      }
+
+      // Check if all required documents are uploaded
+      if (!rider.orcrDocument || !rider.motorImage || !rider.idDocument) {
+        return res.status(400).json({ 
+          error: "All documents (OR/CR, Motor Image, ID) must be uploaded before submission",
+          missingDocuments: {
+            orcrDocument: !rider.orcrDocument,
+            motorImage: !rider.motorImage,
+            idDocument: !rider.idDocument
+          }
+        });
+      }
+
+      // Prevent duplicate submissions
+      if (rider.documentsStatus === 'pending') {
+        return res.status(400).json({ 
+          error: "Documents are already under review" 
+        });
+      }
+
+      const updatedRider = await storage.submitRiderDocuments(rider.id);
+      
+      res.json({ 
+        message: "Documents submitted for review successfully", 
+        rider: updatedRider,
+        success: true
+      });
+    } catch (error) {
+      console.error("Error submitting rider documents:", error);
+      res.status(500).json({ error: "Failed to submit documents" });
+    }
+  });
+
+  // Admin Document Review Routes
+  app.get("/api/admin/riders-for-approval", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'admin') {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const riders = await storage.getRidersForApproval();
+      
+      // Include user information with each rider
+      const ridersWithUsers = await Promise.all(
+        riders.map(async (rider) => {
+          const user = await storage.getUserById(rider.userId);
+          return { ...rider, user };
+        })
+      );
+      
+      res.json(ridersWithUsers);
+    } catch (error) {
+      console.error("Error fetching riders for approval:", error);
+      res.status(500).json({ error: "Failed to fetch riders for approval" });
+    }
+  });
+
+  app.post("/api/admin/review-rider/:riderId", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'admin') {
+      return res.status(401).json({ error: "Unauthorized - Admin access required" });
+    }
+
+    try {
+      const { approved, reason } = req.body;
+      const riderId = req.params.riderId;
+      
+      // Validate request body
+      if (typeof approved !== 'boolean') {
+        return res.status(400).json({ error: "Missing or invalid 'approved' field" });
+      }
+      
+      if (!approved && (!reason || reason.trim().length === 0)) {
+        return res.status(400).json({ error: "Rejection reason is required when rejecting documents" });
+      }
+
+      // Check if rider exists and is in correct state
+      const rider = await storage.getRider(riderId);
+      if (!rider) {
+        return res.status(404).json({ error: "Rider not found" });
+      }
+
+      if (rider.documentsStatus !== 'pending') {
+        return res.status(400).json({ 
+          error: "Documents are not in pending state for review",
+          currentStatus: rider.documentsStatus
+        });
+      }
+
+      // Verify all documents are present
+      if (!rider.orcrDocument || !rider.motorImage || !rider.idDocument) {
+        return res.status(400).json({ 
+          error: "Cannot review incomplete document set",
+          missingDocuments: {
+            orcrDocument: !rider.orcrDocument,
+            motorImage: !rider.motorImage,
+            idDocument: !rider.idDocument
+          }
+        });
+      }
+      
+      const updatedRider = await storage.reviewRiderDocuments(
+        riderId, 
+        approved, 
+        req.user.id, 
+        approved ? null : reason.trim()
+      );
+      
+      res.json({ 
+        message: approved ? "Rider documents approved successfully" : "Rider documents rejected", 
+        rider: updatedRider,
+        success: true,
+        action: approved ? 'approved' : 'rejected'
+      });
+    } catch (error) {
+      console.error("Error reviewing rider documents:", error);
+      res.status(500).json({ error: "Failed to review rider documents" });
+    }
+  });
+
+  // Document download route for admins
+  app.get("/api/admin/rider-document/:riderId/:documentType", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'admin') {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const { riderId, documentType } = req.params;
+      const rider = await storage.getRider(riderId);
+      
+      if (!rider) {
+        return res.status(404).json({ error: "Rider not found" });
+      }
+
+      let documentPath: string | null = null;
+      switch (documentType) {
+        case 'orcr':
+          documentPath = rider.orcrDocument;
+          break;
+        case 'motor':
+          documentPath = rider.motorImage;
+          break;
+        case 'id':
+          documentPath = rider.idDocument;
+          break;
+        default:
+          return res.status(400).json({ error: "Invalid document type" });
+      }
+
+      if (!documentPath) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      const privateDir = process.env.PRIVATE_OBJECT_DIR || `/replit-objstore-b6259f98-6469-493b-b487-aa05cc12270a/.private`;
+      const fullPath = `${privateDir}/${documentPath}`;
+      
+      if (!fs.existsSync(fullPath)) {
+        return res.status(404).json({ error: "Document file not found" });
+      }
+
+      res.sendFile(path.resolve(fullPath));
+    } catch (error) {
+      console.error("Error downloading rider document:", error);
+      res.status(500).json({ error: "Failed to download document" });
     }
   });
 
