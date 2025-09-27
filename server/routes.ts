@@ -222,6 +222,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Order status history route
+  app.get("/api/orders/:id/history", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const statusHistory = await storage.getOrderStatusHistory(req.params.id);
+      res.json(statusHistory);
+    } catch (error) {
+      console.error("Error fetching order status history:", error);
+      res.status(500).json({ error: "Failed to fetch order status history" });
+    }
+  });
+
+  // Rider location update route
+  app.post("/api/rider/location", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'rider') {
+      return res.status(401).json({ error: "Unauthorized - Riders only" });
+    }
+
+    try {
+      const rider = await storage.getRiderByUserId(req.user.id);
+      if (!rider) {
+        return res.status(404).json({ error: "Rider profile not found" });
+      }
+
+      const { latitude, longitude, accuracy, heading, speed, batteryLevel, orderId } = req.body;
+      
+      // Validate required fields
+      if (!latitude || !longitude) {
+        return res.status(400).json({ error: "Latitude and longitude are required" });
+      }
+
+      const locationRecord = await storage.updateRiderLocation(rider.id, {
+        latitude: parseFloat(latitude),
+        longitude: parseFloat(longitude),
+        accuracy: accuracy ? parseFloat(accuracy) : undefined,
+        heading: heading ? parseFloat(heading) : undefined,
+        speed: speed ? parseFloat(speed) : undefined,
+        batteryLevel: batteryLevel ? parseInt(batteryLevel) : undefined,
+        orderId
+      });
+
+      // Broadcast location update via WebSocket
+      if (wss) {
+        const message = JSON.stringify({
+          type: 'rider_location_update',
+          riderId: rider.id,
+          location: locationRecord,
+          timestamp: new Date().toISOString()
+        });
+        
+        wss.clients.forEach(client => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
+          }
+        });
+      }
+
+      res.json({ 
+        message: "Location updated successfully", 
+        location: locationRecord 
+      });
+    } catch (error) {
+      console.error("Error updating rider location:", error);
+      res.status(500).json({ error: "Failed to update rider location" });
+    }
+  });
+
+  // Get rider location history
+  app.get("/api/rider/location/history", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'rider') {
+      return res.status(401).json({ error: "Unauthorized - Riders only" });
+    }
+
+    try {
+      const rider = await storage.getRiderByUserId(req.user.id);
+      if (!rider) {
+        return res.status(404).json({ error: "Rider profile not found" });
+      }
+
+      const orderId = req.query.orderId as string;
+      const locationHistory = await storage.getRiderLocationHistory(rider.id, orderId);
+      
+      res.json(locationHistory);
+    } catch (error) {
+      console.error("Error fetching rider location history:", error);
+      res.status(500).json({ error: "Failed to fetch location history" });
+    }
+  });
+
+  // Get latest rider location (for admin/customer tracking)
+  app.get("/api/rider/:riderId/location/latest", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const latestLocation = await storage.getLatestRiderLocation(req.params.riderId);
+      
+      if (!latestLocation) {
+        return res.status(404).json({ error: "No location data found" });
+      }
+
+      res.json(latestLocation);
+    } catch (error) {
+      console.error("Error fetching latest rider location:", error);
+      res.status(500).json({ error: "Failed to fetch rider location" });
+    }
+  });
+
   app.post("/api/orders", async (req, res) => {
     if (!req.isAuthenticated() || req.user?.role !== 'customer') {
       return res.status(401).json({ error: "Unauthorized" });
@@ -266,13 +378,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const order = await storage.updateOrder(req.params.id, req.body);
+      // Use enhanced order update with status history tracking
+      const order = await storage.updateOrderWithStatusHistory(
+        req.params.id, 
+        req.body, 
+        req.user.id,
+        req.body.notes,
+        req.body.location
+      );
       
       if (order && wss) {
-        // Broadcast order update via WebSocket
+        // Enhanced WebSocket broadcast with more details
+        const orderWithHistory = await storage.getOrderStatusHistory(order.id);
         const message = JSON.stringify({
           type: 'order_update',
-          order
+          order,
+          statusHistory: orderWithHistory,
+          updatedBy: {
+            id: req.user.id,
+            firstName: req.user.firstName,
+            lastName: req.user.lastName,
+            role: req.user.role
+          },
+          timestamp: new Date().toISOString()
         });
         
         wss.clients.forEach(client => {
@@ -282,7 +410,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      res.json(order);
+      res.json({ 
+        order,
+        message: "Order updated successfully with status tracking" 
+      });
     } catch (error) {
       console.error("Error updating order:", error);
       res.status(500).json({ error: "Failed to update order" });
@@ -1056,9 +1187,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Handle different types of WebSocket messages
         switch (data.type) {
           case 'join_order':
-            // Join order-specific room for chat
+            // Join order-specific room for chat and tracking
             ws.orderId = data.orderId;
+            ws.userId = data.userId;
+            ws.userRole = data.userRole;
+            console.log(`User ${data.userId} (${data.userRole}) joined order ${data.orderId}`);
             break;
+
+          case 'join_tracking':
+            // Join for general order tracking updates
+            ws.userId = data.userId;
+            ws.userRole = data.userRole;
+            console.log(`User ${data.userId} (${data.userRole}) joined tracking`);
+            break;
+
           case 'chat_message':
             // Broadcast chat message to other clients in the same order
             wss.clients.forEach(client => {
@@ -1066,18 +1208,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
               if (extendedClient !== ws && 
                   extendedClient.readyState === WebSocket.OPEN && 
                   extendedClient.orderId === data.orderId) {
-                extendedClient.send(JSON.stringify(data));
+                extendedClient.send(JSON.stringify({
+                  ...data,
+                  timestamp: new Date().toISOString()
+                }));
               }
             });
             break;
+
+          case 'rider_location_ping':
+            // Handle rider location updates from client
+            if (data.riderId && data.location) {
+              // Broadcast to relevant clients (customers, admin, merchants)
+              wss.clients.forEach(client => {
+                const extendedClient = client as ExtendedWebSocket;
+                if (extendedClient !== ws && 
+                    extendedClient.readyState === WebSocket.OPEN &&
+                    (extendedClient.userRole === 'admin' || 
+                     extendedClient.userRole === 'customer' || 
+                     extendedClient.userRole === 'merchant')) {
+                  extendedClient.send(JSON.stringify({
+                    type: 'rider_location_update',
+                    riderId: data.riderId,
+                    location: data.location,
+                    timestamp: new Date().toISOString()
+                  }));
+                }
+              });
+            }
+            break;
+
+          case 'order_status_change':
+            // Handle real-time order status updates
+            wss.clients.forEach(client => {
+              const extendedClient = client as ExtendedWebSocket;
+              if (extendedClient !== ws && 
+                  extendedClient.readyState === WebSocket.OPEN) {
+                extendedClient.send(JSON.stringify({
+                  ...data,
+                  timestamp: new Date().toISOString()
+                }));
+              }
+            });
+            break;
+
           case 'location_update':
-            // Broadcast rider location updates
+            // Legacy support - broadcast rider location updates
             wss.clients.forEach(client => {
               if (client !== ws && client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify(data));
+                client.send(JSON.stringify({
+                  ...data,
+                  timestamp: new Date().toISOString()
+                }));
               }
             });
             break;
+
+          default:
+            console.log('Unknown WebSocket message type:', data.type);
         }
       } catch (error) {
         console.error('WebSocket message error:', error);
@@ -1086,6 +1274,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     ws.on('close', () => {
       console.log('WebSocket client disconnected');
+      // Clean up any tracking data
+      delete ws.orderId;
+      delete ws.userId;
+      delete ws.userRole;
     });
   });
 

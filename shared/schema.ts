@@ -195,6 +195,34 @@ export const chatMessages = pgTable("chat_messages", {
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
+// Order status history table for tracking order lifecycle
+export const orderStatusHistory = pgTable("order_status_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderId: varchar("order_id").notNull(),
+  status: orderStatusEnum("status").notNull(),
+  changedBy: varchar("changed_by").notNull(), // User ID who changed the status
+  previousStatus: orderStatusEnum("previous_status"),
+  notes: text("notes"), // Optional notes about the status change
+  location: jsonb("location"), // GPS coordinates at time of status change
+  estimatedDeliveryTime: timestamp("estimated_delivery_time"), // Updated ETA
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Real-time location tracking table for active deliveries
+export const riderLocationHistory = pgTable("rider_location_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  riderId: varchar("rider_id").notNull(),
+  orderId: varchar("order_id"), // Associated order if during delivery
+  latitude: decimal("latitude", { precision: 10, scale: 8 }).notNull(),
+  longitude: decimal("longitude", { precision: 11, scale: 8 }).notNull(),
+  accuracy: decimal("accuracy", { precision: 8, scale: 2 }), // GPS accuracy in meters
+  heading: decimal("heading", { precision: 5, scale: 2 }), // Direction of travel
+  speed: decimal("speed", { precision: 8, scale: 2 }), // Speed in km/h
+  batteryLevel: integer("battery_level"), // Phone battery level
+  isOnline: boolean("is_online").default(true),
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
 // System settings table
 export const systemSettings = pgTable("system_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -251,6 +279,16 @@ export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
   sender: one(users, { fields: [chatMessages.senderId], references: [users.id] }),
 }));
 
+export const orderStatusHistoryRelations = relations(orderStatusHistory, ({ one }) => ({
+  order: one(orders, { fields: [orderStatusHistory.orderId], references: [orders.id] }),
+  changedByUser: one(users, { fields: [orderStatusHistory.changedBy], references: [users.id] }),
+}));
+
+export const riderLocationHistoryRelations = relations(riderLocationHistory, ({ one }) => ({
+  rider: one(riders, { fields: [riderLocationHistory.riderId], references: [riders.id] }),
+  order: one(orders, { fields: [riderLocationHistory.orderId], references: [orders.id] }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -293,6 +331,16 @@ export const insertWalletTransactionSchema = createInsertSchema(walletTransactio
   updatedAt: true,
 });
 
+export const insertOrderStatusHistorySchema = createInsertSchema(orderStatusHistory).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertRiderLocationHistorySchema = createInsertSchema(riderLocationHistory).omit({
+  id: true,
+  timestamp: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -309,4 +357,8 @@ export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 export type Wallet = typeof wallets.$inferSelect;
 export type WalletTransaction = typeof walletTransactions.$inferSelect;
 export type InsertWalletTransaction = z.infer<typeof insertWalletTransactionSchema>;
+export type OrderStatusHistory = typeof orderStatusHistory.$inferSelect;
+export type InsertOrderStatusHistory = z.infer<typeof insertOrderStatusHistorySchema>;
+export type RiderLocationHistory = typeof riderLocationHistory.$inferSelect;
+export type InsertRiderLocationHistory = z.infer<typeof insertRiderLocationHistorySchema>;
 export type SystemSettings = typeof systemSettings.$inferSelect;

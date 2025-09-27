@@ -8,9 +8,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { MapPin, Clock, Star, Search, Filter, Navigation, ArrowLeft, ShoppingCart, Plus, Minus, X } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MapPin, Clock, Star, Search, Filter, Navigation, ArrowLeft, ShoppingCart, Plus, Minus, X, Package, User, Phone, CheckCircle, AlertCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useWebSocket } from "@/lib/websocket";
+import { useAuth } from "@/hooks/use-auth";
 
 interface Restaurant {
   id: string;
@@ -37,6 +40,61 @@ interface MenuItem {
   variants?: any;
 }
 
+interface Order {
+  id: string;
+  orderNumber: string;
+  customerId: string;
+  restaurantId: string;
+  riderId?: string;
+  items: any[];
+  subtotal: string;
+  markup: string;
+  deliveryFee: string;
+  total: string;
+  status: string;
+  deliveryAddress: string;
+  deliveryLatitude?: string;
+  deliveryLongitude?: string;
+  customerNotes?: string;
+  paymentMethod: string;
+  phoneNumber: string;
+  estimatedDeliveryTime?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface OrderStatusHistory {
+  id: string;
+  orderId: string;
+  status: string;
+  changedBy: string;
+  previousStatus?: string;
+  notes?: string;
+  location?: any;
+  estimatedDeliveryTime?: string;
+  createdAt: string;
+  changedByUser: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+  };
+}
+
+interface RiderLocationHistory {
+  id: string;
+  riderId: string;
+  orderId?: string;
+  latitude: string;
+  longitude: string;
+  accuracy?: string;
+  heading?: string;
+  speed?: string;
+  batteryLevel?: number;
+  isOnline: boolean;
+  timestamp: string;
+}
+
 export default function CustomerPortal() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("distance");
@@ -49,9 +107,15 @@ export default function CustomerPortal() {
   const [specialInstructions, setSpecialInstructions] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   
+  // Enhanced tracking state
+  const [activeTab, setActiveTab] = useState("restaurants");
+  const [selectedOrderForTracking, setSelectedOrderForTracking] = useState<string | null>(null);
+  
   const cart = useCart();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { socket, sendMessage } = useWebSocket();
 
   const { data: restaurants = [], isLoading } = useQuery<Restaurant[]>({
     queryKey: ["/api/restaurants"],
@@ -67,6 +131,35 @@ export default function CustomerPortal() {
     }
   });
 
+  // Enhanced tracking queries
+  const { data: orders = [] } = useQuery<Order[]>({
+    queryKey: ["/api/orders"],
+    enabled: activeTab === "orders",
+  });
+
+  const { data: orderStatusHistory = [] } = useQuery<OrderStatusHistory[]>({
+    queryKey: ["/api/orders", selectedOrderForTracking, "history"],
+    enabled: !!selectedOrderForTracking,
+    queryFn: async () => {
+      if (!selectedOrderForTracking) return [];
+      const response = await fetch(`/api/orders/${selectedOrderForTracking}/history`);
+      if (!response.ok) throw new Error('Failed to fetch order history');
+      return response.json();
+    },
+  });
+
+  const { data: riderLocation } = useQuery<RiderLocationHistory>({
+    queryKey: ["/api/rider", selectedOrderForTracking, "location"],
+    enabled: !!selectedOrderForTracking && !!orders.find(o => o.id === selectedOrderForTracking)?.riderId,
+    queryFn: async () => {
+      const order = orders.find(o => o.id === selectedOrderForTracking);
+      if (!order?.riderId) return null;
+      const response = await fetch(`/api/rider/${order.riderId}/location/latest`);
+      return response.json();
+    },
+    refetchInterval: 30000, // Refresh every 30 seconds for live tracking
+  });
+
   // Create order mutation
   const createOrderMutation = useMutation({
     mutationFn: async (orderData: any) => {
@@ -76,6 +169,7 @@ export default function CustomerPortal() {
     onSuccess: () => {
       cart.clearCart();
       setShowCheckout(false);
+      setActiveTab("orders"); // Switch to orders tab after successful order
       toast({
         title: "Order placed successfully!",
         description: "Your order has been submitted and you'll receive updates soon.",
@@ -90,6 +184,57 @@ export default function CustomerPortal() {
       });
     }
   });
+
+  // Enhanced WebSocket integration for real-time tracking
+  useEffect(() => {
+    if (socket && user) {
+      // Join tracking for real-time order updates
+      sendMessage({
+        type: 'join_tracking',
+        userId: user.id,
+        userRole: user.role
+      });
+
+      const handleMessage = (event: MessageEvent) => {
+        try {
+          const data = JSON.parse(event.data);
+          
+          switch (data.type) {
+            case 'order_update':
+              // Invalidate orders and status history when order updates
+              queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+              if (data.order && selectedOrderForTracking === data.order.id) {
+                queryClient.invalidateQueries({ queryKey: ["/api/orders", data.order.id, "history"] });
+              }
+              
+              // Show toast for order status changes
+              if (data.order && data.updatedBy) {
+                toast({
+                  title: "Order Status Updated",
+                  description: `Your order #${data.order.orderNumber} is now ${data.order.status}`,
+                });
+              }
+              break;
+
+            case 'rider_location_update':
+              // Update rider location for active tracking
+              if (selectedOrderForTracking) {
+                const order = orders.find(o => o.id === selectedOrderForTracking);
+                if (order?.riderId === data.riderId) {
+                  queryClient.invalidateQueries({ queryKey: ["/api/rider", selectedOrderForTracking, "location"] });
+                }
+              }
+              break;
+          }
+        } catch (error) {
+          console.error('WebSocket message parsing error:', error);
+        }
+      };
+
+      socket.addEventListener('message', handleMessage);
+      return () => socket.removeEventListener('message', handleMessage);
+    }
+  }, [socket, user, sendMessage, queryClient, selectedOrderForTracking, orders, toast]);
 
   const categories = [
     { id: "burgers", name: "Burgers", image: "🍔" },
@@ -529,7 +674,7 @@ export default function CustomerPortal() {
   }
 
   return (
-    <div>
+    <div className="min-h-screen bg-background">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-primary to-secondary text-primary-foreground py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -556,7 +701,24 @@ export default function CustomerPortal() {
         </div>
       </section>
 
-      {/* Category Filter */}
+      {/* Main Content with Tabs */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-8">
+            <TabsTrigger value="restaurants" data-testid="tab-restaurants">
+              <ShoppingCart className="mr-2 h-4 w-4" />
+              Restaurants
+            </TabsTrigger>
+            <TabsTrigger value="orders" data-testid="tab-orders">
+              <Package className="mr-2 h-4 w-4" />
+              My Orders
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Restaurants Tab */}
+          <TabsContent value="restaurants" className="space-y-6">
+            <div>
+              {/* Category Filter */}
       <section className="py-6 bg-card border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-6 overflow-x-auto">
@@ -691,8 +853,323 @@ export default function CustomerPortal() {
               ))}
             </div>
           )}
-        </div>
+            </div>
       </section>
+            </div>
+          </TabsContent>
+
+          {/* My Orders Tab */}
+          <TabsContent value="orders" className="space-y-6">
+            <div className="grid gap-6">
+              {orders.length === 0 ? (
+                <Card className="text-center py-12">
+                  <CardContent>
+                    <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No orders yet</h3>
+                    <p className="text-muted-foreground mb-4">Start by ordering from your favorite restaurants!</p>
+                    <Button onClick={() => setActiveTab("restaurants")} data-testid="button-browse-restaurants">
+                      Browse Restaurants
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                orders.map((order) => (
+                  <Card key={order.id} className="overflow-hidden" data-testid={`order-${order.id}`}>
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <h3 className="text-lg font-semibold">Order #{order.orderNumber}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Placed on {new Date(order.createdAt).toLocaleString()}
+                          </p>
+                        </div>
+                        <Badge variant={
+                          order.status === 'delivered' ? 'default' :
+                          order.status === 'cancelled' ? 'destructive' :
+                          order.status === 'pending' ? 'secondary' : 'outline'
+                        }>
+                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                        </Badge>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <h4 className="font-medium mb-2">Delivery Address</h4>
+                          <p className="text-sm text-muted-foreground flex items-start">
+                            <MapPin className="h-4 w-4 mr-1 mt-0.5 flex-shrink-0" />
+                            {order.deliveryAddress}
+                          </p>
+                        </div>
+                        <div>
+                          <h4 className="font-medium mb-2">Contact</h4>
+                          <p className="text-sm text-muted-foreground flex items-center">
+                            <Phone className="h-4 w-4 mr-1" />
+                            {order.phoneNumber}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="text-lg font-semibold">
+                          Total: ₱{parseFloat(order.total).toFixed(2)}
+                        </div>
+                        <div className="flex gap-2">
+                          {(order.status === 'accepted' || order.status === 'preparing' || order.status === 'ready' || order.status === 'picked_up') && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedOrderForTracking(order.id)}
+                              data-testid={`button-track-order-${order.id}`}
+                            >
+                              <Navigation className="mr-2 h-4 w-4" />
+                              Track Order
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Order Status Timeline */}
+                      {selectedOrderForTracking === order.id && orderStatusHistory.length > 0 && (
+                        <div className="mt-6 border-t pt-4">
+                          <h4 className="font-medium mb-4">Order Timeline</h4>
+                          <div className="space-y-3">
+                            {orderStatusHistory.map((status, index) => (
+                              <div key={status.id} className="flex items-start space-x-3">
+                                <div className="flex flex-col items-center">
+                                  <div className={`w-3 h-3 rounded-full ${
+                                    index === 0 ? 'bg-primary' : 'bg-muted'
+                                  }`} />
+                                  {index < orderStatusHistory.length - 1 && (
+                                    <div className="w-px h-6 bg-border mt-1" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center space-x-2">
+                                    <Badge variant="outline">
+                                      {status.status.charAt(0).toUpperCase() + status.status.slice(1)}
+                                    </Badge>
+                                    <span className="text-sm text-muted-foreground">
+                                      {new Date(status.createdAt).toLocaleString()}
+                                    </span>
+                                  </div>
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    Updated by {status.changedByUser.firstName} {status.changedByUser.lastName} ({status.changedByUser.role})
+                                  </p>
+                                  {status.notes && (
+                                    <p className="text-sm mt-1">{status.notes}</p>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Live Rider Tracking */}
+                      {selectedOrderForTracking === order.id && order.riderId && riderLocation && (
+                        <div className="mt-6 border-t pt-4">
+                          <h4 className="font-medium mb-4">Live Rider Tracking</h4>
+                          <div className="bg-muted rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-medium">Rider Location</span>
+                              <Badge variant="outline" className="text-green-600">
+                                <div className="w-2 h-2 bg-green-600 rounded-full mr-2" />
+                                Live
+                              </Badge>
+                            </div>
+                            <div className="text-sm text-muted-foreground space-y-1">
+                              <p>Lat: {parseFloat(riderLocation.latitude).toFixed(6)}</p>
+                              <p>Lng: {parseFloat(riderLocation.longitude).toFixed(6)}</p>
+                              {riderLocation.speed && (
+                                <p>Speed: {parseFloat(riderLocation.speed).toFixed(1)} km/h</p>
+                              )}
+                              <p>Last updated: {new Date(riderLocation.timestamp).toLocaleString()}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* Dialogs and Modals remain the same */}
+      {showCart && (
+        <Dialog open={showCart} onOpenChange={setShowCart}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Your Order</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {cart.items.map((item) => (
+                <div key={`${item.menuItemId}-${item.name}`} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <h4 className="font-medium">{item.name}</h4>
+                    <p className="text-sm text-muted-foreground">₱{item.price.toFixed(2)} each</p>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => cart.updateQuantity(item.id, item.quantity - 1)}
+                        data-testid={`button-decrease-${item.menuItemId}`}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <span className="w-8 text-center">{item.quantity}</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => cart.updateQuantity(item.id, item.quantity + 1)}
+                        data-testid={`button-increase-${item.menuItemId}`}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => cart.removeItem(item.id)}
+                      data-testid={`button-remove-${item.menuItemId}`}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+
+              <Separator />
+
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Subtotal:</span>
+                  <span>₱{cart.getSubtotal().toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Markup:</span>
+                  <span>₱{cart.getMarkupAmount().toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Delivery Fee:</span>
+                  <span>₱{cart.getDeliveryFee().toFixed(2)}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between text-lg font-semibold">
+                  <span>Total:</span>
+                  <span>₱{cart.getTotal().toFixed(2)}</span>
+                </div>
+              </div>
+
+              <div className="flex space-x-2">
+                <Button variant="outline" onClick={() => setShowCart(false)} className="flex-1">
+                  Continue Shopping
+                </Button>
+                <Button onClick={() => { setShowCart(false); setShowCheckout(true); }} className="flex-1" data-testid="button-proceed-checkout">
+                  Proceed to Checkout
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {showCheckout && (
+        <Dialog open={showCheckout} onOpenChange={setShowCheckout}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Checkout</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Delivery Address</label>
+                <Input
+                  value={deliveryAddress}
+                  onChange={(e) => setDeliveryAddress(e.target.value)}
+                  placeholder="Enter your delivery address"
+                  data-testid="input-delivery-address"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Phone Number</label>
+                <Input
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="Enter your phone number"
+                  data-testid="input-phone-number"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Special Instructions (Optional)</label>
+                <Input
+                  value={specialInstructions}
+                  onChange={(e) => setSpecialInstructions(e.target.value)}
+                  placeholder="Any special delivery instructions"
+                  data-testid="input-special-instructions"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Payment Method</label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <SelectTrigger data-testid="select-payment-method">
+                    <SelectValue placeholder="Select payment method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash on Delivery</SelectItem>
+                    <SelectItem value="gcash">GCash</SelectItem>
+                    <SelectItem value="maya">Maya (PayMaya)</SelectItem>
+                    <SelectItem value="wallet">Wallet Balance</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="bg-muted p-4 rounded-lg">
+                <h3 className="font-medium mb-2">Order Summary</h3>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span>Subtotal:</span>
+                    <span>₱{cart.getSubtotal().toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Markup:</span>
+                    <span>₱{cart.getMarkupAmount().toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Delivery Fee:</span>
+                    <span>₱{cart.getDeliveryFee().toFixed(2)}</span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between font-semibold">
+                    <span>Total:</span>
+                    <span>₱{cart.getTotal().toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex space-x-2">
+                <Button variant="outline" onClick={() => setShowCheckout(false)} className="flex-1">
+                  Back to Cart
+                </Button>
+                <Button
+                  onClick={handleCheckout}
+                  disabled={createOrderMutation.isPending}
+                  className="flex-1"
+                  data-testid="button-place-order"
+                >
+                  {createOrderMutation.isPending ? "Placing Order..." : "Place Order"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

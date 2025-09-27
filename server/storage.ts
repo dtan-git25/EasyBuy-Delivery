@@ -1,4 +1,4 @@
-import { users, restaurants, menuItems, riders, wallets, orders, chatMessages, systemSettings, walletTransactions, type User, type InsertUser, type Restaurant, type InsertRestaurant, type MenuItem, type InsertMenuItem, type Rider, type InsertRider, type Order, type InsertOrder, type ChatMessage, type InsertChatMessage, type Wallet, type SystemSettings, type WalletTransaction, type InsertWalletTransaction } from "@shared/schema";
+import { users, restaurants, menuItems, riders, wallets, orders, chatMessages, systemSettings, walletTransactions, orderStatusHistory, riderLocationHistory, type User, type InsertUser, type Restaurant, type InsertRestaurant, type MenuItem, type InsertMenuItem, type Rider, type InsertRider, type Order, type InsertOrder, type ChatMessage, type InsertChatMessage, type Wallet, type SystemSettings, type WalletTransaction, type InsertWalletTransaction, type OrderStatusHistory, type InsertOrderStatusHistory, type RiderLocationHistory, type InsertRiderLocationHistory } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc } from "drizzle-orm";
 import session, { SessionStore } from "express-session";
@@ -76,6 +76,17 @@ export interface IStorage {
   submitRiderDocuments(riderId: string): Promise<Rider | undefined>;
   reviewRiderDocuments(riderId: string, approved: boolean, reviewedBy: string, reason?: string): Promise<Rider | undefined>;
   getRidersForApproval(): Promise<Rider[]>;
+
+  // Order status history tracking
+  createOrderStatusHistory(historyData: InsertOrderStatusHistory): Promise<OrderStatusHistory>;
+  getOrderStatusHistory(orderId: string): Promise<(OrderStatusHistory & { changedByUser: User })[]>;
+  updateOrderWithStatusHistory(orderId: string, updates: Partial<Order>, changedBy: string, notes?: string, location?: any): Promise<Order | undefined>;
+
+  // Rider location tracking
+  createRiderLocationHistory(locationData: InsertRiderLocationHistory): Promise<RiderLocationHistory>;
+  getRiderLocationHistory(riderId: string, orderId?: string): Promise<RiderLocationHistory[]>;
+  getLatestRiderLocation(riderId: string): Promise<RiderLocationHistory | undefined>;
+  updateRiderLocation(riderId: string, locationData: { latitude: number; longitude: number; accuracy?: number; heading?: number; speed?: number; batteryLevel?: number; orderId?: string }): Promise<RiderLocationHistory>;
 
   sessionStore: SessionStore;
 }
@@ -470,6 +481,108 @@ export class DatabaseStorage implements IStorage {
       where: eq(riders.documentsStatus, 'pending'),
       orderBy: asc(riders.documentsSubmittedAt)
     });
+  }
+
+  // Order status history tracking
+  async createOrderStatusHistory(historyData: InsertOrderStatusHistory): Promise<OrderStatusHistory> {
+    const [history] = await db.insert(orderStatusHistory).values(historyData).returning();
+    return history;
+  }
+
+  async getOrderStatusHistory(orderId: string): Promise<(OrderStatusHistory & { changedByUser: User })[]> {
+    const result = await db
+      .select()
+      .from(orderStatusHistory)
+      .leftJoin(users, eq(orderStatusHistory.changedBy, users.id))
+      .where(eq(orderStatusHistory.orderId, orderId))
+      .orderBy(asc(orderStatusHistory.createdAt));
+    
+    return result.map(row => ({
+      ...row.order_status_history,
+      changedByUser: row.users!
+    }));
+  }
+
+  async updateOrderWithStatusHistory(orderId: string, updates: Partial<Order>, changedBy: string, notes?: string, location?: any): Promise<Order | undefined> {
+    // Get current order to track previous status
+    const currentOrder = await this.getOrder(orderId);
+    if (!currentOrder) return undefined;
+
+    // Update the order
+    const [updatedOrder] = await db.update(orders).set({
+      ...updates,
+      updatedAt: new Date()
+    }).where(eq(orders.id, orderId)).returning();
+
+    // Create status history record if status changed
+    if (updates.status && updates.status !== currentOrder.status) {
+      await this.createOrderStatusHistory({
+        orderId,
+        status: updates.status as any,
+        changedBy,
+        previousStatus: currentOrder.status as any,
+        notes,
+        location,
+        estimatedDeliveryTime: updates.estimatedDeliveryTime
+      });
+    }
+
+    return updatedOrder || undefined;
+  }
+
+  // Rider location tracking
+  async createRiderLocationHistory(locationData: InsertRiderLocationHistory): Promise<RiderLocationHistory> {
+    const [location] = await db.insert(riderLocationHistory).values(locationData).returning();
+    return location;
+  }
+
+  async getRiderLocationHistory(riderId: string, orderId?: string): Promise<RiderLocationHistory[]> {
+    let query = db
+      .select()
+      .from(riderLocationHistory)
+      .where(eq(riderLocationHistory.riderId, riderId))
+      .orderBy(desc(riderLocationHistory.timestamp));
+
+    if (orderId) {
+      query = query.where(and(eq(riderLocationHistory.riderId, riderId), eq(riderLocationHistory.orderId, orderId)));
+    }
+
+    return await query;
+  }
+
+  async getLatestRiderLocation(riderId: string): Promise<RiderLocationHistory | undefined> {
+    const [location] = await db
+      .select()
+      .from(riderLocationHistory)
+      .where(eq(riderLocationHistory.riderId, riderId))
+      .orderBy(desc(riderLocationHistory.timestamp))
+      .limit(1);
+    
+    return location || undefined;
+  }
+
+  async updateRiderLocation(riderId: string, locationData: { latitude: number; longitude: number; accuracy?: number; heading?: number; speed?: number; batteryLevel?: number; orderId?: string }): Promise<RiderLocationHistory> {
+    // Create new location history record
+    const locationRecord = await this.createRiderLocationHistory({
+      riderId,
+      latitude: String(locationData.latitude),
+      longitude: String(locationData.longitude),
+      accuracy: locationData.accuracy ? String(locationData.accuracy) : null,
+      heading: locationData.heading ? String(locationData.heading) : null,
+      speed: locationData.speed ? String(locationData.speed) : null,
+      batteryLevel: locationData.batteryLevel || null,
+      orderId: locationData.orderId || null,
+      isOnline: true
+    });
+
+    // Update rider's current position
+    await this.updateRider(riderId, {
+      currentLatitude: String(locationData.latitude),
+      currentLongitude: String(locationData.longitude),
+      updatedAt: new Date()
+    });
+
+    return locationRecord;
   }
 }
 
