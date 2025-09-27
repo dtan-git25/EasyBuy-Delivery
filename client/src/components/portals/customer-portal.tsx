@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Clock, Star, Search, Filter, Navigation } from "lucide-react";
+import { MapPin, Clock, Star, Search, Filter, Navigation, ArrowLeft, ShoppingCart, Plus, Minus } from "lucide-react";
 
 interface Restaurant {
   id: string;
@@ -21,6 +21,7 @@ export default function CustomerPortal() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("distance");
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
 
   const { data: restaurants = [], isLoading } = useQuery({
     queryKey: ["/api/restaurants"],
@@ -55,6 +56,76 @@ export default function CustomerPortal() {
     const matchesCategory = !selectedCategory || restaurant.cuisine.toLowerCase().includes(selectedCategory);
     return matchesSearch && matchesCategory;
   });
+
+  // Restaurant Detail View
+  if (selectedRestaurant) {
+    return (
+      <div className="min-h-screen bg-background">
+        {/* Restaurant Header */}
+        <div className="relative h-64 bg-cover bg-center" style={{backgroundImage: `url(${selectedRestaurant.image})`}}>
+          <div className="absolute inset-0 bg-black/50" />
+          <div className="absolute top-4 left-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedRestaurant(null)}
+              className="text-white hover:bg-white/20"
+              data-testid="button-back-to-restaurants"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Restaurants
+            </Button>
+          </div>
+          <div className="absolute bottom-4 left-4 text-white">
+            <h1 className="text-3xl font-bold">{selectedRestaurant.name}</h1>
+            <p className="text-lg opacity-90">{selectedRestaurant.cuisine}</p>
+            <div className="flex items-center mt-2 space-x-4">
+              <div className="flex items-center">
+                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
+                <span>{selectedRestaurant.rating}</span>
+              </div>
+              <div className="flex items-center">
+                <Clock className="h-4 w-4 mr-1" />
+                <span>25-35 min</span>
+              </div>
+              <div className="flex items-center">
+                <span>₱{selectedRestaurant.deliveryFee} delivery</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Menu Section */}
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <h2 className="text-2xl font-bold mb-6">Menu</h2>
+          <p className="text-muted-foreground mb-8">Currently, menu items are being loaded. Please check back soon for available items.</p>
+          
+          {/* Sample Menu Items for Demo */}
+          <div className="space-y-4">
+            {[
+              { name: "Signature Meal", price: 199, description: "Popular combo meal with drink" },
+              { name: "Classic Burger", price: 129, description: "Beef patty with cheese and vegetables" },
+              { name: "Chicken Special", price: 149, description: "Crispy fried chicken with rice" }
+            ].map((item, index) => (
+              <Card key={index} className="p-4">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <h3 className="font-semibold">{item.name}</h3>
+                    <p className="text-sm text-muted-foreground mb-2">{item.description}</p>
+                    <p className="text-lg font-bold text-primary">₱{item.price}</p>
+                  </div>
+                  <Button size="sm" data-testid={`button-add-${item.name.toLowerCase().replace(' ', '-')}`}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add to Cart
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -195,6 +266,7 @@ export default function CustomerPortal() {
                 <Card 
                   key={restaurant.id} 
                   className="cursor-pointer transition-transform hover:scale-105 hover:shadow-lg"
+                  onClick={() => setSelectedRestaurant(restaurant)}
                   data-testid={`restaurant-${restaurant.id}`}
                 >
                   <div className="w-full h-48 bg-muted rounded-t-lg overflow-hidden">

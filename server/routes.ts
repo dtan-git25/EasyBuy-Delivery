@@ -72,6 +72,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Menu Items routes
+  app.get("/api/menu-items", async (req, res) => {
+    try {
+      const restaurantId = req.query.restaurantId as string;
+      
+      if (restaurantId) {
+        const menuItems = await storage.getMenuItems(restaurantId);
+        res.json(menuItems);
+      } else {
+        // Return empty array if no restaurant ID provided
+        res.json([]);
+      }
+    } catch (error) {
+      console.error("Error fetching menu items:", error);
+      res.status(500).json({ error: "Failed to fetch menu items" });
+    }
+  });
+
+  app.post("/api/menu-items", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'merchant') {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      // Find the merchant's restaurant
+      const restaurants = await storage.getRestaurantsByOwner(req.user.id);
+      if (restaurants.length === 0) {
+        return res.status(400).json({ error: "No restaurant found for this merchant" });
+      }
+      
+      const restaurantId = req.body.restaurantId || restaurants[0].id;
+      
+      const menuItemData = insertMenuItemSchema.parse({
+        ...req.body,
+        restaurantId
+      });
+      
+      const menuItem = await storage.createMenuItem(menuItemData);
+      res.status(201).json(menuItem);
+    } catch (error) {
+      console.error("Error creating menu item:", error);
+      res.status(400).json({ error: "Invalid menu item data" });
+    }
+  });
+
   // Order routes
   app.get("/api/orders", async (req, res) => {
     if (!req.isAuthenticated()) {

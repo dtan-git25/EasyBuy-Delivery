@@ -34,6 +34,12 @@ export default function MerchantPortal() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isAddMenuItemOpen, setIsAddMenuItemOpen] = useState(false);
+  const [menuItemForm, setMenuItemForm] = useState({
+    name: '',
+    description: '',
+    price: '',
+    category: ''
+  });
 
   const { data: restaurants = [] } = useQuery({
     queryKey: ["/api/restaurants"],
@@ -53,7 +59,29 @@ export default function MerchantPortal() {
     },
   });
 
+  const createMenuItemMutation = useMutation({
+    mutationFn: async (menuItemData: any) => {
+      const response = await apiRequest("POST", "/api/menu-items", menuItemData);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/menu-items"] });
+      setIsAddMenuItemOpen(false);
+      setMenuItemForm({ name: '', description: '', price: '', category: '' });
+    },
+  });
+
   const userRestaurant = restaurants.find((r: any) => r.ownerId === user?.id);
+
+  const { data: menuItems = [] } = useQuery({
+    queryKey: ["/api/menu-items", userRestaurant?.id],
+    queryFn: async () => {
+      if (!userRestaurant) return [];
+      const response = await fetch(`/api/menu-items?restaurantId=${userRestaurant.id}`);
+      return response.json();
+    },
+    enabled: !!userRestaurant,
+  });
   
   const activeOrders = orders.filter((order: Order) => 
     ['pending', 'accepted', 'preparing'].includes(order.status)
@@ -71,6 +99,25 @@ export default function MerchantPortal() {
 
   const markOrderReady = (orderId: string) => {
     updateOrderMutation.mutate({ orderId, status: 'ready' });
+  };
+
+  const handleSubmitMenuItem = () => {
+    if (!menuItemForm.name.trim() || !menuItemForm.price.trim()) {
+      console.error('Name and price are required');
+      return;
+    }
+
+    createMenuItemMutation.mutate({
+      name: menuItemForm.name.trim(),
+      description: menuItemForm.description.trim(),
+      price: menuItemForm.price.trim(),
+      category: menuItemForm.category.trim() || 'Other',
+      restaurantId: userRestaurant?.id
+    });
+  };
+
+  const updateMenuItemForm = (field: string, value: string) => {
+    setMenuItemForm(prev => ({ ...prev, [field]: value }));
   };
 
   const handleUseCurrentLocation = () => {
@@ -282,44 +329,128 @@ export default function MerchantPortal() {
                     <div className="space-y-4">
                       <div>
                         <Label htmlFor="item-name">Item Name</Label>
-                        <Input id="item-name" placeholder="Enter item name" />
+                        <Input 
+                          id="item-name" 
+                          data-testid="input-item-name"
+                          placeholder="Enter item name" 
+                          value={menuItemForm.name}
+                          onChange={(e) => updateMenuItemForm('name', e.target.value)}
+                        />
                       </div>
                       <div>
                         <Label htmlFor="item-description">Description</Label>
-                        <Textarea id="item-description" placeholder="Describe your item" />
+                        <Textarea 
+                          id="item-description" 
+                          data-testid="textarea-item-description"
+                          placeholder="Describe your item" 
+                          value={menuItemForm.description}
+                          onChange={(e) => updateMenuItemForm('description', e.target.value)}
+                        />
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <Label htmlFor="item-price">Price (₱)</Label>
-                          <Input id="item-price" type="number" placeholder="0.00" />
+                          <Input 
+                            id="item-price" 
+                            data-testid="input-item-price"
+                            type="number" 
+                            placeholder="0.00" 
+                            value={menuItemForm.price}
+                            onChange={(e) => updateMenuItemForm('price', e.target.value)}
+                          />
                         </div>
                         <div>
                           <Label htmlFor="item-category">Category</Label>
-                          <Input id="item-category" placeholder="e.g., Main Course" />
+                          <Input 
+                            id="item-category" 
+                            data-testid="input-item-category"
+                            placeholder="e.g., Main Course" 
+                            value={menuItemForm.category}
+                            onChange={(e) => updateMenuItemForm('category', e.target.value)}
+                          />
                         </div>
                       </div>
                       <div className="flex space-x-2">
                         <Button 
                           variant="outline" 
                           className="flex-1"
+                          data-testid="button-cancel"
                           onClick={() => setIsAddMenuItemOpen(false)}
                         >
                           Cancel
                         </Button>
-                        <Button className="flex-1">Add Item</Button>
+                        <Button 
+                          className="flex-1"
+                          data-testid="button-add-item"
+                          onClick={handleSubmitMenuItem}
+                          disabled={createMenuItemMutation.isPending}
+                        >
+                          {createMenuItemMutation.isPending ? 'Adding...' : 'Add Item'}
+                        </Button>
                       </div>
                     </div>
                   </DialogContent>
                 </Dialog>
               </div>
 
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <p className="text-muted-foreground">
-                    No menu items found. Add your first menu item to get started.
-                  </p>
-                </CardContent>
-              </Card>
+              {menuItems.length === 0 ? (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <p className="text-muted-foreground">
+                      No menu items found. Add your first menu item to get started.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid gap-4">
+                  {menuItems.map((item: any) => (
+                    <Card key={item.id} data-testid={`card-menu-item-${item.id}`}>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-foreground" data-testid={`text-item-name-${item.id}`}>
+                              {item.name}
+                            </h4>
+                            {item.description && (
+                              <p className="text-sm text-muted-foreground mt-1" data-testid={`text-item-description-${item.id}`}>
+                                {item.description}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-4 mt-2">
+                              <span className="font-medium text-foreground" data-testid={`text-item-price-${item.id}`}>
+                                ₱{parseFloat(item.price).toFixed(2)}
+                              </span>
+                              {item.category && (
+                                <Badge variant="secondary" data-testid={`badge-item-category-${item.id}`}>
+                                  {item.category}
+                                </Badge>
+                              )}
+                              <Badge 
+                                variant={item.isAvailable ? "default" : "destructive"}
+                                data-testid={`badge-item-status-${item.id}`}
+                              >
+                                {item.isAvailable ? "Available" : "Unavailable"}
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" data-testid={`button-edit-item-${item.id}`}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              data-testid={`button-toggle-availability-${item.id}`}
+                            >
+                              {item.isAvailable ? "Disable" : "Enable"}
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </TabsContent>
 
             {/* Order History */}
