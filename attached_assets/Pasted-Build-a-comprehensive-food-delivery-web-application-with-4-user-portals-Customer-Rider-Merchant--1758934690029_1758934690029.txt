@@ -1,0 +1,56 @@
+Build a comprehensive food delivery web application with 4 user portals: Customer, Rider, Merchant, and Admin.
+
+CUSTOMER FEATURES:
+- Filter restaurants by category, sort by distance (farthest to nearest)
+- "Use Current Location" GPS detection button
+- Checkout with detailed cost breakdown: order + markup + delivery fee (per km) + merchant fee + convenience fee
+- Handle unavailable items with alternative selection
+- Real-time chat with Merchant, Rider, Admin (activated after rider accepts)
+- Optional wallet functionality
+- Manual delivery address input for custom orders
+
+RIDER FEATURES:
+- Wallet-based system: balance must exceed commission + markup before accepting orders
+- Real-time status updates: Accept → Picked Up → Delivered
+- Pending Orders: show customer name, stores, total amount only
+- Booked Orders: detailed breakdown per merchant, collection total
+- Double booking allowed (max 2 orders), multiple merchant booking (max 3)
+- Registration requires OR/CR, motor image, ID verification with admin approval
+
+MERCHANT FEATURES:
+- Show active orders with "Ready for Pickup" status
+- "Use Current Location" button for store pin location
+- Display actual (non-markup) prices and order details
+- Tag unavailable items, edit or cancel orders
+- Product setup with variants/options (sizes, add-ons) with pricing
+- Chat system activation once order is booked
+- Optional wallet functionality
+
+ADMIN FEATURES:
+- Delivery fee settings (base km + succeeding km rates)
+- Store management with activation switches
+- Convenience fee settings with checkout display toggle
+- Additional store fee setup
+- Merchant list management with individual markup settings
+- Comprehensive reports with graphs and analytics
+- Expense management system
+- Approval workflows: Rider & Merchant require approval, Customers auto-register with OTP
+
+CUSTOM ORDERS:
+- Manual order creation: item, qty, description
+- Delivery details: customer name, address, contact, landmark
+- Multiple pickup location settings
+
+TECHNICAL REQUIREMENTS:
+- React.js frontend with mobile-first responsive design
+- Node.js/Express backend with PostgreSQL/MongoDB
+- Socket.io for real-time chat and order tracking
+- JWT authentication with OTP verification
+- Google Maps API integration for location services
+- File upload for documents and images
+- Multi-party chat system (Customer-Merchant-Rider-Admin)
+- Real-time notifications and status updates
+- Wallet system with transaction tracking
+- Comprehensive admin dashboard with analytics
+
+Build as a production-ready application with proper security, error handling, and scalable architecture.
