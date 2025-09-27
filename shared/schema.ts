@@ -17,20 +17,56 @@ export const documentApprovalEnum = pgEnum('document_approval', [
 ]);
 export const approvalStatusEnum = pgEnum('approval_status', ['pending', 'approved', 'rejected']);
 
-// Users table
+// Users table - Enhanced for Philippine standards
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
   role: userRoleEnum("role").notNull().default('customer'),
+  
+  // Personal Information - Philippine Standard
+  prefix: text("prefix"), // Mr., Ms., Dr., etc.
   firstName: text("first_name").notNull(),
+  middleName: text("middle_name"),
   lastName: text("last_name").notNull(),
+  age: integer("age"),
+  gender: text("gender"), // Male, Female, Prefer not to say
+  
+  // Contact Information
   phone: text("phone"),
-  address: text("address"),
+  email_verified: boolean("email_verified").default(false),
+  
+  // Address - Philippine Standard
+  lotHouseNo: text("lot_house_no"),
+  street: text("street"),
+  barangay: text("barangay"),
+  cityMunicipality: text("city_municipality"),
+  province: text("province"),
+  landmark: text("landmark"),
+  fullAddress: text("full_address"), // Computed/combined address
+  
+  // Documents and Photos
   profileImage: text("profile_image"),
-  approvalStatus: approvalStatusEnum("approval_status").default('approved'),
+  photoPath: text("photo_path"), // For rider photo upload
+  
+  // Rider-specific fields
+  driversLicenseNo: text("drivers_license_no"),
+  licenseValidityDate: timestamp("license_validity_date"),
+  licensePhotoPath: text("license_photo_path"),
+  
+  // Merchant-specific fields  
+  storeName: text("store_name"),
+  storeAddress: text("store_address"),
+  storeContactNo: text("store_contact_no"),
+  ownerName: text("owner_name"),
+  
+  // System fields
+  approvalStatus: approvalStatusEnum("approval_status").default('pending'),
   isActive: boolean("is_active").default(true),
+  otpCode: text("otp_code"),
+  otpExpiry: timestamp("otp_expiry"),
+  lastLogin: timestamp("last_login"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -341,6 +377,100 @@ export const insertRiderLocationHistorySchema = createInsertSchema(riderLocation
   timestamp: true,
 });
 
+// Role-specific Registration Schemas - Philippine Standards
+
+// Customer Registration Schema
+export const customerRegistrationSchema = z.object({
+  // Personal Information
+  firstName: z.string().min(1, "First name is required"),
+  middleName: z.string().optional(),
+  lastName: z.string().min(1, "Last name is required"),
+  age: z.number().min(13, "Must be at least 13 years old").max(120, "Invalid age"),
+  gender: z.enum(['Male', 'Female', 'Prefer not to say']),
+  
+  // Address
+  lotHouseNo: z.string().min(1, "Lot/House number is required"),
+  street: z.string().min(1, "Street is required"),
+  barangay: z.string().min(1, "Barangay is required"),
+  cityMunicipality: z.string().min(1, "City/Municipality is required"),
+  province: z.string().min(1, "Province is required"),
+  landmark: z.string().optional(),
+  
+  // Contact
+  email: z.string().email("Invalid email address"),
+  phone: z.string().min(11, "Phone number must be at least 11 digits"),
+  
+  // System
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+// Rider Registration Schema  
+export const riderRegistrationSchema = z.object({
+  // Personal Information
+  prefix: z.string().optional(),
+  firstName: z.string().min(1, "First name is required"),
+  middleName: z.string().optional(), 
+  lastName: z.string().min(1, "Last name is required"),
+  
+  // Address
+  lotHouseNo: z.string().min(1, "Lot/House number is required"),
+  street: z.string().min(1, "Street is required"),
+  barangay: z.string().min(1, "Barangay is required"),
+  cityMunicipality: z.string().min(1, "City/Municipality is required"),
+  province: z.string().min(1, "Province is required"),
+  
+  // Contact
+  email: z.string().email("Invalid email address"),
+  phone: z.string().min(11, "Phone number must be at least 11 digits"),
+  
+  // License
+  driversLicenseNo: z.string().min(1, "Driver's license number is required"),
+  licenseValidityDate: z.string().min(1, "License validity date is required"),
+  
+  // System
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+// Merchant Registration Schema
+export const merchantRegistrationSchema = z.object({
+  // Store Information
+  storeName: z.string().min(1, "Store name is required"),
+  storeAddress: z.string().min(1, "Store address is required"),
+  storeContactNo: z.string().min(11, "Store contact number must be at least 11 digits"),
+  
+  // Owner Information
+  ownerName: z.string().min(1, "Owner's name is required"),
+  email: z.string().email("Invalid email address"),
+  
+  // System
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+// Admin Registration Schema
+export const adminRegistrationSchema = z.object({
+  // Personal Information
+  firstName: z.string().min(1, "First name is required"),
+  middleName: z.string().optional(),
+  lastName: z.string().min(1, "Last name is required"),
+  
+  // Address
+  lotHouseNo: z.string().min(1, "Lot/House number is required"),
+  street: z.string().min(1, "Street is required"),
+  barangay: z.string().min(1, "Barangay is required"),
+  cityMunicipality: z.string().min(1, "City/Municipality is required"),
+  
+  // Contact
+  email: z.string().email("Invalid email address"),
+  phone: z.string().min(11, "Phone number must be at least 11 digits"),
+  
+  // System
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -356,6 +486,12 @@ export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 export type Wallet = typeof wallets.$inferSelect;
 export type WalletTransaction = typeof walletTransactions.$inferSelect;
+
+// Registration Form Types
+export type CustomerRegistration = z.infer<typeof customerRegistrationSchema>;
+export type RiderRegistration = z.infer<typeof riderRegistrationSchema>;
+export type MerchantRegistration = z.infer<typeof merchantRegistrationSchema>;
+export type AdminRegistration = z.infer<typeof adminRegistrationSchema>;
 export type InsertWalletTransaction = z.infer<typeof insertWalletTransactionSchema>;
 export type OrderStatusHistory = typeof orderStatusHistory.$inferSelect;
 export type InsertOrderStatusHistory = z.infer<typeof insertOrderStatusHistorySchema>;
