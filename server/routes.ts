@@ -7,7 +7,7 @@ interface ExtendedWebSocket extends WebSocket {
 }
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertRestaurantSchema, insertMenuItemSchema, insertOrderSchema, insertChatMessageSchema, insertRiderSchema, type Order } from "@shared/schema";
+import { insertRestaurantSchema, insertMenuItemSchema, insertOrderSchema, insertChatMessageSchema, insertRiderSchema, insertWalletTransactionSchema, type Order } from "@shared/schema";
 import { z } from "zod";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -564,6 +564,171 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating restaurant:", error);
       res.status(500).json({ error: "Failed to update restaurant" });
+    }
+  });
+
+  // Wallet Transaction Routes
+  app.get("/api/wallet/transactions", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const transactions = await storage.getWalletTransactionsByUser(req.user.id);
+      res.json(transactions);
+    } catch (error) {
+      console.error("Error fetching wallet transactions:", error);
+      res.status(500).json({ error: "Failed to fetch wallet transactions" });
+    }
+  });
+
+  app.post("/api/wallet/deposit", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const { amount, paymentMethod, gcashReference, mayaTransactionId, mayaPaymentId } = req.body;
+      
+      // Get or create user wallet
+      let wallet = await storage.getWallet(req.user.id);
+      if (!wallet) {
+        wallet = await storage.createWallet(req.user.id);
+      }
+
+      let transaction;
+      
+      // Process based on payment method
+      if (paymentMethod === 'gcash' && gcashReference) {
+        transaction = await storage.processGCashPayment(wallet.id, amount, gcashReference);
+      } else if (paymentMethod === 'maya' && mayaTransactionId && mayaPaymentId) {
+        transaction = await storage.processMayaPayment(wallet.id, amount, mayaTransactionId, mayaPaymentId);
+      } else {
+        // Generic wallet deposit
+        transaction = await storage.createWalletTransaction({
+          walletId: wallet.id,
+          type: 'wallet_deposit',
+          paymentMethod: paymentMethod || 'cash',
+          amount: amount.toString(),
+          description: `Wallet deposit via ${paymentMethod}`,
+          status: 'completed'
+        });
+      }
+
+      res.status(201).json(transaction);
+    } catch (error) {
+      console.error("Error processing wallet deposit:", error);
+      res.status(500).json({ error: "Failed to process wallet deposit" });
+    }
+  });
+
+  app.post("/api/wallet/withdrawal", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const { amount, paymentMethod, description } = req.body;
+      
+      const wallet = await storage.getWallet(req.user.id);
+      if (!wallet) {
+        return res.status(400).json({ error: "No wallet found" });
+      }
+
+      // Check if sufficient balance
+      const currentBalance = parseFloat(wallet.balance.toString());
+      if (currentBalance < amount) {
+        return res.status(400).json({ error: "Insufficient balance" });
+      }
+
+      const transaction = await storage.createWalletTransaction({
+        walletId: wallet.id,
+        type: 'wallet_withdrawal',
+        paymentMethod: paymentMethod || 'cash',
+        amount: amount.toString(),
+        description: description || `Wallet withdrawal via ${paymentMethod}`,
+        status: 'pending' // Withdrawals need approval
+      });
+
+      res.status(201).json(transaction);
+    } catch (error) {
+      console.error("Error processing wallet withdrawal:", error);
+      res.status(500).json({ error: "Failed to process wallet withdrawal" });
+    }
+  });
+
+  // Rider cash collection endpoint
+  app.post("/api/wallet/cash-collection", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'rider') {
+      return res.status(401).json({ error: "Unauthorized - Riders only" });
+    }
+
+    try {
+      const { amount, description, orderId } = req.body;
+      
+      const wallet = await storage.getWallet(req.user.id);
+      if (!wallet) {
+        return res.status(400).json({ error: "No wallet found" });
+      }
+
+      const transaction = await storage.createWalletTransaction({
+        walletId: wallet.id,
+        orderId,
+        type: 'cash_collection',
+        paymentMethod: 'cash',
+        amount: amount.toString(),
+        description,
+        cashHandledBy: req.user.id,
+        status: 'completed'
+      });
+
+      res.status(201).json(transaction);
+    } catch (error) {
+      console.error("Error processing cash collection:", error);
+      res.status(500).json({ error: "Failed to process cash collection" });
+    }
+  });
+
+  // Admin wallet management
+  app.get("/api/admin/wallet-transactions", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'admin') {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      // Get all wallet transactions for admin overview
+      const transactions = await db.query.walletTransactions.findMany({
+        with: {
+          wallet: {
+            with: {
+              user: true
+            }
+          }
+        },
+        orderBy: desc(walletTransactions.createdAt),
+        limit: 100 // Limit for performance
+      });
+
+      res.json(transactions);
+    } catch (error) {
+      console.error("Error fetching admin wallet transactions:", error);
+      res.status(500).json({ error: "Failed to fetch wallet transactions" });
+    }
+  });
+
+  app.patch("/api/admin/wallet-transaction/:id", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'admin') {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const { status } = req.body;
+      
+      const transaction = await storage.updateWalletTransaction(req.params.id, { status });
+      res.json(transaction);
+    } catch (error) {
+      console.error("Error updating wallet transaction:", error);
+      res.status(500).json({ error: "Failed to update wallet transaction" });
     }
   });
 

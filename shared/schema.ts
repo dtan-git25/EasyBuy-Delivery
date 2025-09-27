@@ -93,16 +93,29 @@ export const wallets = pgTable("wallets", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Philippine payment methods enum
+export const paymentMethodEnum = pgEnum("payment_method", [
+  'gcash',
+  'maya', 
+  'cod', // Cash on Delivery
+  'cash', // Direct cash payment
+  'wallet' // Internal wallet balance
+]);
+
 // Transaction types enum
 export const transactionTypeEnum = pgEnum("transaction_type", [
-  'deposit',
-  'withdrawal', 
-  'order_payment',
-  'order_refund',
-  'rider_payout',
-  'merchant_payout',
-  'fee_charge',
-  'promotion_credit'
+  'wallet_deposit', // Add funds to wallet
+  'wallet_withdrawal', // Cash out from wallet
+  'order_payment', // Customer pays for order
+  'order_refund', // Refund to customer
+  'rider_payout', // Payment to rider
+  'merchant_payout', // Payment to merchant  
+  'cash_collection', // Rider collects cash
+  'cash_remittance', // Rider deposits cash to merchant
+  'fee_charge', // Platform fees
+  'promotion_credit', // Promotional credits
+  'gcash_topup', // GCash wallet top-up
+  'maya_topup' // Maya wallet top-up
 ]);
 
 // Transaction status enum  
@@ -120,11 +133,16 @@ export const walletTransactions = pgTable("wallet_transactions", {
   orderId: varchar("order_id"), // Optional, for order-related transactions
   type: transactionTypeEnum("type").notNull(),
   status: transactionStatusEnum("status").default('pending'),
+  paymentMethod: paymentMethodEnum("payment_method").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   description: text("description"),
-  paymentMethodId: text("payment_method_id"), // Stripe payment method ID
-  stripePaymentIntentId: text("stripe_payment_intent_id"), // Stripe payment intent ID
-  metadata: jsonb("metadata"), // Additional transaction data
+  // Philippine payment provider data
+  gcashReferenceNumber: text("gcash_reference_number"), // GCash transaction reference
+  mayaTransactionId: text("maya_transaction_id"), // Maya transaction ID
+  mayaPaymentId: text("maya_payment_id"), // Maya payment ID
+  cashHandledBy: varchar("cash_handled_by"), // User ID who handled cash (for riders)
+  // Additional transaction metadata
+  metadata: jsonb("metadata"), // Store additional payment details
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -148,7 +166,7 @@ export const orders = pgTable("orders", {
   deliveryLatitude: decimal("delivery_latitude", { precision: 10, scale: 8 }),
   deliveryLongitude: decimal("delivery_longitude", { precision: 11, scale: 8 }),
   customerNotes: text("customer_notes"),
-  paymentMethod: text("payment_method").notNull().default('cash'),
+  paymentMethod: paymentMethodEnum("payment_method").notNull().default('cash'),
   phoneNumber: text("phone_number").notNull(),
   estimatedDeliveryTime: timestamp("estimated_delivery_time"),
   createdAt: timestamp("created_at").defaultNow(),

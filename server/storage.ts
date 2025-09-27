@@ -1,4 +1,4 @@
-import { users, restaurants, menuItems, riders, wallets, orders, chatMessages, systemSettings, type User, type InsertUser, type Restaurant, type InsertRestaurant, type MenuItem, type InsertMenuItem, type Rider, type InsertRider, type Order, type InsertOrder, type ChatMessage, type InsertChatMessage, type Wallet, type SystemSettings } from "@shared/schema";
+import { users, restaurants, menuItems, riders, wallets, orders, chatMessages, systemSettings, walletTransactions, type User, type InsertUser, type Restaurant, type InsertRestaurant, type MenuItem, type InsertMenuItem, type Rider, type InsertRider, type Order, type InsertOrder, type ChatMessage, type InsertChatMessage, type Wallet, type SystemSettings, type WalletTransaction, type InsertWalletTransaction } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc } from "drizzle-orm";
 import session, { SessionStore } from "express-session";
@@ -58,6 +58,18 @@ export interface IStorage {
   // System settings
   getSystemSettings(): Promise<SystemSettings | undefined>;
   updateSystemSettings(updates: Partial<SystemSettings>): Promise<SystemSettings | undefined>;
+
+  // Wallet transaction operations
+  getWalletTransactions(walletId: string): Promise<WalletTransaction[]>;
+  getWalletTransactionsByUser(userId: string): Promise<(WalletTransaction & { wallet: Wallet })[]>;
+  createWalletTransaction(transaction: InsertWalletTransaction): Promise<WalletTransaction>;
+  updateWalletTransaction(id: string, updates: Partial<WalletTransaction>): Promise<WalletTransaction | undefined>;
+  getWalletTransactionsByOrder(orderId: string): Promise<WalletTransaction[]>;
+  
+  // Philippine payment specific operations
+  processGCashPayment(walletId: string, amount: number, referenceNumber: string): Promise<WalletTransaction>;
+  processMayaPayment(walletId: string, amount: number, transactionId: string, paymentId: string): Promise<WalletTransaction>;
+  processCashTransaction(walletId: string, amount: number, handledBy: string, description: string): Promise<WalletTransaction>;
 
   sessionStore: SessionStore;
 }
@@ -296,6 +308,116 @@ export class DatabaseStorage implements IStorage {
     } else {
       const [settings] = await db.insert(systemSettings).values(updates).returning();
       return settings;
+    }
+  }
+
+  // Wallet transaction operations
+  async getWalletTransactions(walletId: string): Promise<WalletTransaction[]> {
+    return await db.query.walletTransactions.findMany({
+      where: eq(walletTransactions.walletId, walletId),
+      orderBy: desc(walletTransactions.createdAt)
+    });
+  }
+
+  async getWalletTransactionsByUser(userId: string): Promise<(WalletTransaction & { wallet: Wallet })[]> {
+    const userWallet = await db.query.wallets.findFirst({
+      where: eq(wallets.userId, userId)
+    });
+    
+    if (!userWallet) return [];
+    
+    return await db.query.walletTransactions.findMany({
+      where: eq(walletTransactions.walletId, userWallet.id),
+      with: {
+        wallet: true
+      },
+      orderBy: desc(walletTransactions.createdAt)
+    }) as (WalletTransaction & { wallet: Wallet })[];
+  }
+
+  async createWalletTransaction(transaction: InsertWalletTransaction): Promise<WalletTransaction> {
+    const [result] = await db.insert(walletTransactions)
+      .values({
+        id: crypto.randomUUID(),
+        ...transaction,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    
+    // Update wallet balance based on transaction type
+    if (transaction.type === 'wallet_deposit' || transaction.type === 'gcash_topup' || transaction.type === 'maya_topup') {
+      await this.updateWalletBalanceInternal(transaction.walletId, parseFloat(transaction.amount.toString()));
+    } else if (transaction.type === 'wallet_withdrawal' || transaction.type === 'order_payment') {
+      await this.updateWalletBalanceInternal(transaction.walletId, -parseFloat(transaction.amount.toString()));
+    }
+
+    return result;
+  }
+
+  async updateWalletTransaction(id: string, updates: Partial<WalletTransaction>): Promise<WalletTransaction | undefined> {
+    const [result] = await db.update(walletTransactions)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(walletTransactions.id, id))
+      .returning();
+    return result;
+  }
+
+  async getWalletTransactionsByOrder(orderId: string): Promise<WalletTransaction[]> {
+    return await db.query.walletTransactions.findMany({
+      where: eq(walletTransactions.orderId, orderId),
+      orderBy: desc(walletTransactions.createdAt)
+    });
+  }
+
+  // Philippine payment specific operations
+  async processGCashPayment(walletId: string, amount: number, referenceNumber: string): Promise<WalletTransaction> {
+    return await this.createWalletTransaction({
+      walletId,
+      type: 'gcash_topup',
+      paymentMethod: 'gcash',
+      amount: amount.toString(),
+      description: `GCash wallet top-up - ${referenceNumber}`,
+      gcashReferenceNumber: referenceNumber,
+      status: 'completed'
+    });
+  }
+
+  async processMayaPayment(walletId: string, amount: number, transactionId: string, paymentId: string): Promise<WalletTransaction> {
+    return await this.createWalletTransaction({
+      walletId,
+      type: 'maya_topup', 
+      paymentMethod: 'maya',
+      amount: amount.toString(),
+      description: `Maya wallet top-up - ${transactionId}`,
+      mayaTransactionId: transactionId,
+      mayaPaymentId: paymentId,
+      status: 'completed'
+    });
+  }
+
+  async processCashTransaction(walletId: string, amount: number, handledBy: string, description: string): Promise<WalletTransaction> {
+    return await this.createWalletTransaction({
+      walletId,
+      type: 'cash_collection',
+      paymentMethod: 'cash',
+      amount: amount.toString(),
+      description,
+      cashHandledBy: handledBy,
+      status: 'completed'
+    });
+  }
+
+  private async updateWalletBalanceInternal(walletId: string, amount: number): Promise<void> {
+    const wallet = await db.query.wallets.findFirst({
+      where: eq(wallets.id, walletId)
+    });
+    
+    if (wallet) {
+      const newBalance = parseFloat(wallet.balance.toString()) + amount;
+      await db.update(wallets)
+        .set({ balance: newBalance.toString(), updatedAt: new Date() })
+        .where(eq(wallets.id, walletId));
     }
   }
 }
