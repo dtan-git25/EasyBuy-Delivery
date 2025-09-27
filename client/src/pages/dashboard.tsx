@@ -15,23 +15,48 @@ export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
   const [activePortal, setActivePortal] = useState<Portal>(user?.role || 'customer');
 
-  const portalButtons = [
-    { id: 'customer' as Portal, label: 'Customer', icon: '👤' },
-    { id: 'rider' as Portal, label: 'Rider', icon: '🏍️' },
-    { id: 'merchant' as Portal, label: 'Merchant', icon: '🏪' },
-    { id: 'admin' as Portal, label: 'Admin', icon: '⚙️' },
-  ];
+  // SECURITY: Role-based access control - users can only see their own portal
+  const getAuthorizedPortals = () => {
+    if (!user) return [];
+    
+    // Each user can only access their own role's portal
+    switch (user.role) {
+      case 'customer':
+        return [{ id: 'customer' as Portal, label: 'Customer', icon: '👤' }];
+      case 'rider':
+        return [{ id: 'rider' as Portal, label: 'Rider', icon: '🏍️' }];
+      case 'merchant':
+        return [{ id: 'merchant' as Portal, label: 'Merchant', icon: '🏪' }];
+      case 'admin':
+        return [{ id: 'admin' as Portal, label: 'Admin', icon: '⚙️' }];
+      default:
+        return [{ id: 'customer' as Portal, label: 'Customer', icon: '👤' }];
+    }
+  };
 
+  const portalButtons = getAuthorizedPortals();
+
+  // SECURITY: Enforce role-based portal access
   const renderPortal = () => {
+    // Only render portal if user has access to it
+    if (!user) return <CustomerPortal />;
+    
+    // Users can only access their own role's portal
+    if (activePortal !== user.role) {
+      // Force active portal to match user role if unauthorized access attempted
+      setActivePortal(user.role);
+      return null;
+    }
+    
     switch (activePortal) {
       case 'customer':
-        return <CustomerPortal />;
+        return user.role === 'customer' ? <CustomerPortal /> : <CustomerPortal />;
       case 'rider':
-        return <RiderPortal />;
+        return user.role === 'rider' ? <RiderPortal /> : <CustomerPortal />;
       case 'merchant':
-        return <MerchantPortal />;
+        return user.role === 'merchant' ? <MerchantPortal /> : <CustomerPortal />;
       case 'admin':
-        return <AdminPortal />;
+        return user.role === 'admin' ? <AdminPortal /> : <CustomerPortal />;
       default:
         return <CustomerPortal />;
     }
