@@ -1,0 +1,303 @@
+import { users, restaurants, menuItems, riders, wallets, orders, chatMessages, systemSettings, type User, type InsertUser, type Restaurant, type InsertRestaurant, type MenuItem, type InsertMenuItem, type Rider, type InsertRider, type Order, type InsertOrder, type ChatMessage, type InsertChatMessage, type Wallet, type SystemSettings } from "@shared/schema";
+import { db } from "./db";
+import { eq, and, desc, asc } from "drizzle-orm";
+import session, { SessionStore } from "express-session";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
+
+const PostgresSessionStore = connectPg(session);
+
+export interface IStorage {
+  // User operations
+  getUser(id: string): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
+  getUsersByRole(role: string): Promise<User[]>;
+
+  // Restaurant operations
+  getRestaurants(): Promise<Restaurant[]>;
+  getRestaurant(id: string): Promise<Restaurant | undefined>;
+  getRestaurantsByOwner(ownerId: string): Promise<Restaurant[]>;
+  createRestaurant(restaurant: InsertRestaurant): Promise<Restaurant>;
+  updateRestaurant(id: string, updates: Partial<Restaurant>): Promise<Restaurant | undefined>;
+
+  // Menu operations
+  getMenuItems(restaurantId: string): Promise<MenuItem[]>;
+  getMenuItem(id: string): Promise<MenuItem | undefined>;
+  createMenuItem(item: InsertMenuItem): Promise<MenuItem>;
+  updateMenuItem(id: string, updates: Partial<MenuItem>): Promise<MenuItem | undefined>;
+
+  // Rider operations
+  getRiders(): Promise<(Rider & { user: User })[]>;
+  getRider(id: string): Promise<(Rider & { user: User }) | undefined>;
+  getRiderByUserId(userId: string): Promise<Rider | undefined>;
+  createRider(rider: InsertRider): Promise<Rider>;
+  updateRider(id: string, updates: Partial<Rider>): Promise<Rider | undefined>;
+
+  // Wallet operations
+  getWallet(userId: string): Promise<Wallet | undefined>;
+  createWallet(userId: string): Promise<Wallet>;
+  updateWalletBalance(userId: string, amount: number): Promise<Wallet | undefined>;
+
+  // Order operations
+  getOrders(): Promise<Order[]>;
+  getOrder(id: string): Promise<Order | undefined>;
+  getOrdersByCustomer(customerId: string): Promise<Order[]>;
+  getOrdersByRestaurant(restaurantId: string): Promise<Order[]>;
+  getOrdersByRider(riderId: string): Promise<Order[]>;
+  getPendingOrders(): Promise<Order[]>;
+  createOrder(order: InsertOrder): Promise<Order>;
+  updateOrder(id: string, updates: Partial<Order>): Promise<Order | undefined>;
+
+  // Chat operations
+  getChatMessages(orderId: string): Promise<(ChatMessage & { sender: User })[]>;
+  createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+
+  // System settings
+  getSystemSettings(): Promise<SystemSettings | undefined>;
+  updateSystemSettings(updates: Partial<SystemSettings>): Promise<SystemSettings | undefined>;
+
+  sessionStore: SessionStore;
+}
+
+export class DatabaseStorage implements IStorage {
+  sessionStore: SessionStore;
+
+  constructor() {
+    this.sessionStore = new PostgresSessionStore({ 
+      pool, 
+      createTableIfMissing: true 
+    });
+  }
+
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(insertUser).returning();
+    
+    // Create wallet for all users
+    await this.createWallet(user.id);
+    
+    return user;
+  }
+
+  async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
+    const [user] = await db.update(users).set(updates).where(eq(users.id, id)).returning();
+    return user || undefined;
+  }
+
+  async getUsersByRole(role: string): Promise<User[]> {
+    return await db.select().from(users).where(eq(users.role, role as any));
+  }
+
+  async getRestaurants(): Promise<Restaurant[]> {
+    return await db.select().from(restaurants).where(eq(restaurants.isActive, true));
+  }
+
+  async getRestaurant(id: string): Promise<Restaurant | undefined> {
+    const [restaurant] = await db.select().from(restaurants).where(eq(restaurants.id, id));
+    return restaurant || undefined;
+  }
+
+  async getRestaurantsByOwner(ownerId: string): Promise<Restaurant[]> {
+    return await db.select().from(restaurants).where(eq(restaurants.ownerId, ownerId));
+  }
+
+  async createRestaurant(restaurant: InsertRestaurant): Promise<Restaurant> {
+    const [newRestaurant] = await db.insert(restaurants).values(restaurant).returning();
+    return newRestaurant;
+  }
+
+  async updateRestaurant(id: string, updates: Partial<Restaurant>): Promise<Restaurant | undefined> {
+    const [restaurant] = await db.update(restaurants).set(updates).where(eq(restaurants.id, id)).returning();
+    return restaurant || undefined;
+  }
+
+  async getMenuItems(restaurantId: string): Promise<MenuItem[]> {
+    return await db.select().from(menuItems).where(eq(menuItems.restaurantId, restaurantId));
+  }
+
+  async getMenuItem(id: string): Promise<MenuItem | undefined> {
+    const [item] = await db.select().from(menuItems).where(eq(menuItems.id, id));
+    return item || undefined;
+  }
+
+  async createMenuItem(item: InsertMenuItem): Promise<MenuItem> {
+    const [newItem] = await db.insert(menuItems).values(item).returning();
+    return newItem;
+  }
+
+  async updateMenuItem(id: string, updates: Partial<MenuItem>): Promise<MenuItem | undefined> {
+    const [item] = await db.update(menuItems).set(updates).where(eq(menuItems.id, id)).returning();
+    return item || undefined;
+  }
+
+  async getRiders(): Promise<(Rider & { user: User })[]> {
+    const result = await db
+      .select()
+      .from(riders)
+      .leftJoin(users, eq(riders.userId, users.id));
+    
+    return result.map(row => ({
+      ...row.riders,
+      user: row.users!
+    }));
+  }
+
+  async getRider(id: string): Promise<(Rider & { user: User }) | undefined> {
+    const [result] = await db
+      .select()
+      .from(riders)
+      .leftJoin(users, eq(riders.userId, users.id))
+      .where(eq(riders.id, id));
+    
+    if (!result) return undefined;
+    
+    return {
+      ...result.riders,
+      user: result.users!
+    };
+  }
+
+  async getRiderByUserId(userId: string): Promise<Rider | undefined> {
+    const [rider] = await db.select().from(riders).where(eq(riders.userId, userId));
+    return rider || undefined;
+  }
+
+  async createRider(rider: InsertRider): Promise<Rider> {
+    const [newRider] = await db.insert(riders).values(rider).returning();
+    return newRider;
+  }
+
+  async updateRider(id: string, updates: Partial<Rider>): Promise<Rider | undefined> {
+    const [rider] = await db.update(riders).set(updates).where(eq(riders.id, id)).returning();
+    return rider || undefined;
+  }
+
+  async getWallet(userId: string): Promise<Wallet | undefined> {
+    const [wallet] = await db.select().from(wallets).where(eq(wallets.userId, userId));
+    return wallet || undefined;
+  }
+
+  async createWallet(userId: string): Promise<Wallet> {
+    const [wallet] = await db.insert(wallets).values({ userId }).returning();
+    return wallet;
+  }
+
+  async updateWalletBalance(userId: string, amount: number): Promise<Wallet | undefined> {
+    const [wallet] = await db
+      .update(wallets)
+      .set({ balance: String(amount) })
+      .where(eq(wallets.userId, userId))
+      .returning();
+    return wallet || undefined;
+  }
+
+  async getOrders(): Promise<Order[]> {
+    return await db.select().from(orders).orderBy(desc(orders.createdAt));
+  }
+
+  async getOrder(id: string): Promise<Order | undefined> {
+    const [order] = await db.select().from(orders).where(eq(orders.id, id));
+    return order || undefined;
+  }
+
+  async getOrdersByCustomer(customerId: string): Promise<Order[]> {
+    return await db
+      .select()
+      .from(orders)
+      .where(eq(orders.customerId, customerId))
+      .orderBy(desc(orders.createdAt));
+  }
+
+  async getOrdersByRestaurant(restaurantId: string): Promise<Order[]> {
+    return await db
+      .select()
+      .from(orders)
+      .where(eq(orders.restaurantId, restaurantId))
+      .orderBy(desc(orders.createdAt));
+  }
+
+  async getOrdersByRider(riderId: string): Promise<Order[]> {
+    return await db
+      .select()
+      .from(orders)
+      .where(eq(orders.riderId, riderId))
+      .orderBy(desc(orders.createdAt));
+  }
+
+  async getPendingOrders(): Promise<Order[]> {
+    return await db
+      .select()
+      .from(orders)
+      .where(eq(orders.status, 'pending'))
+      .orderBy(asc(orders.createdAt));
+  }
+
+  async createOrder(order: InsertOrder): Promise<Order> {
+    const [newOrder] = await db.insert(orders).values(order).returning();
+    return newOrder;
+  }
+
+  async updateOrder(id: string, updates: Partial<Order>): Promise<Order | undefined> {
+    const [order] = await db.update(orders).set(updates).where(eq(orders.id, id)).returning();
+    return order || undefined;
+  }
+
+  async getChatMessages(orderId: string): Promise<(ChatMessage & { sender: User })[]> {
+    const result = await db
+      .select()
+      .from(chatMessages)
+      .leftJoin(users, eq(chatMessages.senderId, users.id))
+      .where(eq(chatMessages.orderId, orderId))
+      .orderBy(asc(chatMessages.timestamp));
+    
+    return result.map(row => ({
+      ...row.chat_messages!,
+      sender: row.users!
+    }));
+  }
+
+  async createChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
+    const [newMessage] = await db.insert(chatMessages).values(message).returning();
+    return newMessage;
+  }
+
+  async getSystemSettings(): Promise<SystemSettings | undefined> {
+    const [settings] = await db.select().from(systemSettings).limit(1);
+    return settings || undefined;
+  }
+
+  async updateSystemSettings(updates: Partial<SystemSettings>): Promise<SystemSettings | undefined> {
+    const existing = await this.getSystemSettings();
+    
+    if (existing) {
+      const [settings] = await db
+        .update(systemSettings)
+        .set(updates)
+        .where(eq(systemSettings.id, existing.id))
+        .returning();
+      return settings || undefined;
+    } else {
+      const [settings] = await db.insert(systemSettings).values(updates).returning();
+      return settings;
+    }
+  }
+}
+
+export const storage = new DatabaseStorage();
