@@ -17,19 +17,6 @@ export default function AdminPortal() {
 
   const { data: systemStats } = useQuery({
     queryKey: ["/api/admin/stats"],
-    queryFn: async () => {
-      // Mock data for stats - in real app this would come from API
-      return {
-        totalOrders: 2847,
-        totalRevenue: 1245680,
-        activeRiders: 147,
-        totalRestaurants: 89,
-        ordersGrowth: 12,
-        revenueGrowth: 8,
-        ridersGrowth: 5,
-        restaurantsGrowth: 3
-      };
-    }
   });
 
   const { data: settings } = useQuery({
@@ -81,10 +68,10 @@ export default function AdminPortal() {
   });
 
   const [tempSettings, setTempSettings] = useState({
-    baseDeliveryFee: settings?.baseDeliveryFee || '25',
-    perKmRate: settings?.perKmRate || '15',
-    convenienceFee: settings?.convenienceFee || '10',
-    showConvenienceFee: settings?.showConvenienceFee ?? true,
+    baseDeliveryFee: (settings as any)?.baseDeliveryFee || '25',
+    perKmRate: (settings as any)?.perKmRate || '15',
+    convenienceFee: (settings as any)?.convenienceFee || '10',
+    showConvenienceFee: (settings as any)?.showConvenienceFee ?? true,
   });
 
   const updateSetting = (key: string, value: any) => {
