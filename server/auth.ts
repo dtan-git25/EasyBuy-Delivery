@@ -241,6 +241,65 @@ export function setupAuth(app: Express) {
     res.json(req.user);
   });
 
+  // Owner-only endpoint to create admin/owner accounts
+  app.post("/api/admin/create-system-account", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      // Only owners can create admin/owner accounts
+      if (req.user.role !== 'owner') {
+        return res.status(403).json({ error: "Only owners can create administrative accounts" });
+      }
+
+      const { username, email, password, role, firstName, lastName, middleName } = req.body;
+
+      // Validate required fields
+      if (!username || !email || !password || !role || !firstName || !lastName) {
+        return res.status(400).json({ error: "All required fields must be provided" });
+      }
+
+      // Validate role
+      if (!['admin', 'owner'].includes(role)) {
+        return res.status(400).json({ error: "Role must be either 'admin' or 'owner'" });
+      }
+
+      // Validate password strength
+      if (password.length < 6) {
+        return res.status(400).json({ error: "Password must be at least 6 characters" });
+      }
+
+      // Create the system account
+      const newUser = await createSystemAccount({
+        username,
+        email,
+        password,
+        role,
+        firstName,
+        lastName,
+        middleName
+      });
+
+      // Return user without password
+      const { password: _, ...userWithoutPassword } = newUser;
+      res.status(201).json(userWithoutPassword);
+
+    } catch (error: any) {
+      console.error("System account creation error:", error);
+      
+      // Handle specific error types
+      if (error.message === "Username already exists") {
+        return res.status(400).json({ error: "Username already exists" });
+      }
+      if (error.message === "Email already registered") {
+        return res.status(400).json({ error: "Email already registered" });
+      }
+
+      res.status(500).json({ error: "Failed to create system account" });
+    }
+  });
+
   // Password reset request endpoint
   app.post("/api/forgot-password", async (req, res) => {
     try {

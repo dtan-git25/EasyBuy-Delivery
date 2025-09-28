@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,11 +10,31 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ShoppingCart, DollarSign, Bike, Store, Download, Eye, Check, X, Clock, Users, TrendingUp, FileText, AlertCircle } from "lucide-react";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { ShoppingCart, DollarSign, Bike, Store, Download, Eye, Check, X, Clock, Users, TrendingUp, FileText, AlertCircle, Crown, UserPlus } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+
+const systemAccountSchema = z.object({
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  role: z.enum(["admin", "owner"]),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  middleName: z.string().optional(),
+});
+
+type SystemAccountForm = z.infer<typeof systemAccountSchema>;
 
 export default function AdminPortal() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
 
   const { data: systemStats } = useQuery({
     queryKey: ["/api/admin/stats"],
@@ -92,6 +113,19 @@ export default function AdminPortal() {
     showConvenienceFee: (settings as any)?.showConvenienceFee ?? true,
   });
 
+  const systemAccountForm = useForm<SystemAccountForm>({
+    resolver: zodResolver(systemAccountSchema),
+    defaultValues: {
+      username: "",
+      email: "",
+      password: "",
+      role: "admin",
+      firstName: "",
+      lastName: "",
+      middleName: "",
+    },
+  });
+
   const updateSetting = (key: string, value: any) => {
     updateSettingsMutation.mutate({ [key]: value });
   };
@@ -113,6 +147,36 @@ export default function AdminPortal() {
       updates: { markup } 
     });
   };
+
+  const createSystemAccountMutation = useMutation({
+    mutationFn: async (data: SystemAccountForm) => {
+      const response = await apiRequest("POST", "/api/admin/create-system-account", data);
+      return response.json();
+    },
+    onSuccess: (newUser) => {
+      toast({
+        title: "Account created successfully",
+        description: `${newUser.role === 'admin' ? 'Admin' : 'Owner'} account for ${newUser.firstName} ${newUser.lastName} has been created.`,
+        variant: "default",
+      });
+      systemAccountForm.reset();
+      setIsCreatingAccount(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to create account",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onCreateSystemAccount = (data: SystemAccountForm) => {
+    createSystemAccountMutation.mutate(data);
+  };
+
+  // Check if current user is owner
+  const isOwner = user?.role === 'owner';
 
   return (
     <div>
@@ -221,7 +285,7 @@ export default function AdminPortal() {
 
           {/* Admin Navigation Tabs */}
           <Tabs defaultValue="dashboard" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className={`grid w-full ${isOwner ? 'grid-cols-6' : 'grid-cols-5'}`}>
               <TabsTrigger value="dashboard" data-testid="tab-dashboard">Dashboard</TabsTrigger>
               <TabsTrigger value="approvals" data-testid="tab-approvals">
                 Pending Approvals
@@ -238,6 +302,12 @@ export default function AdminPortal() {
               </TabsTrigger>
               <TabsTrigger value="settings" data-testid="tab-settings">Settings</TabsTrigger>
               <TabsTrigger value="reports" data-testid="tab-reports">Reports</TabsTrigger>
+              {isOwner && (
+                <TabsTrigger value="user-management" data-testid="tab-user-management">
+                  <Crown className="w-4 h-4 mr-2" />
+                  User Management
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="dashboard" className="space-y-6">
@@ -716,6 +786,244 @@ export default function AdminPortal() {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            {/* Owner-only User Management Tab */}
+            {isOwner && (
+              <TabsContent value="user-management" className="space-y-6">
+                <div className="grid lg:grid-cols-2 gap-6">
+                  {/* Create System Account Form */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <Crown className="mr-2 h-5 w-5 text-primary" />
+                        Create Administrative Account
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Create new Admin or Owner accounts. Only Owners can perform this action.
+                      </p>
+                    </CardHeader>
+                    <CardContent>
+                      {!isCreatingAccount ? (
+                        <Button 
+                          onClick={() => setIsCreatingAccount(true)}
+                          className="w-full"
+                          data-testid="button-start-create-account"
+                        >
+                          <UserPlus className="mr-2 h-4 w-4" />
+                          Create New Account
+                        </Button>
+                      ) : (
+                        <Form {...systemAccountForm}>
+                          <form onSubmit={systemAccountForm.handleSubmit(onCreateSystemAccount)} className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <FormField
+                                control={systemAccountForm.control}
+                                name="firstName"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>First Name</FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        {...field} 
+                                        placeholder="Enter first name"
+                                        data-testid="input-system-first-name"
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={systemAccountForm.control}
+                                name="lastName"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Last Name</FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        {...field} 
+                                        placeholder="Enter last name"
+                                        data-testid="input-system-last-name"
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+
+                            <FormField
+                              control={systemAccountForm.control}
+                              name="middleName"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Middle Name (Optional)</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      {...field} 
+                                      placeholder="Enter middle name"
+                                      data-testid="input-system-middle-name"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={systemAccountForm.control}
+                              name="role"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Account Role</FormLabel>
+                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <FormControl>
+                                      <SelectTrigger data-testid="select-system-role">
+                                        <SelectValue placeholder="Select account role" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      <SelectItem value="admin">Admin - System administration</SelectItem>
+                                      <SelectItem value="owner">Owner - Full system control</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={systemAccountForm.control}
+                              name="username"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Username</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      {...field} 
+                                      placeholder="Enter username"
+                                      data-testid="input-system-username"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={systemAccountForm.control}
+                              name="email"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Email Address</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      {...field} 
+                                      type="email"
+                                      placeholder="Enter email address"
+                                      data-testid="input-system-email"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={systemAccountForm.control}
+                              name="password"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Password</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      {...field} 
+                                      type="password"
+                                      placeholder="Enter secure password"
+                                      data-testid="input-system-password"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <div className="flex gap-2 pt-4">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full"
+                                onClick={() => {
+                                  setIsCreatingAccount(false);
+                                  systemAccountForm.reset();
+                                }}
+                                data-testid="button-cancel-create-account"
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                type="submit"
+                                className="w-full"
+                                disabled={createSystemAccountMutation.isPending}
+                                data-testid="button-create-system-account"
+                              >
+                                {createSystemAccountMutation.isPending ? "Creating..." : "Create Account"}
+                              </Button>
+                            </div>
+                          </form>
+                        </Form>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* System Account Info */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <AlertCircle className="mr-2 h-5 w-5 text-orange-500" />
+                        Important Information
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+                        <h4 className="font-semibold text-orange-800 dark:text-orange-200 mb-2">
+                          Account Creation Guidelines
+                        </h4>
+                        <ul className="text-sm text-orange-700 dark:text-orange-300 space-y-2">
+                          <li>• Admin accounts can manage users, approvals, and system settings</li>
+                          <li>• Owner accounts have full system control including user management</li>
+                          <li>• All created accounts are automatically approved and active</li>
+                          <li>• Passwords must be at least 6 characters long</li>
+                          <li>• Usernames and emails must be unique across the system</li>
+                        </ul>
+                      </div>
+
+                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                        <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">
+                          Security Recommendations
+                        </h4>
+                        <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-2">
+                          <li>• Use strong, unique passwords for administrative accounts</li>
+                          <li>• Provide clear naming conventions for usernames</li>
+                          <li>• Regularly review and audit administrative access</li>
+                          <li>• Create Owner accounts sparingly - only for trusted administrators</li>
+                        </ul>
+                      </div>
+
+                      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                        <h4 className="font-semibold text-red-800 dark:text-red-200 mb-2">
+                          ⚠️ Owner Account Warning
+                        </h4>
+                        <p className="text-sm text-red-700 dark:text-red-300">
+                          Owner accounts have unrestricted access to all system functions including creating other Owner accounts. 
+                          Only create Owner accounts for trusted system administrators.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+            )}
           </Tabs>
         </div>
       </section>
