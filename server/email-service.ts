@@ -21,20 +21,47 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
   try {
     const apiKey = process.env.SENDGRID_API_KEY;
     if (!apiKey) {
-      console.log('Email would be sent:', params);
+      console.log('SENDGRID_API_KEY not set. Email would be sent:', params);
       return true; // Simulate success when no API key
     }
 
-    await mailService.send({
+    console.log('Attempting to send email via SendGrid:', {
+      to: params.to,
+      from: params.from,
+      subject: params.subject,
+      hasHtml: !!params.html,
+      hasText: !!params.text
+    });
+
+    const result = await mailService.send({
       to: params.to,
       from: params.from,
       subject: params.subject,
       text: params.text || '',
       html: params.html || '',
     });
+
+    console.log('SendGrid email sent successfully:', {
+      to: params.to,
+      messageId: result[0]?.headers?.['x-message-id'],
+      statusCode: result[0]?.statusCode
+    });
     return true;
-  } catch (error) {
-    console.error('SendGrid email error:', error);
+  } catch (error: any) {
+    console.error('SendGrid email error:', {
+      message: error.message,
+      code: error.code,
+      statusCode: error.statusCode,
+      response: error.response?.body || error.response,
+      to: params.to,
+      from: params.from
+    });
+    
+    // Log specific SendGrid error details
+    if (error.response && error.response.body) {
+      console.error('SendGrid API response body:', JSON.stringify(error.response.body, null, 2));
+    }
+    
     return false;
   }
 }

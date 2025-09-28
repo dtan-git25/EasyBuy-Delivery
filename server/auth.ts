@@ -241,6 +241,62 @@ export function setupAuth(app: Express) {
     res.json(req.user);
   });
 
+  // Test endpoint for SendGrid configuration (Owner only)
+  app.post("/api/test-email", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      // Only owners can test email configuration
+      if (req.user.role !== 'owner') {
+        return res.status(403).json({ error: "Only owners can test email configuration" });
+      }
+
+      const { testEmail } = req.body;
+      if (!testEmail) {
+        return res.status(400).json({ error: "Test email address is required" });
+      }
+
+      console.log("Testing SendGrid configuration...");
+      
+      // Test email
+      const emailSent = await sendEmail({
+        to: testEmail,
+        from: "noreply@easybuydelivery.com",
+        subject: "Easy Buy Delivery - Email Configuration Test",
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #059669;">Email Configuration Test</h2>
+            <p>This is a test email to verify SendGrid configuration.</p>
+            <p>If you received this email, the SendGrid integration is working correctly.</p>
+            <p>Timestamp: ${new Date().toISOString()}</p>
+          </div>
+        `,
+        text: `Email Configuration Test - If you received this email, SendGrid is working. Timestamp: ${new Date().toISOString()}`
+      });
+
+      if (emailSent) {
+        res.status(200).json({ 
+          success: true, 
+          message: "Test email sent successfully. Check the recipient inbox." 
+        });
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          message: "Failed to send test email. Check server logs for details." 
+        });
+      }
+
+    } catch (error) {
+      console.error("Email test error:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Email test failed with error. Check server logs for details." 
+      });
+    }
+  });
+
   // Owner-only endpoint to create admin/owner accounts
   app.post("/api/admin/create-system-account", async (req, res) => {
     try {
