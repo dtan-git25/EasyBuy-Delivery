@@ -11,6 +11,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Bike, Store, Users, Settings, Upload, Camera } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
 import { 
   customerRegistrationSchema, 
   riderRegistrationSchema, 
@@ -31,6 +32,8 @@ export default function AuthPage() {
   const { user, loginMutation, registerMutation, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState("login");
   const [registerRole, setRegisterRole] = useState<"customer" | "rider" | "merchant">("customer");
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordMessage, setForgotPasswordMessage] = useState("");
 
   // Initialize login form
   const loginForm = useForm<LoginForm>({
@@ -38,6 +41,15 @@ export default function AuthPage() {
     defaultValues: {
       username: "",
       password: "",
+    },
+  });
+
+  const forgotPasswordForm = useForm<{ email: string }>({
+    resolver: zodResolver(z.object({
+      email: z.string().email("Invalid email address")
+    })),
+    defaultValues: {
+      email: "",
     },
   });
 
@@ -121,6 +133,34 @@ export default function AuthPage() {
 
   const onLogin = (data: LoginForm) => {
     loginMutation.mutate(data);
+  };
+
+  const forgotPasswordMutation = useMutation({
+    mutationFn: async (data: { email: string }) => {
+      const res = await fetch("/api/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        credentials: "include",
+      });
+      
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.error || "Failed to send reset email");
+      }
+      return result;
+    },
+    onSuccess: (data) => {
+      setForgotPasswordMessage(data.message);
+      forgotPasswordForm.reset();
+    },
+    onError: (error: Error) => {
+      setForgotPasswordMessage(error.message);
+    },
+  });
+
+  const onForgotPassword = (data: { email: string }) => {
+    forgotPasswordMutation.mutate(data);
   };
 
   const onRegister = async (data: CustomerRegistration | RiderRegistration | MerchantRegistration) => {
@@ -261,7 +301,82 @@ export default function AuthPage() {
                       >
                         {loginMutation.isPending ? "Signing in..." : "Sign In"}
                       </Button>
+
+                      <div className="text-center">
+                        <Button
+                          type="button"
+                          variant="link"
+                          className="text-sm"
+                          data-testid="link-forgot-password"
+                          onClick={() => setShowForgotPassword(true)}
+                        >
+                          Forgot your password?
+                        </Button>
+                      </div>
                     </form>
+
+                    {/* Forgot Password Modal/Form */}
+                    {showForgotPassword && (
+                      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <Card className="w-full max-w-md mx-4">
+                          <CardHeader>
+                            <CardTitle>Reset Password</CardTitle>
+                            <CardDescription>
+                              Enter your email address and we'll send you a link to reset your password.
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <form onSubmit={forgotPasswordForm.handleSubmit(onForgotPassword)} className="space-y-4">
+                              <div>
+                                <Label htmlFor="forgot-email">Email Address</Label>
+                                <Input
+                                  id="forgot-email"
+                                  data-testid="input-forgot-email"
+                                  {...forgotPasswordForm.register("email")}
+                                  type="email"
+                                  placeholder="Enter your email"
+                                />
+                                {forgotPasswordForm.formState.errors.email && (
+                                  <p className="text-sm text-destructive mt-1">
+                                    {forgotPasswordForm.formState.errors.email.message}
+                                  </p>
+                                )}
+                              </div>
+
+                              {forgotPasswordMessage && (
+                                <div className="text-sm p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                                  {forgotPasswordMessage}
+                                </div>
+                              )}
+
+                              <div className="flex gap-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  className="w-full"
+                                  data-testid="button-cancel-forgot-password"
+                                  onClick={() => {
+                                    setShowForgotPassword(false);
+                                    setForgotPasswordMessage("");
+                                    forgotPasswordForm.reset();
+                                  }}
+                                >
+                                  Cancel
+                                </Button>
+                                <Button
+                                  type="submit"
+                                  className="w-full"
+                                  data-testid="button-send-reset-email"
+                                  disabled={forgotPasswordMutation.isPending}
+                                >
+                                  {forgotPasswordMutation.isPending ? "Sending..." : "Send Reset Link"}
+                                </Button>
+                              </div>
+                            </form>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    )}
                   </TabsContent>
 
                   <TabsContent value="register">

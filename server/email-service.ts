@@ -107,5 +107,36 @@ export const emailTemplates = {
       </div>
     `,
     text: `Your merchant account for ${storeName} has been approved! Username: ${username}, Password: ${password}`
+  }),
+
+  // Password reset email template
+  passwordReset: (firstName: string, resetToken: string, resetLink: string) => ({
+    subject: "Easy Buy Delivery - Password Reset Request",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #059669;">Password Reset Request</h2>
+        <p>Hi ${firstName},</p>
+        <p>We received a request to reset your password for your Easy Buy Delivery account.</p>
+        
+        <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+          <h3>Reset Your Password</h3>
+          <p>Click the button below to reset your password:</p>
+          <a href="${resetLink}" style="display: inline-block; background-color: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 0;">Reset Password</a>
+          <p style="font-size: 14px; color: #6b7280; margin-top: 15px;">This link will expire in 1 hour for security</p>
+        </div>
+        
+        <p style="font-size: 14px; color: #6b7280;">
+          If you didn't request this password reset, please ignore this email. Your password will remain unchanged.
+        </p>
+        
+        <p style="font-size: 14px; color: #6b7280;">
+          If the button doesn't work, copy and paste this link in your browser:<br>
+          ${resetLink}
+        </p>
+        
+        <p>Stay safe,<br>Easy Buy Delivery Team</p>
+      </div>
+    `,
+    text: `Password reset requested for your Easy Buy Delivery account. Reset your password using this link: ${resetLink} (expires in 1 hour)`
   })
 };
