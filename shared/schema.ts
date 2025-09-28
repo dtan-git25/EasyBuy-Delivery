@@ -66,6 +66,11 @@ export const users = pgTable("users", {
   isActive: boolean("is_active").default(true),
   otpCode: text("otp_code"),
   otpExpiry: timestamp("otp_expiry"),
+  
+  // Password reset fields
+  passwordResetToken: text("password_reset_token"),
+  passwordResetExpiry: timestamp("password_reset_expiry"),
+  
   lastLogin: timestamp("last_login"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

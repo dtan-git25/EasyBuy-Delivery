@@ -1,6 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { createSystemAccount } from "./auth";
+import { storage } from "./storage";
 
 const app = express();
 app.use(express.json());
@@ -36,8 +38,38 @@ app.use((req, res, next) => {
   next();
 });
 
+// Initialize default system accounts
+async function initializeSystemAccounts() {
+  try {
+    // Check if an owner account already exists
+    const ownerUsers = await storage.getUsersByRole('owner');
+    const ownerExists = ownerUsers.length > 0;
+    
+    if (!ownerExists) {
+      log("Creating default Owner account...");
+      await createSystemAccount({
+        username: "owner",
+        email: "owner@easybuydelivery.com", 
+        password: "EasyBuyOwner2024!",
+        role: "owner",
+        firstName: "System",
+        lastName: "Owner",
+        middleName: "Admin"
+      });
+      log("Default Owner account created successfully!");
+    } else {
+      log("Owner account already exists");
+    }
+  } catch (error) {
+    log(`Error initializing system accounts: ${error}`);
+  }
+}
+
 (async () => {
   const server = await registerRoutes(app);
+
+  // Initialize system accounts
+  await initializeSystemAccounts();
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

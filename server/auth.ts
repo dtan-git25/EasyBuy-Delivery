@@ -46,6 +46,67 @@ async function comparePasswords(supplied: string, stored: string) {
   }
 }
 
+// Helper function to create admin/owner accounts
+export async function createSystemAccount(userData: {
+  username: string;
+  email: string;
+  password: string;
+  role: 'admin' | 'owner';
+  firstName: string;
+  lastName: string;
+  middleName?: string;
+}) {
+  // Check for existing username
+  const existingUser = await storage.getUserByUsername(userData.username);
+  if (existingUser) {
+    throw new Error("Username already exists");
+  }
+
+  // Check for existing email
+  const existingEmail = await storage.getUserByEmail(userData.email);
+  if (existingEmail) {
+    throw new Error("Email already registered");
+  }
+
+  // Create user with hashed password
+  const hashedPassword = await hashPassword(userData.password);
+  
+  const newUser = await storage.createUser({
+    username: userData.username,
+    email: userData.email,
+    password: hashedPassword,
+    role: userData.role,
+    firstName: userData.firstName,
+    middleName: userData.middleName || null,
+    lastName: userData.lastName,
+    
+    // Default values for required fields
+    prefix: null,
+    age: null,
+    gender: null,
+    phone: null,
+    lotHouseNo: null,
+    street: null,
+    barangay: null,
+    cityMunicipality: null,
+    province: null,
+    landmark: null,
+    driversLicenseNo: null,
+    licenseValidityDate: null,
+    storeName: null,
+    storeAddress: null,
+    storeContactNo: null,
+    
+    // System fields - Admin and Owner are auto-approved
+    approvalStatus: 'approved' as const,
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  });
+
+  return newUser;
+}
+
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET!,
