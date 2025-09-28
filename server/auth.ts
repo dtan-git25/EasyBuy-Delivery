@@ -72,10 +72,50 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ error: "Email already registered" });
       }
 
-      const user = await storage.createUser({
-        ...req.body,
+      // Map frontend field names to database column names
+      const userData = {
+        username: req.body.username,
+        email: req.body.email,
         password: await hashPassword(req.body.password),
-      });
+        role: req.body.role,
+        
+        // Personal information mapping
+        prefix: req.body.prefix || null,
+        firstName: req.body.firstName || null,
+        middleName: req.body.middleName || null,
+        lastName: req.body.lastName || null,
+        age: req.body.age || null,
+        gender: req.body.gender || null,
+        
+        // Address mapping
+        lotHouseNo: req.body.lotHouseNo || null,
+        street: req.body.street || null,
+        barangay: req.body.barangay || null,
+        cityMunicipality: req.body.cityMunicipality || null,
+        province: req.body.province || null,
+        landmark: req.body.landmark || null,
+        
+        // Contact information
+        phone: req.body.phone || null,
+        
+        // Rider-specific fields
+        driversLicenseNo: req.body.driversLicenseNo || null,
+        licenseValidityDate: req.body.licenseValidityDate ? new Date(req.body.licenseValidityDate) : null,
+        
+        // Merchant-specific fields
+        storeName: req.body.storeName || null,
+        storeAddress: req.body.storeAddress || null,
+        storeContactNo: req.body.storeContactNo || null,
+        ownerName: req.body.ownerName || null,
+        
+        // System fields
+        approvalStatus: req.body.role === 'customer' || req.body.role === 'admin' ? 'approved' : 'pending',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      const user = await storage.createUser(userData);
 
       req.login(user, (err) => {
         if (err) return next(err);
@@ -92,6 +132,11 @@ export function setupAuth(app: Express) {
         if (error?.constraint === 'users_username_unique') {
           return res.status(400).json({ error: "Username already exists" });
         }
+      }
+      
+      // Handle not-null constraint violations
+      if (error?.code === '23502') {
+        return res.status(400).json({ error: `Missing required field: ${error?.column}` });
       }
       
       // Handle other errors
