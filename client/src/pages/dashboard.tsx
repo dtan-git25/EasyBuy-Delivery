@@ -9,11 +9,11 @@ import AdminPortal from "@/components/portals/admin-portal";
 import ChatWidget from "@/components/chat/chat-widget";
 import { cn } from "@/lib/utils";
 
-type Portal = 'customer' | 'rider' | 'merchant' | 'admin';
+type Portal = 'customer' | 'rider' | 'merchant' | 'admin' | 'owner';
 
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
-  const [activePortal, setActivePortal] = useState<Portal>(user?.role || 'customer');
+  const [activePortal, setActivePortal] = useState<Portal>((user?.role === 'owner' ? 'admin' : user?.role) || 'customer');
 
   // SECURITY: Role-based access control - users can only see their own portal
   const getAuthorizedPortals = () => {
@@ -29,6 +29,8 @@ export default function Dashboard() {
         return [{ id: 'merchant' as Portal, label: 'Merchant', icon: '🏪' }];
       case 'admin':
         return [{ id: 'admin' as Portal, label: 'Admin', icon: '⚙️' }];
+      case 'owner':
+        return [{ id: 'admin' as Portal, label: 'Owner Dashboard', icon: '👑' }];
       default:
         return [{ id: 'customer' as Portal, label: 'Customer', icon: '👤' }];
     }
@@ -42,9 +44,11 @@ export default function Dashboard() {
     if (!user) return <CustomerPortal />;
     
     // Users can only access their own role's portal
-    if (activePortal !== user.role) {
+    // Owner role can access admin portal
+    const expectedPortal = user.role === 'owner' ? 'admin' : user.role;
+    if (activePortal !== expectedPortal) {
       // Force active portal to match user role if unauthorized access attempted
-      setActivePortal(user.role);
+      setActivePortal(expectedPortal);
       return null;
     }
     
@@ -56,7 +60,7 @@ export default function Dashboard() {
       case 'merchant':
         return user.role === 'merchant' ? <MerchantPortal /> : <CustomerPortal />;
       case 'admin':
-        return user.role === 'admin' ? <AdminPortal /> : <CustomerPortal />;
+        return (user.role === 'admin' || user.role === 'owner') ? <AdminPortal /> : <CustomerPortal />;
       default:
         return <CustomerPortal />;
     }

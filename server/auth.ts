@@ -100,9 +100,7 @@ export async function createSystemAccount(userData: {
     
     // System fields - Admin and Owner are auto-approved
     approvalStatus: 'approved' as const,
-    isActive: true,
-    createdAt: new Date(),
-    updatedAt: new Date()
+    isActive: true
   });
 
   return newUser;
@@ -194,10 +192,8 @@ export function setupAuth(app: Express) {
         storeContactNo: req.body.storeContactNo || null,
         
         // System fields
-        approvalStatus: req.body.role === 'customer' ? 'approved' : 'pending',
-        isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        approvalStatus: req.body.role === 'customer' ? 'approved' as const : 'pending' as const,
+        isActive: true
       };
 
       const user = await storage.createUser(userData);
