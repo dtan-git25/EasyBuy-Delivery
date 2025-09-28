@@ -1,7 +1,7 @@
 import { users, restaurants, menuItems, riders, wallets, orders, chatMessages, systemSettings, walletTransactions, orderStatusHistory, riderLocationHistory, type User, type InsertUser, type Restaurant, type InsertRestaurant, type MenuItem, type InsertMenuItem, type Rider, type InsertRider, type Order, type InsertOrder, type ChatMessage, type InsertChatMessage, type Wallet, type SystemSettings, type WalletTransaction, type InsertWalletTransaction, type OrderStatusHistory, type InsertOrderStatusHistory, type RiderLocationHistory, type InsertRiderLocationHistory } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc } from "drizzle-orm";
-import session, { SessionStore } from "express-session";
+import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 
@@ -449,7 +449,8 @@ export class DatabaseStorage implements IStorage {
     });
     
     if (wallet) {
-      const newBalance = parseFloat(wallet.balance.toString()) + amount;
+      const currentBalance = wallet.balance ? parseFloat(wallet.balance.toString()) : 0;
+      const newBalance = currentBalance + amount;
       await db.update(wallets)
         .set({ balance: newBalance.toString(), updatedAt: new Date() })
         .where(eq(wallets.id, walletId));
