@@ -14,12 +14,10 @@ import { Bike, Store, Users, Settings, Upload, Camera } from "lucide-react";
 import { 
   customerRegistrationSchema, 
   riderRegistrationSchema, 
-  merchantRegistrationSchema, 
-  adminRegistrationSchema,
+  merchantRegistrationSchema,
   type CustomerRegistration,
   type RiderRegistration,
-  type MerchantRegistration,
-  type AdminRegistration
+  type MerchantRegistration
 } from "@shared/schema";
 
 const loginSchema = z.object({
@@ -32,7 +30,7 @@ type LoginForm = z.infer<typeof loginSchema>;
 export default function AuthPage() {
   const { user, loginMutation, registerMutation, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState("login");
-  const [registerRole, setRegisterRole] = useState<"customer" | "rider" | "merchant" | "admin">("customer");
+  const [registerRole, setRegisterRole] = useState<"customer" | "rider" | "merchant">("customer");
 
   // Initialize login form
   const loginForm = useForm<LoginForm>({
@@ -101,22 +99,6 @@ export default function AuthPage() {
     },
   });
 
-  const adminForm = useForm<AdminRegistration>({
-    resolver: zodResolver(adminRegistrationSchema),
-    defaultValues: {
-      firstName: "",
-      middleName: "",
-      lastName: "",
-      lotHouseNo: "",
-      street: "",
-      barangay: "",
-      cityMunicipality: "",
-      email: "",
-      phone: "",
-      username: "",
-      password: "",
-    },
-  });
 
   // Show loading state during auth transitions
   if (isLoading) {
@@ -141,7 +123,7 @@ export default function AuthPage() {
     loginMutation.mutate(data);
   };
 
-  const onRegister = async (data: CustomerRegistration | RiderRegistration | MerchantRegistration | AdminRegistration) => {
+  const onRegister = async (data: CustomerRegistration | RiderRegistration | MerchantRegistration) => {
     try {
       // Add role to registration data and handle date conversion
       const registrationData: any = {
@@ -298,7 +280,6 @@ export default function AuthPage() {
                             <SelectItem value="customer">Customer - Order food delivery</SelectItem>
                             <SelectItem value="rider">Rider - Deliver orders and earn income</SelectItem>
                             <SelectItem value="merchant">Merchant - Sell food through our platform</SelectItem>
-                            <SelectItem value="admin">Admin - Manage the platform</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -945,192 +926,6 @@ export default function AuthPage() {
                         </form>
                       )}
 
-                      {/* Admin Registration Form */}
-                      {registerRole === 'admin' && (
-                        <form onSubmit={adminForm.handleSubmit(onRegister)} className="space-y-4">
-                          <div className="grid grid-cols-3 gap-2">
-                            <div>
-                              <Label htmlFor="admin-firstName">First Name *</Label>
-                              <Input
-                                id="admin-firstName"
-                                data-testid="input-admin-firstName"
-                                {...adminForm.register("firstName")}
-                                placeholder="Juan"
-                              />
-                              {adminForm.formState.errors.firstName && (
-                                <p className="text-sm text-destructive mt-1">
-                                  {adminForm.formState.errors.firstName.message}
-                                </p>
-                              )}
-                            </div>
-                            <div>
-                              <Label htmlFor="admin-middleName">Middle Name</Label>
-                              <Input
-                                id="admin-middleName"
-                                data-testid="input-admin-middleName"
-                                {...adminForm.register("middleName")}
-                                placeholder="Santos"
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor="admin-lastName">Last Name *</Label>
-                              <Input
-                                id="admin-lastName"
-                                data-testid="input-admin-lastName"
-                                {...adminForm.register("lastName")}
-                                placeholder="Dela Cruz"
-                              />
-                              {adminForm.formState.errors.lastName && (
-                                <p className="text-sm text-destructive mt-1">
-                                  {adminForm.formState.errors.lastName.message}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <Label htmlFor="admin-lotHouseNo">Lot/House No. *</Label>
-                              <Input
-                                id="admin-lotHouseNo"
-                                data-testid="input-admin-lotHouseNo"
-                                {...adminForm.register("lotHouseNo")}
-                                placeholder="123"
-                              />
-                              {adminForm.formState.errors.lotHouseNo && (
-                                <p className="text-sm text-destructive mt-1">
-                                  {adminForm.formState.errors.lotHouseNo.message}
-                                </p>
-                              )}
-                            </div>
-                            <div>
-                              <Label htmlFor="admin-street">Street *</Label>
-                              <Input
-                                id="admin-street"
-                                data-testid="input-admin-street"
-                                {...adminForm.register("street")}
-                                placeholder="Rizal Street"
-                              />
-                              {adminForm.formState.errors.street && (
-                                <p className="text-sm text-destructive mt-1">
-                                  {adminForm.formState.errors.street.message}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <Label htmlFor="admin-barangay">Barangay *</Label>
-                              <Input
-                                id="admin-barangay"
-                                data-testid="input-admin-barangay"
-                                {...adminForm.register("barangay")}
-                                placeholder="Poblacion"
-                              />
-                              {adminForm.formState.errors.barangay && (
-                                <p className="text-sm text-destructive mt-1">
-                                  {adminForm.formState.errors.barangay.message}
-                                </p>
-                              )}
-                            </div>
-                            <div>
-                              <Label htmlFor="admin-cityMunicipality">City/Municipality *</Label>
-                              <Input
-                                id="admin-cityMunicipality"
-                                data-testid="input-admin-cityMunicipality"
-                                {...adminForm.register("cityMunicipality")}
-                                placeholder="Makati City"
-                              />
-                              {adminForm.formState.errors.cityMunicipality && (
-                                <p className="text-sm text-destructive mt-1">
-                                  {adminForm.formState.errors.cityMunicipality.message}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <Label htmlFor="admin-email">Email Address *</Label>
-                              <Input
-                                id="admin-email"
-                                data-testid="input-admin-email"
-                                {...adminForm.register("email")}
-                                type="email"
-                                placeholder="admin@email.com"
-                              />
-                              {adminForm.formState.errors.email && (
-                                <p className="text-sm text-destructive mt-1">
-                                  {adminForm.formState.errors.email.message}
-                                </p>
-                              )}
-                            </div>
-                            <div>
-                              <Label htmlFor="admin-phone">Phone Number *</Label>
-                              <Input
-                                id="admin-phone"
-                                data-testid="input-admin-phone"
-                                {...adminForm.register("phone")}
-                                type="tel"
-                                placeholder="09171234567"
-                              />
-                              {adminForm.formState.errors.phone && (
-                                <p className="text-sm text-destructive mt-1">
-                                  {adminForm.formState.errors.phone.message}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <Label htmlFor="admin-username">Username *</Label>
-                              <Input
-                                id="admin-username"
-                                data-testid="input-admin-username"
-                                {...adminForm.register("username")}
-                                placeholder="adminuser"
-                              />
-                              {adminForm.formState.errors.username && (
-                                <p className="text-sm text-destructive mt-1">
-                                  {adminForm.formState.errors.username.message}
-                                </p>
-                              )}
-                            </div>
-                            <div>
-                              <Label htmlFor="admin-password">Password *</Label>
-                              <Input
-                                id="admin-password"
-                                data-testid="input-admin-password"
-                                {...adminForm.register("password")}
-                                type="password"
-                                placeholder="Strong password"
-                              />
-                              {adminForm.formState.errors.password && (
-                                <p className="text-sm text-destructive mt-1">
-                                  {adminForm.formState.errors.password.message}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-200 dark:border-red-800">
-                            <p className="text-sm text-red-800 dark:text-red-200">
-                              <strong>Admin Access:</strong> Admin registration requires manual approval. Contact the system administrator for account activation.
-                            </p>
-                          </div>
-
-                          <Button
-                            type="submit"
-                            data-testid="button-register-admin"
-                            className="w-full"
-                            disabled={registerMutation.isPending}
-                          >
-                            {registerMutation.isPending ? "Submitting Application..." : "Apply for Admin Access"}
-                          </Button>
-                        </form>
-                      )}
                     </div>
                   </TabsContent>
                 </Tabs>

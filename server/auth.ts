@@ -90,6 +90,12 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ error: "Email already registered" });
       }
 
+      // Validate allowed roles for public registration
+      const allowedRoles = ['customer', 'rider', 'merchant'];
+      if (!allowedRoles.includes(req.body.role)) {
+        return res.status(400).json({ error: "Invalid role. Only Customer, Rider, and Merchant registration is allowed." });
+      }
+
       // Map frontend field names to database column names
       const userData = {
         username: req.body.username,
@@ -126,7 +132,7 @@ export function setupAuth(app: Express) {
         storeContactNo: req.body.storeContactNo || null,
         
         // System fields
-        approvalStatus: req.body.role === 'customer' || req.body.role === 'admin' ? 'approved' : 'pending',
+        approvalStatus: req.body.role === 'customer' ? 'approved' : 'pending',
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date()
