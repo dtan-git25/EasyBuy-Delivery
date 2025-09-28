@@ -79,9 +79,9 @@ export function setupAuth(app: Express) {
         password: await hashPassword(req.body.password),
         role: req.body.role,
         
-        // Personal information mapping
+        // Personal information mapping (role-specific)
         prefix: req.body.prefix || null,
-        firstName: req.body.firstName || null,
+        firstName: req.body.firstName || req.body.ownerName || null, // For merchants, use ownerName as firstName
         middleName: req.body.middleName || null,
         lastName: req.body.lastName || null,
         age: req.body.age || null,
