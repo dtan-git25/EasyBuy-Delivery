@@ -79,9 +79,9 @@ export function setupAuth(app: Express) {
         password: await hashPassword(req.body.password),
         role: req.body.role,
         
-        // Personal information mapping (role-specific)
+        // Personal information mapping
         prefix: req.body.prefix || null,
-        firstName: req.body.firstName || req.body.ownerName || null, // For merchants, use ownerName as firstName
+        firstName: req.body.firstName || null,
         middleName: req.body.middleName || null,
         lastName: req.body.lastName || null,
         age: req.body.age || null,
@@ -106,7 +106,6 @@ export function setupAuth(app: Express) {
         storeName: req.body.storeName || null,
         storeAddress: req.body.storeAddress || null,
         storeContactNo: req.body.storeContactNo || null,
-        ownerName: req.body.ownerName || null,
         
         // System fields
         approvalStatus: req.body.role === 'customer' || req.body.role === 'admin' ? 'approved' : 'pending',

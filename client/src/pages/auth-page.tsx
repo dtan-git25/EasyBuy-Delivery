@@ -89,10 +89,12 @@ export default function AuthPage() {
   const merchantForm = useForm<MerchantRegistration>({
     resolver: zodResolver(merchantRegistrationSchema),
     defaultValues: {
+      firstName: "",
+      middleName: "",
+      lastName: "",
       storeName: "",
       storeAddress: "",
       storeContactNo: "",
-      ownerName: "",
       email: "",
       username: "",
       password: "",
@@ -788,6 +790,48 @@ export default function AuthPage() {
                       {/* Merchant Registration Form */}
                       {registerRole === 'merchant' && (
                         <form onSubmit={merchantForm.handleSubmit(onRegister)} className="space-y-4">
+                          {/* Owner Personal Information */}
+                          <div className="grid grid-cols-3 gap-2">
+                            <div>
+                              <Label htmlFor="merchant-firstName">First Name *</Label>
+                              <Input
+                                id="merchant-firstName"
+                                data-testid="input-merchant-firstName"
+                                {...merchantForm.register("firstName")}
+                                placeholder="Juan"
+                              />
+                              {merchantForm.formState.errors.firstName && (
+                                <p className="text-sm text-destructive mt-1">
+                                  {merchantForm.formState.errors.firstName.message}
+                                </p>
+                              )}
+                            </div>
+                            <div>
+                              <Label htmlFor="merchant-middleName">Middle Name</Label>
+                              <Input
+                                id="merchant-middleName"
+                                data-testid="input-merchant-middleName"
+                                {...merchantForm.register("middleName")}
+                                placeholder="Santos"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="merchant-lastName">Last Name *</Label>
+                              <Input
+                                id="merchant-lastName"
+                                data-testid="input-merchant-lastName"
+                                {...merchantForm.register("lastName")}
+                                placeholder="Dela Cruz"
+                              />
+                              {merchantForm.formState.errors.lastName && (
+                                <p className="text-sm text-destructive mt-1">
+                                  {merchantForm.formState.errors.lastName.message}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Store Information */}
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <Label htmlFor="merchant-storeName">Store Name *</Label>
@@ -835,36 +879,21 @@ export default function AuthPage() {
                             )}
                           </div>
 
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <Label htmlFor="merchant-ownerName">Owner's Name *</Label>
-                              <Input
-                                id="merchant-ownerName"
-                                data-testid="input-merchant-ownerName"
-                                {...merchantForm.register("ownerName")}
-                                placeholder="Juan Santos Dela Cruz"
-                              />
-                              {merchantForm.formState.errors.ownerName && (
-                                <p className="text-sm text-destructive mt-1">
-                                  {merchantForm.formState.errors.ownerName.message}
-                                </p>
-                              )}
-                            </div>
-                            <div>
-                              <Label htmlFor="merchant-email">Email Address *</Label>
-                              <Input
-                                id="merchant-email"
-                                data-testid="input-merchant-email"
-                                {...merchantForm.register("email")}
-                                type="email"
-                                placeholder="owner@restaurant.com"
-                              />
-                              {merchantForm.formState.errors.email && (
-                                <p className="text-sm text-destructive mt-1">
-                                  {merchantForm.formState.errors.email.message}
-                                </p>
-                              )}
-                            </div>
+                          {/* Contact Information */}
+                          <div>
+                            <Label htmlFor="merchant-email">Email Address *</Label>
+                            <Input
+                              id="merchant-email"
+                              data-testid="input-merchant-email"
+                              {...merchantForm.register("email")}
+                              type="email"
+                              placeholder="owner@restaurant.com"
+                            />
+                            {merchantForm.formState.errors.email && (
+                              <p className="text-sm text-destructive mt-1">
+                                {merchantForm.formState.errors.email.message}
+                              </p>
+                            )}
                           </div>
 
                           <div className="grid grid-cols-2 gap-4">

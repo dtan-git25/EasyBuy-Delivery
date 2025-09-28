@@ -435,13 +435,17 @@ export const riderRegistrationSchema = z.object({
 
 // Merchant Registration Schema
 export const merchantRegistrationSchema = z.object({
+  // Personal Information (Owner)
+  firstName: z.string().min(1, "First name is required"),
+  middleName: z.string().optional(),
+  lastName: z.string().min(1, "Last name is required"),
+  
   // Store Information
   storeName: z.string().min(1, "Store name is required"),
   storeAddress: z.string().min(1, "Store address is required"),
   storeContactNo: z.string().min(11, "Store contact number must be at least 11 digits"),
   
-  // Owner Information
-  ownerName: z.string().min(1, "Owner's name is required"),
+  // Contact
   email: z.string().email("Invalid email address"),
   
   // System
