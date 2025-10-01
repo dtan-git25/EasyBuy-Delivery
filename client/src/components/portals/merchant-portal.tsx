@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Store, MapPin, Star, Clock, User, Phone, MessageCircle, Edit, Plus } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Store, MapPin, Star, Clock, User, Phone, MessageCircle, Edit, Plus, AlertCircle, CheckCircle, XCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
 interface Order {
@@ -110,6 +111,12 @@ export default function MerchantPortal() {
   };
 
   const handleSubmitMenuItem = () => {
+    // Prevent non-approved merchants from creating menu items
+    if (user?.approvalStatus !== 'approved') {
+      console.error('Menu item creation is disabled for non-approved merchants');
+      return;
+    }
+
     if (!menuItemForm.name.trim() || !menuItemForm.price.trim()) {
       console.error('Name and price are required');
       return;
@@ -161,8 +168,8 @@ export default function MerchantPortal() {
                   {userRestaurant?.address || "Set your restaurant address"}
                 </p>
                 <div className="flex items-center space-x-2 mt-1">
-                  <Badge variant={userRestaurant?.isActive ? "default" : "secondary"}>
-                    {userRestaurant?.isActive ? "Open" : "Closed"}
+                  <Badge variant={user?.approvalStatus === 'approved' && userRestaurant?.isActive ? "default" : "secondary"}>
+                    {user?.approvalStatus === 'approved' && userRestaurant?.isActive ? "Open" : "Closed"}
                   </Badge>
                   <span className="text-sm text-muted-foreground">
                     Rating: {userRestaurant?.rating || "0"}/5
@@ -200,6 +207,75 @@ export default function MerchantPortal() {
         </div>
       </section>
 
+      {/* Approval Status Banner */}
+      {user?.approvalStatus !== 'approved' && (
+        <section className="bg-background py-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            {user?.approvalStatus === 'pending' && (
+              <Alert className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-700" data-testid="alert-pending-approval">
+                <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                <AlertTitle className="text-yellow-800 dark:text-yellow-200 font-semibold">
+                  Account Pending Approval
+                </AlertTitle>
+                <AlertDescription className="text-yellow-700 dark:text-yellow-300">
+                  Your merchant account is pending admin approval. You'll receive an email notification once approved.
+                  <div className="mt-2 text-sm" data-testid="text-submission-date">
+                    <strong>Submission Date:</strong> {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Not available'}
+                  </div>
+                  <div className="mt-2 text-sm">
+                    While waiting, your restaurant is set to <strong>Closed</strong> and menu management is disabled.
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+            {user?.approvalStatus === 'rejected' && (
+              <Alert className="border-red-500 bg-red-50 dark:bg-red-950 dark:border-red-700" data-testid="alert-rejected">
+                <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                <AlertTitle className="text-red-800 dark:text-red-200 font-semibold">
+                  Application Rejected
+                </AlertTitle>
+                <AlertDescription className="text-red-700 dark:text-red-300">
+                  Your merchant application was rejected.
+                  {user.rejectionReason && (
+                    <div className="mt-2 p-2 bg-red-100 dark:bg-red-900 rounded text-sm" data-testid="text-rejection-reason">
+                      <strong>Reason:</strong> {user.rejectionReason}
+                    </div>
+                  )}
+                  <div className="mt-3">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="border-red-500 text-red-700 hover:bg-red-100 dark:border-red-600 dark:text-red-300 dark:hover:bg-red-900"
+                      onClick={() => window.location.href = 'mailto:support@easybuydelivery.com?subject=Merchant%20Application%20Rejection'}
+                      data-testid="button-contact-support"
+                    >
+                      Contact Support
+                    </Button>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Success Message for Approved Merchants (shown once) */}
+      {user?.approvalStatus === 'approved' && userRestaurant && (
+        <section className="bg-background py-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <Alert className="border-green-500 bg-green-50 dark:bg-green-950 dark:border-green-700" data-testid="alert-approved">
+              <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <AlertTitle className="text-green-800 dark:text-green-200 font-semibold">
+                Account Approved!
+              </AlertTitle>
+              <AlertDescription className="text-green-700 dark:text-green-300">
+                Your account is approved! You can now add menu items and manage your restaurant. Change your restaurant status to <strong>Open</strong> when you're ready to accept orders.
+              </AlertDescription>
+            </Alert>
+          </div>
+        </section>
+      )}
+
       {/* Navigation Tabs */}
       <section className="bg-background py-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -211,7 +287,9 @@ export default function MerchantPortal() {
                   <Badge className="ml-2">{activeOrders.length}</Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="menu" data-testid="tab-menu">Menu Management</TabsTrigger>
+              <TabsTrigger value="menu" data-testid="tab-menu" disabled={user?.approvalStatus !== 'approved'}>
+                Menu Management
+              </TabsTrigger>
               <TabsTrigger value="history" data-testid="tab-history">Order History</TabsTrigger>
               <TabsTrigger value="analytics" data-testid="tab-analytics">Analytics</TabsTrigger>
             </TabsList>
@@ -332,6 +410,18 @@ export default function MerchantPortal() {
                     Please contact support to set up your restaurant profile.
                   </p>
                 </div>
+              ) : user?.approvalStatus !== 'approved' ? (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Menu Management Disabled</h3>
+                    <p className="text-muted-foreground">
+                      {user?.approvalStatus === 'pending' 
+                        ? 'Your account is pending approval. Menu management will be enabled once your account is approved by an administrator.'
+                        : 'Menu management is not available. Please contact support for assistance.'}
+                    </p>
+                  </CardContent>
+                </Card>
               ) : (
                 <>
                   <div className="flex items-center justify-between">

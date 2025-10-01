@@ -63,6 +63,7 @@ export const users = pgTable("users", {
   
   // System fields
   approvalStatus: approvalStatusEnum("approval_status").default('pending'),
+  rejectionReason: text("rejection_reason"), // Admin's reason for rejecting merchant/rider
   isActive: boolean("is_active").default(true),
   otpCode: text("otp_code"),
   otpExpiry: timestamp("otp_expiry"),
