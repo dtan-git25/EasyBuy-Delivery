@@ -669,7 +669,7 @@ export default function RiderPortal() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {riderProfile?.orcrDocument ? (
+                      {riderProfile?.orcrDocument && documentsStatus !== 'rejected' && documentsStatus !== 'incomplete' ? (
                         <div className="flex flex-col space-y-2">
                           <div className="flex items-center space-x-2 text-green-600">
                             <CheckCircle className="w-4 h-4" />
@@ -706,7 +706,7 @@ export default function RiderPortal() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {riderProfile?.motorImage ? (
+                      {riderProfile?.motorImage && documentsStatus !== 'rejected' && documentsStatus !== 'incomplete' ? (
                         <div className="flex flex-col space-y-2">
                           <div className="flex items-center space-x-2 text-green-600">
                             <CheckCircle className="w-4 h-4" />
@@ -743,7 +743,7 @@ export default function RiderPortal() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {riderProfile?.idDocument ? (
+                      {riderProfile?.idDocument && documentsStatus !== 'rejected' && documentsStatus !== 'incomplete' ? (
                         <div className="flex flex-col space-y-2">
                           <div className="flex items-center space-x-2 text-green-600">
                             <CheckCircle className="w-4 h-4" />
