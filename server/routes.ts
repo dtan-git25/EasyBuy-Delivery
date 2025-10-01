@@ -1114,6 +1114,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Rider Document Update Route (for approved riders)
+  app.post("/api/rider/update-documents",
+    upload.fields([
+      { name: 'orcrDocument', maxCount: 1 },
+      { name: 'motorImage', maxCount: 1 },
+      { name: 'idDocument', maxCount: 1 }
+    ]),
+    async (req, res) => {
+      if (!req.isAuthenticated() || req.user.role !== 'rider') {
+        return res.status(401).json({ error: "Unauthorized - Riders only" });
+      }
+
+      try {
+        const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+        
+        // Get the rider record for this user
+        const rider = await storage.getRiderByUserId(req.user.id);
+        if (!rider) {
+          return res.status(404).json({ error: "Rider profile not found" });
+        }
+
+        // Verify rider is approved
+        if (rider.documentsStatus !== 'approved') {
+          return res.status(400).json({ 
+            error: "Document updates are only available for approved riders",
+            currentStatus: rider.documentsStatus
+          });
+        }
+
+        // Verify all three documents are provided
+        if (!files.orcrDocument || !files.motorImage || !files.idDocument) {
+          return res.status(400).json({ 
+            error: "All three documents (OR/CR, Motor Image, and Valid ID) must be provided for update",
+            provided: {
+              orcrDocument: !!files.orcrDocument,
+              motorImage: !!files.motorImage,
+              idDocument: !!files.idDocument
+            }
+          });
+        }
+
+        const documentUrls: { orcrDocument?: string; motorImage?: string; idDocument?: string } = {};
+
+        // Process files that are already stored locally by multer
+        for (const [fieldName, fileArray] of Object.entries(files)) {
+          if (fileArray && fileArray.length > 0) {
+            const file = fileArray[0];
+            
+            // Verify file was stored successfully
+            if (!fs.existsSync(file.path)) {
+              throw new Error(`File storage failed for ${fieldName}`);
+            }
+            
+            // Get relative path from project root for database storage
+            const uploadsDir = path.join(process.cwd(), 'uploads');
+            const relativePath = path.relative(uploadsDir, file.path);
+            
+            // Store the relative path in the database
+            documentUrls[fieldName as keyof typeof documentUrls] = relativePath;
+            
+            console.log(`Successfully stored updated ${fieldName} at ${file.path} (relative: ${relativePath})`);
+          }
+        }
+
+        // Update rider documents - this will set status to 'pending' and rider to 'offline'
+        const updatedRider = await storage.requestDocumentUpdate(rider.id, documentUrls);
+        
+        res.json({ 
+          message: "Documents updated successfully. Your account has been set to 'Under Review' and you have been taken offline. Admin will review your new documents.", 
+          rider: updatedRider,
+          updatedDocuments: Object.keys(documentUrls)
+        });
+      } catch (error: any) {
+        console.error("Error updating rider documents:", error);
+        res.status(500).json({ error: error.message || "Failed to update documents" });
+      }
+    }
+  );
+
   // Rider Status Toggle (Online/Offline)
   app.patch("/api/rider/status", async (req, res) => {
     if (!req.isAuthenticated() || req.user.role !== 'rider') {

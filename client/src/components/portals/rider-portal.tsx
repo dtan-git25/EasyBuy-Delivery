@@ -42,6 +42,7 @@ export default function RiderPortal() {
     motorImage: null,
     idDocument: null,
   });
+  const [isUpdatingDocuments, setIsUpdatingDocuments] = useState(false);
 
   const { data: wallet } = useQuery({
     queryKey: ["/api/wallet"],
@@ -131,6 +132,40 @@ export default function RiderPortal() {
       toast({
         title: "Submission Failed", 
         description: error.message || "Failed to submit documents. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateDocumentsMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const response = await fetch("/api/rider/update-documents", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Update failed");
+      }
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/rider/profile"] });
+      setDocumentFiles({ orcrDocument: null, motorImage: null, idDocument: null });
+      setIsUpdatingDocuments(false);
+      
+      toast({
+        title: "Documents Updated",
+        description: data.message || "Your documents have been updated and are now under review. You have been taken offline.",
+        variant: "default",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update documents. Please try again.",
         variant: "destructive",
       });
     },
@@ -236,6 +271,58 @@ export default function RiderPortal() {
 
   const handleSubmitDocuments = () => {
     submitDocumentsMutation.mutate();
+  };
+
+  const handleStartUpdateDocuments = () => {
+    setIsUpdatingDocuments(true);
+    setDocumentFiles({ orcrDocument: null, motorImage: null, idDocument: null });
+  };
+
+  const handleCancelUpdateDocuments = () => {
+    setIsUpdatingDocuments(false);
+    setDocumentFiles({ orcrDocument: null, motorImage: null, idDocument: null });
+  };
+
+  const handleUpdateDocuments = () => {
+    // Validate all three files are selected for update
+    if (!documentFiles.orcrDocument || !documentFiles.motorImage || !documentFiles.idDocument) {
+      toast({
+        title: "All Documents Required",
+        description: "You must upload all three documents (OR/CR, Motor Image, and Valid ID) to update.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file sizes (10MB limit)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    const oversizedFiles = [];
+    
+    if (documentFiles.orcrDocument.size > maxSize) {
+      oversizedFiles.push("OR/CR Document");
+    }
+    if (documentFiles.motorImage.size > maxSize) {
+      oversizedFiles.push("Motor Image");
+    }
+    if (documentFiles.idDocument.size > maxSize) {
+      oversizedFiles.push("ID Document");
+    }
+
+    if (oversizedFiles.length > 0) {
+      toast({
+        title: "File Size Error",
+        description: `These files exceed 10MB limit: ${oversizedFiles.join(", ")}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('orcrDocument', documentFiles.orcrDocument);
+    formData.append('motorImage', documentFiles.motorImage);
+    formData.append('idDocument', documentFiles.idDocument);
+
+    updateDocumentsMutation.mutate(formData);
   };
 
   const activeOrders = myOrders.filter((order: any) => 
@@ -669,7 +756,7 @@ export default function RiderPortal() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {riderProfile?.orcrDocument && documentsStatus !== 'rejected' && documentsStatus !== 'incomplete' ? (
+                      {riderProfile?.orcrDocument && documentsStatus !== 'rejected' && documentsStatus !== 'incomplete' && !isUpdatingDocuments ? (
                         <div className="flex flex-col space-y-2">
                           <div className="flex items-center space-x-2 text-green-600">
                             <CheckCircle className="w-4 h-4" />
@@ -687,7 +774,7 @@ export default function RiderPortal() {
                           type="file"
                           accept=".jpg,.jpeg,.png,.pdf"
                           onChange={(e) => handleFileChange('orcrDocument', e.target.files?.[0] || null)}
-                          disabled={documentsStatus === 'pending' || documentsStatus === 'approved'}
+                          disabled={(documentsStatus === 'pending' || (documentsStatus === 'approved' && !isUpdatingDocuments))}
                           className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                           data-testid="input-orcr-document"
                         />
@@ -706,7 +793,7 @@ export default function RiderPortal() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {riderProfile?.motorImage && documentsStatus !== 'rejected' && documentsStatus !== 'incomplete' ? (
+                      {riderProfile?.motorImage && documentsStatus !== 'rejected' && documentsStatus !== 'incomplete' && !isUpdatingDocuments ? (
                         <div className="flex flex-col space-y-2">
                           <div className="flex items-center space-x-2 text-green-600">
                             <CheckCircle className="w-4 h-4" />
@@ -724,7 +811,7 @@ export default function RiderPortal() {
                           type="file"
                           accept=".jpg,.jpeg,.png"
                           onChange={(e) => handleFileChange('motorImage', e.target.files?.[0] || null)}
-                          disabled={documentsStatus === 'pending' || documentsStatus === 'approved'}
+                          disabled={(documentsStatus === 'pending' || (documentsStatus === 'approved' && !isUpdatingDocuments))}
                           className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                           data-testid="input-motor-image"
                         />
@@ -743,7 +830,7 @@ export default function RiderPortal() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {riderProfile?.idDocument && documentsStatus !== 'rejected' && documentsStatus !== 'incomplete' ? (
+                      {riderProfile?.idDocument && documentsStatus !== 'rejected' && documentsStatus !== 'incomplete' && !isUpdatingDocuments ? (
                         <div className="flex flex-col space-y-2">
                           <div className="flex items-center space-x-2 text-green-600">
                             <CheckCircle className="w-4 h-4" />
@@ -761,7 +848,7 @@ export default function RiderPortal() {
                           type="file"
                           accept=".jpg,.jpeg,.png,.pdf"
                           onChange={(e) => handleFileChange('idDocument', e.target.files?.[0] || null)}
-                          disabled={documentsStatus === 'pending' || documentsStatus === 'approved'}
+                          disabled={(documentsStatus === 'pending' || (documentsStatus === 'approved' && !isUpdatingDocuments))}
                           className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                           data-testid="input-id-document"
                         />
@@ -817,6 +904,73 @@ export default function RiderPortal() {
                       )}
                     </Button>
                   )}
+                </div>
+              )}
+
+              {/* Update Documents Button - Show when approved and not in update mode */}
+              {documentsStatus === 'approved' && !isUpdatingDocuments && (
+                <div className="flex flex-col gap-4">
+                  <Button
+                    onClick={handleStartUpdateDocuments}
+                    variant="outline"
+                    className="w-full"
+                    data-testid="button-start-update-documents"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Update Documents
+                  </Button>
+                  <p className="text-sm text-muted-foreground text-center">
+                    Need to update your documents? (e.g., expired license, new vehicle) Click above to replace all documents.
+                  </p>
+                </div>
+              )}
+
+              {/* Update Mode Buttons - Show when in update mode */}
+              {isUpdatingDocuments && (
+                <div>
+                  <Card className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/20 mb-4">
+                    <CardContent className="p-4">
+                      <div className="flex items-center space-x-3">
+                        <Upload className="w-5 h-5 text-blue-600" />
+                        <div>
+                          <p className="font-medium text-blue-900 dark:text-blue-100">Document Update Mode</p>
+                          <p className="text-sm text-blue-700 dark:text-blue-300">
+                            You must upload all three documents. After updating, your account will be set to 'Under Review' and you'll be taken offline until admin re-approves.
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <Button
+                      onClick={handleUpdateDocuments}
+                      disabled={updateDocumentsMutation.isPending || 
+                        !documentFiles.orcrDocument || !documentFiles.motorImage || !documentFiles.idDocument}
+                      className="flex-1"
+                      data-testid="button-confirm-update-documents"
+                    >
+                      {updateDocumentsMutation.isPending ? (
+                        <>
+                          <Clock className="w-4 h-4 mr-2 animate-spin" />
+                          Updating...
+                        </>
+                      ) : (
+                        <>
+                          <FileText className="w-4 h-4 mr-2" />
+                          Update & Submit for Review
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={handleCancelUpdateDocuments}
+                      disabled={updateDocumentsMutation.isPending}
+                      variant="outline"
+                      className="flex-1"
+                      data-testid="button-cancel-update-documents"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
                 </div>
               )}
 

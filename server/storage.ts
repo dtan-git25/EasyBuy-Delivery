@@ -78,6 +78,7 @@ export interface IStorage {
   submitRiderDocuments(riderId: string): Promise<Rider | undefined>;
   reviewRiderDocuments(riderId: string, approved: boolean, reviewedBy: string, reason?: string): Promise<Rider | undefined>;
   getRidersForApproval(): Promise<Rider[]>;
+  requestDocumentUpdate(riderId: string, documents: { orcrDocument?: string; motorImage?: string; idDocument?: string }): Promise<Rider | undefined>;
 
   // Order status history tracking
   createOrderStatusHistory(historyData: InsertOrderStatusHistory): Promise<OrderStatusHistory>;
@@ -536,6 +537,43 @@ export class DatabaseStorage implements IStorage {
       where: eq(riders.documentsStatus, 'pending'),
       orderBy: asc(riders.documentsSubmittedAt)
     });
+  }
+
+  async requestDocumentUpdate(riderId: string, documents: { orcrDocument?: string; motorImage?: string; idDocument?: string }): Promise<Rider | undefined> {
+    // First, get the current rider to check their documentsStatus
+    const [currentRider] = await db.select().from(riders).where(eq(riders.id, riderId));
+    
+    if (!currentRider) {
+      throw new Error('Rider not found');
+    }
+    
+    // Only allow document updates for approved riders
+    if (currentRider.documentsStatus !== 'approved') {
+      throw new Error(`Document update is only available for approved riders. Current status: ${currentRider.documentsStatus}`);
+    }
+    
+    // Validate all three documents are provided
+    if (!documents.orcrDocument || !documents.motorImage || !documents.idDocument) {
+      throw new Error('All three documents (OR/CR, Motor Image, and Valid ID) must be provided');
+    }
+    
+    // Update documents, set status back to 'pending', set rider to 'offline', and clear approval data
+    const [result] = await db.update(riders)
+      .set({ 
+        orcrDocument: documents.orcrDocument,
+        motorImage: documents.motorImage,
+        idDocument: documents.idDocument,
+        documentsStatus: 'pending',
+        status: 'offline',
+        documentsSubmittedAt: new Date(),
+        approvedBy: null,
+        rejectedReason: null,
+        documentsReviewedAt: null,
+        updatedAt: new Date()
+      })
+      .where(eq(riders.id, riderId))
+      .returning();
+    return result;
   }
 
   // Order status history tracking
