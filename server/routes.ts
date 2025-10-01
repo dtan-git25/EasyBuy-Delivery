@@ -980,7 +980,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Get the rider record for this user
         const rider = await storage.getRiderByUserId(req.user.id);
         if (!rider) {
-          return res.status(404).json({ error: "Rider profile not found" });
+          console.error(`Rider profile not found for user ${req.user.id} (${req.user.username})`);
+          return res.status(404).json({ 
+            error: "Rider profile not found",
+            details: "Please contact support to set up your rider profile",
+            userId: req.user.id
+          });
         }
 
         const documentUrls: { orcrDocument?: string; motorImage?: string; idDocument?: string } = {};

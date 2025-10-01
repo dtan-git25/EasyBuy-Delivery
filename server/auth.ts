@@ -198,6 +198,24 @@ export function setupAuth(app: Express) {
 
       const user = await storage.createUser(userData);
 
+      // If registering as a rider, create rider profile automatically
+      if (user.role === 'rider') {
+        try {
+          await storage.createRider({
+            userId: user.id,
+            vehicleType: 'Motorcycle', // Default value, can be updated later
+            vehicleModel: 'To be specified',
+            plateNumber: 'To be specified',
+            licenseNumber: req.body.driversLicenseNo || 'To be specified',
+            documentsStatus: 'incomplete' // Documents not yet uploaded
+          });
+          console.log(`Created rider profile for user ${user.id}`);
+        } catch (riderError) {
+          console.error('Failed to create rider profile:', riderError);
+          // Don't fail registration if rider profile creation fails
+        }
+      }
+
       req.login(user, (err) => {
         if (err) return next(err);
         res.status(201).json(user);
