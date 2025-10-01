@@ -216,6 +216,32 @@ export function setupAuth(app: Express) {
         }
       }
 
+      // If registering as a merchant, create restaurant profile automatically
+      if (user.role === 'merchant' && user.storeName && user.storeAddress && user.storeContactNo) {
+        try {
+          await storage.createRestaurant({
+            ownerId: user.id,
+            name: user.storeName,
+            address: user.storeAddress,
+            phone: user.storeContactNo,
+            cuisine: 'Filipino', // Default cuisine for Philippine market
+            isActive: false, // Restaurant closed by default until merchant opens it
+            description: null,
+            email: user.email,
+            latitude: null,
+            longitude: null,
+            image: null,
+            rating: '0',
+            markup: '15', // Default 15% markup
+            deliveryFee: '0' // Default delivery fee
+          });
+          console.log(`Created restaurant profile for merchant ${user.id}: ${user.storeName}`);
+        } catch (restaurantError) {
+          console.error('Failed to create restaurant profile:', restaurantError);
+          // Don't fail registration if restaurant profile creation fails
+        }
+      }
+
       req.login(user, (err) => {
         if (err) return next(err);
         res.status(201).json(user);
