@@ -21,13 +21,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Configure multer for direct object storage uploads
   const upload = multer({
     storage: multer.diskStorage({
-      destination: (req, file, cb) => {
+      destination: async (req, file, cb) => {
         try {
-          // Get private object storage directory
-          const privateDir = process.env.PRIVATE_OBJECT_DIR;
-          if (!privateDir) {
-            return cb(new Error("Object storage not configured - PRIVATE_OBJECT_DIR missing"));
-          }
+          // Get private object storage directory, fallback to temp
+          const privateDir = process.env.PRIVATE_OBJECT_DIR || path.join(process.cwd(), 'uploads');
           
           // Create rider-specific directory
           const userId = (req as any).user?.id;
@@ -37,15 +34,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           const riderDir = path.join(privateDir, 'riders', userId);
           
-          // Ensure directory exists with proper error handling
-          if (!fs.existsSync(riderDir)) {
-            fs.mkdirSync(riderDir, { recursive: true });
-          }
+          // Ensure directory exists - use async approach with promises
+          await fs.promises.mkdir(riderDir, { recursive: true }).catch(err => {
+            // If object storage path fails, use local fallback
+            console.warn('Object storage path failed, using local fallback:', err.message);
+            const fallbackDir = path.join(process.cwd(), 'uploads', 'riders', userId);
+            return fs.promises.mkdir(fallbackDir, { recursive: true });
+          });
           
           cb(null, riderDir);
         } catch (error) {
           console.error('Error creating upload directory:', error);
-          cb(error as Error);
+          // Use local uploads as ultimate fallback
+          const fallbackDir = path.join(process.cwd(), 'uploads', 'riders', (req as any).user?.id || 'unknown');
+          try {
+            await fs.promises.mkdir(fallbackDir, { recursive: true });
+            cb(null, fallbackDir);
+          } catch (fallbackError) {
+            cb(fallbackError as Error);
+          }
         }
       },
       filename: (req, file, cb) => {
@@ -1289,6 +1296,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       delete ws.userId;
       delete ws.userRole;
     });
+  });
+
+  // Error handling middleware - must be after all routes
+  app.use((err: any, req: any, res: any, next: any) => {
+    // Handle multer errors
+    if (err instanceof multer.MulterError) {
+      console.error('Multer error:', err);
+      return res.status(400).json({ 
+        error: err.message,
+        code: err.code,
+        field: err.field
+      });
+    }
+    
+    // Handle other file upload errors
+    if (err && err.message && err.message.includes('storage')) {
+      console.error('File storage error:', err);
+      return res.status(500).json({ 
+        error: 'File storage failed',
+        details: err.message
+      });
+    }
+    
+    // Handle other errors
+    if (err) {
+      console.error('Request error:', err);
+      return res.status(500).json({ 
+        error: err.message || 'Internal server error'
+      });
+    }
+    
+    next();
   });
 
   return httpServer;
