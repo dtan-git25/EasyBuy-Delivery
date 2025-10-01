@@ -7,10 +7,10 @@ interface ExtendedWebSocket extends WebSocket {
 }
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertRestaurantSchema, insertMenuItemSchema, insertOrderSchema, insertChatMessageSchema, insertRiderSchema, insertWalletTransactionSchema, type Order } from "@shared/schema";
+import { insertRestaurantSchema, insertMenuItemSchema, insertOrderSchema, insertChatMessageSchema, insertRiderSchema, insertWalletTransactionSchema, type Order, walletTransactions } from "@shared/schema";
 import { z } from "zod";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -22,21 +22,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const upload = multer({
     storage: multer.diskStorage({
       destination: (req, file, cb) => {
-        // Get private object storage directory
-        const privateDir = process.env.PRIVATE_OBJECT_DIR;
-        if (!privateDir) {
-          return cb(new Error("Object storage not configured - PRIVATE_OBJECT_DIR missing"));
+        try {
+          // Get private object storage directory
+          const privateDir = process.env.PRIVATE_OBJECT_DIR;
+          if (!privateDir) {
+            return cb(new Error("Object storage not configured - PRIVATE_OBJECT_DIR missing"));
+          }
+          
+          // Create rider-specific directory
+          const userId = (req as any).user?.id;
+          if (!userId) {
+            return cb(new Error("User not authenticated"));
+          }
+          
+          const riderDir = path.join(privateDir, 'riders', userId);
+          
+          // Ensure directory exists with proper error handling
+          if (!fs.existsSync(riderDir)) {
+            fs.mkdirSync(riderDir, { recursive: true });
+          }
+          
+          cb(null, riderDir);
+        } catch (error) {
+          console.error('Error creating upload directory:', error);
+          cb(error as Error);
         }
-        
-        // Create rider-specific directory
-        const userId = (req as any).user?.id;
-        if (!userId) {
-          return cb(new Error("User not authenticated"));
-        }
-        
-        const riderDir = path.join(privateDir, 'riders', userId);
-        fs.mkdirSync(riderDir, { recursive: true });
-        cb(null, riderDir);
       },
       filename: (req, file, cb) => {
         // Generate unique filename with timestamp
@@ -1046,7 +1056,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Include user information with each rider
       const ridersWithUsers = await Promise.all(
         riders.map(async (rider) => {
-          const user = await storage.getUserById(rider.userId);
+          const user = await storage.getUser(rider.userId);
           return { ...rider, user };
         })
       );
