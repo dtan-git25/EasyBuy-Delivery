@@ -61,6 +61,11 @@ export default function AdminPortal() {
     queryKey: ["/api/admin/riders-for-approval"],
   });
 
+  // Merchant approval queries
+  const { data: merchantsForApproval = [] } = useQuery({
+    queryKey: ["/api/admin/merchants-for-approval"],
+  });
+
   const updateSettingsMutation = useMutation({
     mutationFn: async (updates: any) => {
       const response = await apiRequest("PATCH", "/api/settings", updates);
@@ -103,6 +108,30 @@ export default function AdminPortal() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/riders-for-approval"] });
+    },
+  });
+
+  const reviewMerchantMutation = useMutation({
+    mutationFn: async ({ userId, approved }: { userId: string; approved: boolean }) => {
+      const response = await apiRequest("POST", `/api/admin/review-merchant/${userId}`, { 
+        approved 
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/merchants-for-approval"] });
+      toast({
+        title: "Merchant reviewed successfully",
+        description: "The merchant has been notified of your decision.",
+        variant: "default",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to review merchant",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -289,8 +318,8 @@ export default function AdminPortal() {
               <TabsTrigger value="dashboard" data-testid="tab-dashboard">Dashboard</TabsTrigger>
               <TabsTrigger value="approvals" data-testid="tab-approvals">
                 Pending Approvals
-                {pendingUsers.length > 0 && (
-                  <Badge className="ml-2" variant="destructive">{pendingUsers.length}</Badge>
+                {merchantsForApproval.length > 0 && (
+                  <Badge className="ml-2" variant="destructive">{merchantsForApproval.length}</Badge>
                 )}
               </TabsTrigger>
               <TabsTrigger value="documents" data-testid="tab-documents">
@@ -375,74 +404,82 @@ export default function AdminPortal() {
             </TabsContent>
 
             <TabsContent value="approvals" className="space-y-6">
-              {pendingUsers.length === 0 ? (
-                <Card>
-                  <CardContent className="p-8 text-center">
-                    <Clock className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold text-foreground mb-2">No Pending Approvals</h3>
-                    <p className="text-muted-foreground">All user applications have been processed.</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-4">
-                  {pendingUsers.map((user: any) => (
-                    <Card key={user.id} data-testid={`approval-${user.id}`}>
-                      <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-4">
-                            <Avatar className="w-12 h-12">
-                              <AvatarImage src={user.profileImage} />
-                              <AvatarFallback>
-                                {user.firstName?.[0]}{user.lastName?.[0]}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <h4 className="font-medium text-foreground">
-                                {user.firstName} {user.lastName}
-                              </h4>
-                              <p className="text-sm text-muted-foreground capitalize">
-                                {user.role} Application
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                Submitted {new Date(user.createdAt).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-3">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              data-testid={`button-review-${user.id}`}
-                            >
-                              <Eye className="mr-2 h-4 w-4" />
-                              Review Documents
-                            </Button>
-                            <Button 
-                              variant="destructive" 
-                              size="sm"
-                              onClick={() => handleApproval(user.id, 'rejected')}
-                              disabled={approveUserMutation.isPending}
-                              data-testid={`button-reject-${user.id}`}
-                            >
-                              <X className="mr-2 h-4 w-4" />
-                              Reject
-                            </Button>
-                            <Button 
-                              size="sm"
-                              onClick={() => handleApproval(user.id, 'approved')}
-                              disabled={approveUserMutation.isPending}
-                              data-testid={`button-approve-${user.id}`}
-                            >
-                              <Check className="mr-2 h-4 w-4" />
-                              Approve
-                            </Button>
-                          </div>
-                        </div>
+              <div className="space-y-6">
+                {/* Merchant Approvals Section */}
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center">
+                    <Store className="mr-2 h-5 w-5" />
+                    Pending Merchant Applications
+                    {merchantsForApproval.length > 0 && (
+                      <Badge className="ml-2" variant="destructive">{merchantsForApproval.length}</Badge>
+                    )}
+                  </h3>
+                  {merchantsForApproval.length === 0 ? (
+                    <Card>
+                      <CardContent className="p-6 text-center">
+                        <p className="text-muted-foreground">No pending merchant applications</p>
                       </CardContent>
                     </Card>
-                  ))}
+                  ) : (
+                    <div className="space-y-4">
+                      {merchantsForApproval.map((merchant: any) => (
+                        <Card key={merchant.id} data-testid={`merchant-approval-${merchant.id}`}>
+                          <CardContent className="p-6">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-4">
+                                <Avatar className="w-12 h-12">
+                                  <AvatarImage src={merchant.profileImage} />
+                                  <AvatarFallback className="bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300">
+                                    <Store className="h-6 w-6" />
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <h4 className="font-medium text-foreground">
+                                    {merchant.firstName} {merchant.lastName}
+                                  </h4>
+                                  <p className="text-sm text-primary font-medium">
+                                    {merchant.storeName || 'Store name not provided'}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {merchant.storeAddress || 'Address not provided'}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Contact: {merchant.storeContactNo || 'N/A'}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Registered {new Date(merchant.createdAt).toLocaleDateString()}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-3">
+                                <Button 
+                                  variant="destructive" 
+                                  size="sm"
+                                  onClick={() => reviewMerchantMutation.mutate({ userId: merchant.id, approved: false })}
+                                  disabled={reviewMerchantMutation.isPending}
+                                  data-testid={`button-reject-merchant-${merchant.id}`}
+                                >
+                                  <X className="mr-2 h-4 w-4" />
+                                  Reject
+                                </Button>
+                                <Button 
+                                  size="sm"
+                                  onClick={() => reviewMerchantMutation.mutate({ userId: merchant.id, approved: true })}
+                                  disabled={reviewMerchantMutation.isPending}
+                                  data-testid={`button-approve-merchant-${merchant.id}`}
+                                >
+                                  <Check className="mr-2 h-4 w-4" />
+                                  Approve
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </TabsContent>
 
             <TabsContent value="settings" className="space-y-6">

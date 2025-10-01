@@ -1329,6 +1329,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Merchant Approval Routes
+  app.get("/api/admin/merchants-for-approval", async (req, res) => {
+    if (!req.isAuthenticated() || (req.user.role !== 'admin' && req.user.role !== 'owner')) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const merchants = await storage.getMerchantsForApproval();
+      res.json(merchants);
+    } catch (error) {
+      console.error("Error fetching merchants for approval:", error);
+      res.status(500).json({ error: "Failed to fetch merchants for approval" });
+    }
+  });
+
+  app.post("/api/admin/review-merchant/:userId", async (req, res) => {
+    if (!req.isAuthenticated() || (req.user.role !== 'admin' && req.user.role !== 'owner')) {
+      return res.status(401).json({ error: "Unauthorized - Admin access required" });
+    }
+
+    try {
+      const { approved } = req.body;
+      const userId = req.params.userId;
+      
+      // Validate request body
+      if (typeof approved !== 'boolean') {
+        return res.status(400).json({ error: "Missing or invalid 'approved' field" });
+      }
+
+      // Check if merchant exists and is in correct state
+      const merchant = await storage.getUser(userId);
+      if (!merchant) {
+        return res.status(404).json({ error: "Merchant not found" });
+      }
+
+      if (merchant.role !== 'merchant') {
+        return res.status(400).json({ error: "User is not a merchant" });
+      }
+
+      if (merchant.approvalStatus !== 'pending') {
+        return res.status(400).json({ 
+          error: "Merchant is not in pending state for review",
+          currentStatus: merchant.approvalStatus
+        });
+      }
+      
+      const updatedMerchant = await storage.reviewMerchant(
+        userId, 
+        approved, 
+        req.user.id
+      );
+      
+      res.json({ 
+        message: approved ? "Merchant approved successfully" : "Merchant rejected", 
+        merchant: updatedMerchant,
+        success: true,
+        action: approved ? 'approved' : 'rejected'
+      });
+    } catch (error) {
+      console.error("Error reviewing merchant:", error);
+      res.status(500).json({ error: "Failed to review merchant" });
+    }
+  });
+
   // Document download route for admins
   app.get("/api/admin/rider-document/:riderId/:documentType", async (req, res) => {
     if (!req.isAuthenticated() || req.user.role !== 'admin') {

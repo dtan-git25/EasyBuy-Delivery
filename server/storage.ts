@@ -80,6 +80,10 @@ export interface IStorage {
   getRidersForApproval(): Promise<Rider[]>;
   requestDocumentUpdate(riderId: string, documents: { orcrDocument?: string; motorImage?: string; idDocument?: string }): Promise<Rider | undefined>;
 
+  // Merchant approval operations
+  getMerchantsForApproval(): Promise<User[]>;
+  reviewMerchant(userId: string, approved: boolean, reviewedBy: string): Promise<User | undefined>;
+
   // Order status history tracking
   createOrderStatusHistory(historyData: InsertOrderStatusHistory): Promise<OrderStatusHistory>;
   getOrderStatusHistory(orderId: string): Promise<(OrderStatusHistory & { changedByUser: User })[]>;
@@ -572,6 +576,29 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date()
       })
       .where(eq(riders.id, riderId))
+      .returning();
+    return result;
+  }
+
+  // Merchant approval operations
+  async getMerchantsForApproval(): Promise<User[]> {
+    return await db.query.users.findMany({
+      where: (users, { eq, and }) => 
+        and(
+          eq(users.role, 'merchant'),
+          eq(users.approvalStatus, 'pending')
+        ),
+      orderBy: asc(users.createdAt)
+    });
+  }
+
+  async reviewMerchant(userId: string, approved: boolean, reviewedBy: string): Promise<User | undefined> {
+    const [result] = await db.update(users)
+      .set({ 
+        approvalStatus: approved ? 'approved' : 'rejected',
+        updatedAt: new Date() 
+      })
+      .where(eq(users.id, userId))
       .returning();
     return result;
   }
