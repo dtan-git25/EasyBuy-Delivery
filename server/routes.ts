@@ -18,41 +18,35 @@ import fs from "fs";
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
-  // Configure multer for direct object storage uploads
+  // Ensure uploads directory exists on startup
+  const uploadsBaseDir = path.join(process.cwd(), 'uploads', 'riders');
+  try {
+    await fs.promises.mkdir(uploadsBaseDir, { recursive: true });
+    console.log('Created uploads directory:', uploadsBaseDir);
+  } catch (error) {
+    console.error('Failed to create uploads directory:', error);
+  }
+
+  // Configure multer for file uploads using local storage
   const upload = multer({
     storage: multer.diskStorage({
       destination: async (req, file, cb) => {
         try {
-          // Get private object storage directory, fallback to temp
-          const privateDir = process.env.PRIVATE_OBJECT_DIR || path.join(process.cwd(), 'uploads');
-          
-          // Create rider-specific directory
           const userId = (req as any).user?.id;
           if (!userId) {
             return cb(new Error("User not authenticated"));
           }
           
-          const riderDir = path.join(privateDir, 'riders', userId);
+          // Use local uploads directory
+          const riderDir = path.join(process.cwd(), 'uploads', 'riders', userId);
           
-          // Ensure directory exists - use async approach with promises
-          await fs.promises.mkdir(riderDir, { recursive: true }).catch(err => {
-            // If object storage path fails, use local fallback
-            console.warn('Object storage path failed, using local fallback:', err.message);
-            const fallbackDir = path.join(process.cwd(), 'uploads', 'riders', userId);
-            return fs.promises.mkdir(fallbackDir, { recursive: true });
-          });
+          // Ensure directory exists
+          await fs.promises.mkdir(riderDir, { recursive: true });
           
           cb(null, riderDir);
         } catch (error) {
           console.error('Error creating upload directory:', error);
-          // Use local uploads as ultimate fallback
-          const fallbackDir = path.join(process.cwd(), 'uploads', 'riders', (req as any).user?.id || 'unknown');
-          try {
-            await fs.promises.mkdir(fallbackDir, { recursive: true });
-            cb(null, fallbackDir);
-          } catch (fallbackError) {
-            cb(fallbackError as Error);
-          }
+          cb(error as Error);
         }
       },
       filename: (req, file, cb) => {
@@ -75,6 +69,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         cb(new Error('Only JPEG, PNG, and PDF files are allowed'));
       }
+    }
+  });
+
+  // Serve uploaded files (requires authentication to view)
+  app.get("/uploads/:folder/:userId/:filename", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const { folder, userId, filename } = req.params;
+      const filePath = path.join(process.cwd(), 'uploads', folder, userId, filename);
+      
+      // Check if file exists
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: "File not found" });
+      }
+      
+      // Send file
+      res.sendFile(filePath);
+    } catch (error) {
+      console.error("Error serving file:", error);
+      res.status(500).json({ error: "Failed to serve file" });
     }
   });
 
@@ -968,28 +985,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const documentUrls: { orcrDocument?: string; motorImage?: string; idDocument?: string } = {};
 
-        // Process files that are already stored in object storage by multer
+        // Process files that are already stored locally by multer
         for (const [fieldName, fileArray] of Object.entries(files)) {
           if (fileArray && fileArray.length > 0) {
             const file = fileArray[0];
             
-            // Verify file was stored successfully in object storage
+            // Verify file was stored successfully
             if (!fs.existsSync(file.path)) {
               throw new Error(`File storage failed for ${fieldName}`);
             }
             
-            // Get relative path for database storage
-            const privateDir = process.env.PRIVATE_OBJECT_DIR;
-            if (!privateDir) {
-              throw new Error("Object storage not configured - PRIVATE_OBJECT_DIR missing");
-            }
+            // Get relative path from project root for database storage
+            const uploadsDir = path.join(process.cwd(), 'uploads');
+            const relativePath = path.relative(uploadsDir, file.path);
             
-            const relativePath = path.relative(privateDir, file.path);
-            
-            // Store the relative path in the database
+            // Store the relative path in the database (e.g., "riders/userId/filename.png")
             documentUrls[fieldName as keyof typeof documentUrls] = relativePath;
             
-            console.log(`Successfully stored ${fieldName} at ${file.path}`);
+            console.log(`Successfully stored ${fieldName} at ${file.path} (relative: ${relativePath})`);
           }
         }
 
