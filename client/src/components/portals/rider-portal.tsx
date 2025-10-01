@@ -33,7 +33,6 @@ export default function RiderPortal() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [riderStatus, setRiderStatus] = useState<'online' | 'offline'>('online');
   const [documentFiles, setDocumentFiles] = useState<{
     orcrDocument: File | null;
     motorImage: File | null; 
@@ -56,10 +55,14 @@ export default function RiderPortal() {
     queryKey: ["/api/orders"],
   });
 
-  // Fetch rider profile for document status
+  // Fetch rider profile for document status and rider status
   const { data: riderProfile } = useQuery({
     queryKey: ["/api/rider/profile"],
   });
+
+  // Get rider status from profile, default to offline
+  const riderStatus = riderProfile?.status || 'offline';
+  const documentsStatus = riderProfile?.documentsStatus || 'incomplete';
 
   const updateOrderMutation = useMutation({
     mutationFn: async ({ orderId, status }: { orderId: string; status: string }) => {
@@ -133,6 +136,34 @@ export default function RiderPortal() {
     },
   });
 
+  const toggleStatusMutation = useMutation({
+    mutationFn: async (newStatus: 'online' | 'offline') => {
+      const response = await apiRequest("PATCH", "/api/rider/status", { status: newStatus });
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || data.message || "Failed to update status");
+      }
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/rider/profile"] });
+      
+      toast({
+        title: "Status Updated",
+        description: data.message || `You are now ${data.rider?.status || 'updated'}`,
+        variant: "default",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Status Update Failed",
+        description: error.message || "Failed to update status. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const acceptOrder = (orderId: string) => {
     updateOrderMutation.mutate({ orderId, status: 'accepted' });
   };
@@ -142,7 +173,8 @@ export default function RiderPortal() {
   };
 
   const toggleStatus = () => {
-    setRiderStatus(prev => prev === 'online' ? 'offline' : 'online');
+    const newStatus = riderStatus === 'online' ? 'offline' : 'online';
+    toggleStatusMutation.mutate(newStatus);
   };
 
   const handleFileChange = (documentType: keyof typeof documentFiles, file: File | null) => {
@@ -283,13 +315,23 @@ export default function RiderPortal() {
               <Button
                 variant={riderStatus === 'online' ? 'destructive' : 'default'}
                 onClick={toggleStatus}
+                disabled={riderStatus === 'offline' && documentsStatus !== 'approved'}
                 data-testid="button-toggle-status"
               >
                 {riderStatus === 'online' ? 'Go Offline' : 'Go Online'}
               </Button>
-              <p className="text-sm text-muted-foreground text-center">
-                Active for 3h 24m
-              </p>
+              {documentsStatus !== 'approved' && riderStatus === 'offline' && (
+                <p className="text-xs text-destructive text-center">
+                  {documentsStatus === 'incomplete' && 'Upload & submit documents to go online'}
+                  {documentsStatus === 'pending' && 'Documents under review'}
+                  {documentsStatus === 'rejected' && 'Documents rejected - Re-upload required'}
+                </p>
+              )}
+              {riderStatus === 'online' && (
+                <p className="text-sm text-muted-foreground text-center">
+                  Active for 3h 24m
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -628,16 +670,25 @@ export default function RiderPortal() {
                   <CardContent>
                     <div className="space-y-4">
                       {riderProfile?.orcrDocument ? (
-                        <div className="flex items-center space-x-2 text-green-600">
-                          <CheckCircle className="w-4 h-4" />
-                          <span className="text-sm">Document uploaded</span>
+                        <div className="flex flex-col space-y-2">
+                          <div className="flex items-center space-x-2 text-green-600">
+                            <CheckCircle className="w-4 h-4" />
+                            <span className="text-sm">Document uploaded</span>
+                          </div>
+                          {documentsStatus === 'pending' && (
+                            <p className="text-xs text-muted-foreground">Under admin review</p>
+                          )}
+                          {documentsStatus === 'approved' && (
+                            <p className="text-xs text-green-600">Verified</p>
+                          )}
                         </div>
                       ) : (
                         <input
                           type="file"
                           accept=".jpg,.jpeg,.png,.pdf"
                           onChange={(e) => handleFileChange('orcrDocument', e.target.files?.[0] || null)}
-                          className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                          disabled={documentsStatus === 'pending' || documentsStatus === 'approved'}
+                          className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                           data-testid="input-orcr-document"
                         />
                       )}
@@ -656,16 +707,25 @@ export default function RiderPortal() {
                   <CardContent>
                     <div className="space-y-4">
                       {riderProfile?.motorImage ? (
-                        <div className="flex items-center space-x-2 text-green-600">
-                          <CheckCircle className="w-4 h-4" />
-                          <span className="text-sm">Image uploaded</span>
+                        <div className="flex flex-col space-y-2">
+                          <div className="flex items-center space-x-2 text-green-600">
+                            <CheckCircle className="w-4 h-4" />
+                            <span className="text-sm">Image uploaded</span>
+                          </div>
+                          {documentsStatus === 'pending' && (
+                            <p className="text-xs text-muted-foreground">Under admin review</p>
+                          )}
+                          {documentsStatus === 'approved' && (
+                            <p className="text-xs text-green-600">Verified</p>
+                          )}
                         </div>
                       ) : (
                         <input
                           type="file"
                           accept=".jpg,.jpeg,.png"
                           onChange={(e) => handleFileChange('motorImage', e.target.files?.[0] || null)}
-                          className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                          disabled={documentsStatus === 'pending' || documentsStatus === 'approved'}
+                          className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                           data-testid="input-motor-image"
                         />
                       )}
@@ -684,16 +744,25 @@ export default function RiderPortal() {
                   <CardContent>
                     <div className="space-y-4">
                       {riderProfile?.idDocument ? (
-                        <div className="flex items-center space-x-2 text-green-600">
-                          <CheckCircle className="w-4 h-4" />
-                          <span className="text-sm">ID uploaded</span>
+                        <div className="flex flex-col space-y-2">
+                          <div className="flex items-center space-x-2 text-green-600">
+                            <CheckCircle className="w-4 h-4" />
+                            <span className="text-sm">ID uploaded</span>
+                          </div>
+                          {documentsStatus === 'pending' && (
+                            <p className="text-xs text-muted-foreground">Under admin review</p>
+                          )}
+                          {documentsStatus === 'approved' && (
+                            <p className="text-xs text-green-600">Verified</p>
+                          )}
                         </div>
                       ) : (
                         <input
                           type="file"
                           accept=".jpg,.jpeg,.png,.pdf"
                           onChange={(e) => handleFileChange('idDocument', e.target.files?.[0] || null)}
-                          className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                          disabled={documentsStatus === 'pending' || documentsStatus === 'approved'}
+                          className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                           data-testid="input-id-document"
                         />
                       )}
@@ -703,51 +772,86 @@ export default function RiderPortal() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4">
-                {/* Upload Button */}
-                <Button
-                  onClick={handleUploadDocuments}
-                  disabled={uploadDocumentsMutation.isPending || 
-                    (!documentFiles.orcrDocument && !documentFiles.motorImage && !documentFiles.idDocument)}
-                  className="flex-1"
-                  data-testid="button-upload-documents"
-                >
-                  {uploadDocumentsMutation.isPending ? (
-                    <>
-                      <Clock className="w-4 h-4 mr-2 animate-spin" />
-                      Uploading...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-4 h-4 mr-2" />
-                      Upload Documents
-                    </>
-                  )}
-                </Button>
+              {(documentsStatus === 'incomplete' || documentsStatus === 'rejected') && (
+                <div className="flex flex-col sm:flex-row gap-4">
+                  {/* Upload Button */}
+                  <Button
+                    onClick={handleUploadDocuments}
+                    disabled={uploadDocumentsMutation.isPending || 
+                      (!documentFiles.orcrDocument && !documentFiles.motorImage && !documentFiles.idDocument)}
+                    className="flex-1"
+                    data-testid="button-upload-documents"
+                  >
+                    {uploadDocumentsMutation.isPending ? (
+                      <>
+                        <Clock className="w-4 h-4 mr-2 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 mr-2" />
+                        Upload Documents
+                      </>
+                    )}
+                  </Button>
 
-                {/* Submit for Review Button */}
-                <Button
-                  onClick={handleSubmitDocuments}
-                  disabled={submitDocumentsMutation.isPending || 
-                    !riderProfile?.orcrDocument || !riderProfile?.motorImage || !riderProfile?.idDocument ||
-                    riderProfile?.documentsStatus === 'pending'}
-                  variant="secondary"
-                  className="flex-1"
-                  data-testid="button-submit-documents"
-                >
-                  {submitDocumentsMutation.isPending ? (
-                    <>
-                      <Clock className="w-4 h-4 mr-2 animate-spin" />
-                      Submitting...
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="w-4 h-4 mr-2" />
-                      Submit for Review
-                    </>
+                  {/* Submit for Review Button - Only show when all documents are uploaded */}
+                  {riderProfile?.orcrDocument && riderProfile?.motorImage && riderProfile?.idDocument && (
+                    <Button
+                      onClick={handleSubmitDocuments}
+                      disabled={submitDocumentsMutation.isPending}
+                      variant="secondary"
+                      className="flex-1"
+                      data-testid="button-submit-documents"
+                    >
+                      {submitDocumentsMutation.isPending ? (
+                        <>
+                          <Clock className="w-4 h-4 mr-2 animate-spin" />
+                          Submitting...
+                        </>
+                      ) : (
+                        <>
+                          <FileText className="w-4 h-4 mr-2" />
+                          Submit for Review
+                        </>
+                      )}
+                    </Button>
                   )}
-                </Button>
-              </div>
+                </div>
+              )}
+
+              {/* Status message for pending/approved states */}
+              {documentsStatus === 'pending' && (
+                <Card className="border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950/20">
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-3">
+                      <Clock className="w-5 h-5 text-yellow-600" />
+                      <div>
+                        <p className="font-medium text-yellow-900 dark:text-yellow-100">Documents Under Review</p>
+                        <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                          Your documents are being reviewed by admin. You'll be notified once the review is complete.
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {documentsStatus === 'approved' && (
+                <Card className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20">
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-3">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <div>
+                        <p className="font-medium text-green-900 dark:text-green-100">Documents Approved!</p>
+                        <p className="text-sm text-green-700 dark:text-green-300">
+                          Your documents have been verified. You can now go online and start accepting orders.
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Help Text */}
               <Card>

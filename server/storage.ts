@@ -459,17 +459,53 @@ export class DatabaseStorage implements IStorage {
 
   // Rider document management
   async updateRiderDocuments(riderId: string, documents: { orcrDocument?: string; motorImage?: string; idDocument?: string }): Promise<Rider | undefined> {
+    // First, get the current rider to check their documentsStatus
+    const [currentRider] = await db.select().from(riders).where(eq(riders.id, riderId));
+    
+    if (!currentRider) {
+      throw new Error('Rider not found');
+    }
+    
+    // Only allow document updates if status is 'incomplete' or 'rejected'
+    if (currentRider.documentsStatus !== 'incomplete' && currentRider.documentsStatus !== 'rejected') {
+      throw new Error(`Cannot update documents when status is '${currentRider.documentsStatus}'. Documents are locked.`);
+    }
+    
+    // Clear rejectedReason if uploading new documents after rejection
+    const updates: any = { 
+      ...documents, 
+      updatedAt: new Date()
+    };
+    
+    if (currentRider.documentsStatus === 'rejected') {
+      updates.rejectedReason = null;
+    }
+    
     const [result] = await db.update(riders)
-      .set({ 
-        ...documents, 
-        updatedAt: new Date() 
-      })
+      .set(updates)
       .where(eq(riders.id, riderId))
       .returning();
     return result;
   }
 
   async submitRiderDocuments(riderId: string): Promise<Rider | undefined> {
+    // First, get the current rider to validate their state
+    const [currentRider] = await db.select().from(riders).where(eq(riders.id, riderId));
+    
+    if (!currentRider) {
+      throw new Error('Rider not found');
+    }
+    
+    // Only allow submission if status is 'incomplete' or 'rejected'
+    if (currentRider.documentsStatus !== 'incomplete' && currentRider.documentsStatus !== 'rejected') {
+      throw new Error(`Cannot submit documents when status is '${currentRider.documentsStatus}'`);
+    }
+    
+    // Validate all three documents are uploaded
+    if (!currentRider.orcrDocument || !currentRider.motorImage || !currentRider.idDocument) {
+      throw new Error('All three documents (OR/CR, Motor Image, and Valid ID) must be uploaded before submission');
+    }
+    
     const [result] = await db.update(riders)
       .set({ 
         documentsStatus: 'pending',

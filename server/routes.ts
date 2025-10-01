@@ -72,7 +72,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Serve uploaded files (requires authentication to view)
+  // Serve uploaded files (requires authentication and authorization)
   app.get("/uploads/:folder/:userId/:filename", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Unauthorized" });
@@ -80,15 +80,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const { folder, userId, filename } = req.params;
-      const filePath = path.join(process.cwd(), 'uploads', folder, userId, filename);
+      
+      // Whitelist folder to prevent access to other directories
+      if (folder !== 'riders') {
+        return res.status(400).json({ error: "Invalid folder" });
+      }
+      
+      // Prevent path traversal attacks - reject any path segments containing '..' or path separators
+      if (userId.includes('..') || userId.includes('/') || userId.includes('\\') ||
+          filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+        console.warn(`Path traversal attempt detected: ${folder}/${userId}/${filename} by user ${req.user.id}`);
+        return res.status(400).json({ error: "Invalid path" });
+      }
+      
+      // Authorization check: Only allow the document owner or admin/owner roles to access files
+      const isOwner = req.user.id === userId;
+      const isAdminOrOwner = req.user.role === 'admin' || req.user.role === 'owner';
+      
+      if (!isOwner && !isAdminOrOwner) {
+        console.warn(`Unauthorized access attempt to ${folder}/${userId}/${filename} by user ${req.user.id} (${req.user.username})`);
+        return res.status(403).json({ 
+          error: "Forbidden",
+          message: "You do not have permission to access this file"
+        });
+      }
+      
+      const uploadsBase = path.join(process.cwd(), 'uploads');
+      const filePath = path.join(uploadsBase, folder, userId, filename);
+      const normalizedPath = path.resolve(filePath);
+      
+      // Ensure the resolved path is within the uploads directory
+      if (!normalizedPath.startsWith(uploadsBase)) {
+        console.warn(`Path traversal attempt blocked: ${normalizedPath} by user ${req.user.id}`);
+        return res.status(400).json({ error: "Invalid path" });
+      }
       
       // Check if file exists
-      if (!fs.existsSync(filePath)) {
+      if (!fs.existsSync(normalizedPath)) {
         return res.status(404).json({ error: "File not found" });
       }
       
-      // Send file
-      res.sendFile(filePath);
+      // Set content-disposition header to prevent inline rendering of sensitive docs
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      
+      // Send file using normalized path
+      res.sendFile(normalizedPath);
     } catch (error) {
       console.error("Error serving file:", error);
       res.status(500).json({ error: "Failed to serve file" });
@@ -1019,9 +1055,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           rider: updatedRider,
           uploadedDocuments: Object.keys(documentUrls) 
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error uploading rider documents:", error);
-        res.status(500).json({ error: "Failed to upload documents" });
+        
+        // Check if error is due to locked documents
+        if (error.message && error.message.includes('locked')) {
+          return res.status(400).json({ 
+            error: error.message,
+            locked: true 
+          });
+        }
+        
+        res.status(500).json({ error: error.message || "Failed to upload documents" });
       }
     }
   );
@@ -1063,9 +1108,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
         rider: updatedRider,
         success: true
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting rider documents:", error);
-      res.status(500).json({ error: "Failed to submit documents" });
+      res.status(500).json({ error: error.message || "Failed to submit documents" });
+    }
+  });
+
+  // Rider Status Toggle (Online/Offline)
+  app.patch("/api/rider/status", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'rider') {
+      return res.status(401).json({ error: "Unauthorized - Riders only" });
+    }
+
+    try {
+      const { status } = req.body;
+      
+      // Validate status value
+      if (!status || !['online', 'offline'].includes(status)) {
+        return res.status(400).json({ 
+          error: "Invalid status. Must be 'online' or 'offline'" 
+        });
+      }
+
+      const rider = await storage.getRiderByUserId(req.user.id);
+      if (!rider) {
+        return res.status(404).json({ error: "Rider profile not found" });
+      }
+
+      // Check if rider can go online - only allow if documents are approved
+      if (status === 'online' && rider.documentsStatus !== 'approved') {
+        return res.status(403).json({ 
+          error: "Cannot go online until documents are approved",
+          documentsStatus: rider.documentsStatus,
+          message: rider.documentsStatus === 'incomplete' 
+            ? "Please upload and submit all required documents"
+            : rider.documentsStatus === 'pending'
+            ? "Your documents are currently under review by admin"
+            : rider.documentsStatus === 'rejected'
+            ? `Your documents were rejected: ${rider.rejectedReason || 'Please re-upload'}`
+            : "Documents not approved"
+        });
+      }
+
+      // Allow going offline at any time
+      const updatedRider = await storage.updateRider(rider.id, { status });
+      
+      res.json({ 
+        message: `Status updated to ${status}`, 
+        rider: updatedRider,
+        success: true
+      });
+    } catch (error: any) {
+      console.error("Error updating rider status:", error);
+      res.status(500).json({ error: error.message || "Failed to update status" });
     }
   });
 

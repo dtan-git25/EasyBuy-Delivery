@@ -124,7 +124,7 @@ export const riders = pgTable("riders", {
   motorImage: text("motor_image"),
   idDocument: text("id_document"),
   // Document approval workflow
-  documentsStatus: documentApprovalEnum("documents_status").default('pending'),
+  documentsStatus: documentApprovalEnum("documents_status").default('incomplete'),
   approvedBy: varchar("approved_by"), // Admin user ID who approved
   rejectedReason: text("rejected_reason"),
   documentsSubmittedAt: timestamp("documents_submitted_at"),
