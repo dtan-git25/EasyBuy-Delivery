@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { Redirect } from "wouter";
+import { Redirect, useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,10 +30,18 @@ type LoginForm = z.infer<typeof loginSchema>;
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation, isLoading } = useAuth();
+  const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("login");
   const [registerRole, setRegisterRole] = useState<"customer" | "rider" | "merchant">("customer");
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotPasswordMessage, setForgotPasswordMessage] = useState("");
+
+  // Redirect to dashboard when user is authenticated
+  useEffect(() => {
+    if (user && !isLoading) {
+      setLocation("/");
+    }
+  }, [user, isLoading, setLocation]);
 
   // Initialize login form
   const loginForm = useForm<LoginForm>({
@@ -111,30 +119,6 @@ export default function AuthPage() {
     },
   });
 
-
-  // Show loading state during auth transitions
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-            <Bike className="text-primary-foreground text-2xl animate-pulse" />
-          </div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Redirect if already logged in
-  if (user) {
-    return <Redirect to="/" />;
-  }
-
-  const onLogin = (data: LoginForm) => {
-    loginMutation.mutate(data);
-  };
-
   const forgotPasswordMutation = useMutation({
     mutationFn: async (data: { email: string }) => {
       const res = await fetch("/api/forgot-password", {
@@ -158,6 +142,24 @@ export default function AuthPage() {
       setForgotPasswordMessage(error.message);
     },
   });
+
+  // Show loading state during auth transitions or while redirecting
+  if (isLoading || user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+            <Bike className="text-primary-foreground text-2xl animate-pulse" />
+          </div>
+          <p className="text-muted-foreground">{user ? "Redirecting to dashboard..." : "Loading..."}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const onLogin = (data: LoginForm) => {
+    loginMutation.mutate(data);
+  };
 
   const onForgotPassword = (data: { email: string }) => {
     forgotPasswordMutation.mutate(data);
