@@ -158,6 +158,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRestaurants(): Promise<Restaurant[]> {
+    // Return only active restaurants for customer-facing pages
     return await db.select().from(restaurants).where(eq(restaurants.isActive, true));
   }
 

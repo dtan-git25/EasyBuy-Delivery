@@ -142,6 +142,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Merchant-specific endpoint to get their own restaurant (including inactive ones)
+  app.get("/api/merchant/my-restaurant", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'merchant') {
+      return res.status(401).json({ error: "Unauthorized - Merchant access only" });
+    }
+
+    try {
+      const restaurants = await storage.getRestaurantsByOwner(req.user.id);
+      // Return the first restaurant (merchants should only have one)
+      const restaurant = restaurants.length > 0 ? restaurants[0] : null;
+      res.json(restaurant);
+    } catch (error) {
+      console.error("Error fetching merchant restaurant:", error);
+      res.status(500).json({ error: "Failed to fetch restaurant" });
+    }
+  });
+
   app.get("/api/restaurants/:id/menu", async (req, res) => {
     try {
       const menuItems = await storage.getMenuItems(req.params.id);

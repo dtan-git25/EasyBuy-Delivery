@@ -44,8 +44,14 @@ export default function MerchantPortal() {
     category: ''
   });
 
-  const { data: restaurants = [] } = useQuery<any[]>({
-    queryKey: ["/api/restaurants"],
+  // Fetch merchant's own restaurant (including inactive ones)
+  const { data: userRestaurant } = useQuery<any>({
+    queryKey: ["/api/merchant/my-restaurant"],
+    staleTime: 0, // Always refetch to ensure we have latest data
+    gcTime: 0, // Don't cache the data
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    enabled: user?.role === 'merchant', // Only fetch for merchants
   });
 
   const { data: orders = [] } = useQuery<Order[]>({
@@ -117,7 +123,7 @@ export default function MerchantPortal() {
       return response.json();
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/restaurants"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/merchant/my-restaurant"] });
       toast({
         title: "Restaurant status updated",
         description: variables.isActive ? "Your restaurant is now accepting orders!" : "Your restaurant is now closed.",
@@ -132,8 +138,6 @@ export default function MerchantPortal() {
       });
     },
   });
-
-  const userRestaurant = restaurants.find((r: any) => r.ownerId === user?.id);
 
   const { data: menuItems = [] } = useQuery({
     queryKey: ["/api/menu-items", userRestaurant?.id],
