@@ -812,13 +812,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin Restaurant Management Routes
+  // Restaurant Management Routes (Admin and Merchant)
   app.patch("/api/restaurants/:id", async (req, res) => {
-    if (!req.isAuthenticated() || req.user?.role !== 'admin') {
-      return res.status(401).json({ error: "Unauthorized" });
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized - Authentication required" });
+    }
+
+    const userRole = req.user?.role;
+    
+    // Only admin and merchant roles can update restaurants
+    if (userRole !== 'admin' && userRole !== 'merchant') {
+      return res.status(401).json({ error: "Unauthorized - Admin or Merchant access required" });
     }
 
     try {
+      // If merchant, verify they own this restaurant
+      if (userRole === 'merchant') {
+        const restaurant = await storage.getRestaurant(req.params.id);
+        if (!restaurant) {
+          return res.status(404).json({ error: "Restaurant not found" });
+        }
+        if (restaurant.ownerId !== req.user.id) {
+          return res.status(403).json({ error: "Forbidden - You can only update your own restaurant" });
+        }
+      }
+
       const updatedRestaurant = await storage.updateRestaurant(req.params.id, {
         ...req.body,
         updatedAt: new Date()
