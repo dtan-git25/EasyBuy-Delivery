@@ -7,7 +7,7 @@ interface ExtendedWebSocket extends WebSocket {
 }
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertRestaurantSchema, insertMenuItemSchema, insertOrderSchema, insertChatMessageSchema, insertRiderSchema, insertWalletTransactionSchema, type Order, walletTransactions } from "@shared/schema";
+import { insertRestaurantSchema, insertMenuItemSchema, insertCategorySchema, insertOrderSchema, insertChatMessageSchema, insertRiderSchema, insertWalletTransactionSchema, type Order, walletTransactions } from "@shared/schema";
 import { z } from "zod";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
@@ -277,6 +277,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating menu item:", error);
       res.status(500).json({ error: "Failed to update menu item" });
+    }
+  });
+
+  // Category routes
+  app.get("/api/categories", async (req, res) => {
+    try {
+      const categories = req.query.activeOnly === 'true' 
+        ? await storage.getActiveCategories()
+        : await storage.getCategories();
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      res.status(500).json({ error: "Failed to fetch categories" });
+    }
+  });
+
+  app.post("/api/categories", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'owner') {
+      return res.status(401).json({ error: "Unauthorized - Admin only" });
+    }
+
+    try {
+      const categoryData = insertCategorySchema.parse(req.body);
+      const category = await storage.createCategory(categoryData);
+      res.status(201).json(category);
+    } catch (error) {
+      console.error("Error creating category:", error);
+      res.status(400).json({ error: "Invalid category data" });
+    }
+  });
+
+  app.patch("/api/categories/:id", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'owner') {
+      return res.status(401).json({ error: "Unauthorized - Admin only" });
+    }
+
+    try {
+      const updatedCategory = await storage.updateCategory(req.params.id, req.body);
+      if (!updatedCategory) {
+        return res.status(404).json({ error: "Category not found" });
+      }
+      res.json(updatedCategory);
+    } catch (error) {
+      console.error("Error updating category:", error);
+      res.status(500).json({ error: "Failed to update category" });
+    }
+  });
+
+  app.delete("/api/categories/:id", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'owner') {
+      return res.status(401).json({ error: "Unauthorized - Admin only" });
+    }
+
+    try {
+      await storage.deleteCategory(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      res.status(500).json({ error: "Failed to delete category" });
     }
   });
 

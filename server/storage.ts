@@ -1,4 +1,4 @@
-import { users, restaurants, menuItems, riders, wallets, orders, chatMessages, systemSettings, walletTransactions, orderStatusHistory, riderLocationHistory, type User, type InsertUser, type Restaurant, type InsertRestaurant, type MenuItem, type InsertMenuItem, type Rider, type InsertRider, type Order, type InsertOrder, type ChatMessage, type InsertChatMessage, type Wallet, type SystemSettings, type WalletTransaction, type InsertWalletTransaction, type OrderStatusHistory, type InsertOrderStatusHistory, type RiderLocationHistory, type InsertRiderLocationHistory } from "@shared/schema";
+import { users, restaurants, menuItems, categories, riders, wallets, orders, chatMessages, systemSettings, walletTransactions, orderStatusHistory, riderLocationHistory, type User, type InsertUser, type Restaurant, type InsertRestaurant, type MenuItem, type InsertMenuItem, type Category, type InsertCategory, type Rider, type InsertRider, type Order, type InsertOrder, type ChatMessage, type InsertChatMessage, type Wallet, type SystemSettings, type WalletTransaction, type InsertWalletTransaction, type OrderStatusHistory, type InsertOrderStatusHistory, type RiderLocationHistory, type InsertRiderLocationHistory } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc } from "drizzle-orm";
 import session from "express-session";
@@ -30,6 +30,14 @@ export interface IStorage {
   getMenuItem(id: string): Promise<MenuItem | undefined>;
   createMenuItem(item: InsertMenuItem): Promise<MenuItem>;
   updateMenuItem(id: string, updates: Partial<MenuItem>): Promise<MenuItem | undefined>;
+
+  // Category operations
+  getCategories(): Promise<Category[]>;
+  getActiveCategories(): Promise<Category[]>;
+  getCategory(id: string): Promise<Category | undefined>;
+  createCategory(category: InsertCategory): Promise<Category>;
+  updateCategory(id: string, updates: Partial<Category>): Promise<Category | undefined>;
+  deleteCategory(id: string): Promise<void>;
 
   // Rider operations
   getRiders(): Promise<(Rider & { user: User })[]>;
@@ -198,6 +206,33 @@ export class DatabaseStorage implements IStorage {
   async updateMenuItem(id: string, updates: Partial<MenuItem>): Promise<MenuItem | undefined> {
     const [item] = await db.update(menuItems).set(updates).where(eq(menuItems.id, id)).returning();
     return item || undefined;
+  }
+
+  async getCategories(): Promise<Category[]> {
+    return await db.select().from(categories).orderBy(asc(categories.name));
+  }
+
+  async getActiveCategories(): Promise<Category[]> {
+    return await db.select().from(categories).where(eq(categories.isActive, true)).orderBy(asc(categories.name));
+  }
+
+  async getCategory(id: string): Promise<Category | undefined> {
+    const [category] = await db.select().from(categories).where(eq(categories.id, id));
+    return category || undefined;
+  }
+
+  async createCategory(category: InsertCategory): Promise<Category> {
+    const [newCategory] = await db.insert(categories).values(category).returning();
+    return newCategory;
+  }
+
+  async updateCategory(id: string, updates: Partial<Category>): Promise<Category | undefined> {
+    const [category] = await db.update(categories).set(updates).where(eq(categories.id, id)).returning();
+    return category || undefined;
+  }
+
+  async deleteCategory(id: string): Promise<void> {
+    await db.delete(categories).where(eq(categories.id, id));
   }
 
   async getRiders(): Promise<(Rider & { user: User })[]> {

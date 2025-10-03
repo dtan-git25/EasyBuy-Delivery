@@ -113,6 +113,17 @@ export const menuItems = pgTable("menu_items", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Categories table - Admin managed food categories
+export const categories = pgTable("categories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  icon: text("icon"), // Emoji or icon identifier
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Riders table
 export const riders = pgTable("riders", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -350,6 +361,12 @@ export const insertMenuItemSchema = createInsertSchema(menuItems).omit({
   updatedAt: true,
 });
 
+export const insertCategorySchema = createInsertSchema(categories).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertRiderSchema = createInsertSchema(riders).omit({
   id: true,
   createdAt: true,
@@ -488,6 +505,8 @@ export type Restaurant = typeof restaurants.$inferSelect;
 export type InsertRestaurant = z.infer<typeof insertRestaurantSchema>;
 export type MenuItem = typeof menuItems.$inferSelect;
 export type InsertMenuItem = z.infer<typeof insertMenuItemSchema>;
+export type Category = typeof categories.$inferSelect;
+export type InsertCategory = z.infer<typeof insertCategorySchema>;
 export type Rider = typeof riders.$inferSelect;
 export type InsertRider = z.infer<typeof insertRiderSchema>;
 export type Order = typeof orders.$inferSelect;

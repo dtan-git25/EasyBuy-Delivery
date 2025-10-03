@@ -31,6 +31,246 @@ const systemAccountSchema = z.object({
 
 type SystemAccountForm = z.infer<typeof systemAccountSchema>;
 
+const categorySchema = z.object({
+  name: z.string().min(1, "Category name is required"),
+  description: z.string().optional(),
+  icon: z.string().optional(),
+});
+
+type CategoryForm = z.infer<typeof categorySchema>;
+
+function CategoryManagement() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [isCreating, setIsCreating] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<any>(null);
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["/api/categories"],
+  });
+
+  const categoryForm = useForm<CategoryForm>({
+    resolver: zodResolver(categorySchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      icon: "",
+    },
+  });
+
+  const createCategoryMutation = useMutation({
+    mutationFn: async (data: CategoryForm) => {
+      const response = await apiRequest("POST", "/api/categories", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      toast({ title: "Category created successfully!" });
+      setIsCreating(false);
+      categoryForm.reset();
+    },
+    onError: () => {
+      toast({ title: "Failed to create category", variant: "destructive" });
+    },
+  });
+
+  const updateCategoryMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<CategoryForm> }) => {
+      const response = await apiRequest("PATCH", `/api/categories/${id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      toast({ title: "Category updated successfully!" });
+      setEditingCategory(null);
+      categoryForm.reset();
+    },
+    onError: () => {
+      toast({ title: "Failed to update category", variant: "destructive" });
+    },
+  });
+
+  const toggleActiveMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      const response = await apiRequest("PATCH", `/api/categories/${id}`, { isActive });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      toast({ title: "Category status updated!" });
+    },
+    onError: () => {
+      toast({ title: "Failed to update category status", variant: "destructive" });
+    },
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/categories/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      toast({ title: "Category deleted successfully!" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete category", variant: "destructive" });
+    },
+  });
+
+  const onSubmit = (data: CategoryForm) => {
+    if (editingCategory) {
+      updateCategoryMutation.mutate({ id: editingCategory.id, data });
+    } else {
+      createCategoryMutation.mutate(data);
+    }
+  };
+
+  const startEdit = (category: any) => {
+    setEditingCategory(category);
+    categoryForm.setValue("name", category.name);
+    categoryForm.setValue("description", category.description || "");
+    categoryForm.setValue("icon", category.icon || "");
+    setIsCreating(true);
+  };
+
+  const cancelEdit = () => {
+    setEditingCategory(null);
+    setIsCreating(false);
+    categoryForm.reset();
+  };
+
+  return (
+    <div className="grid lg:grid-cols-2 gap-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Categories List</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {categories.map((category: any) => (
+              <div key={category.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <div className="flex items-center gap-3">
+                  {category.icon && <span className="text-2xl">{category.icon}</span>}
+                  <div>
+                    <p className="font-medium text-foreground">{category.name}</p>
+                    {category.description && (
+                      <p className="text-sm text-muted-foreground">{category.description}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={category.isActive}
+                    onCheckedChange={(checked) => toggleActiveMutation.mutate({ id: category.id, isActive: checked })}
+                    data-testid={`toggle-category-${category.id}`}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => startEdit(category)}
+                    data-testid={`edit-category-${category.id}`}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      if (confirm("Are you sure you want to delete this category?")) {
+                        deleteCategoryMutation.mutate(category.id);
+                      }
+                    }}
+                    data-testid={`delete-category-${category.id}`}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            ))}
+            {categories.length === 0 && (
+              <p className="text-center text-muted-foreground py-8">No categories found. Create one to get started!</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{editingCategory ? "Edit Category" : "Create New Category"}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!isCreating ? (
+            <Button onClick={() => setIsCreating(true)} className="w-full" data-testid="button-create-category">
+              Create New Category
+            </Button>
+          ) : (
+            <Form {...categoryForm}>
+              <form onSubmit={categoryForm.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={categoryForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} data-testid="input-category-name" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={categoryForm.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description (Optional)</FormLabel>
+                      <FormControl>
+                        <Input {...field} data-testid="input-category-description" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={categoryForm.control}
+                  name="icon"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Icon (Emoji, Optional)</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="🍔" data-testid="input-category-icon" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    type="submit"
+                    disabled={createCategoryMutation.isPending || updateCategoryMutation.isPending}
+                    data-testid="button-submit-category"
+                  >
+                    {editingCategory ? "Update Category" : "Create Category"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={cancelEdit}
+                    data-testid="button-cancel-category"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function AdminPortal() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -316,7 +556,7 @@ export default function AdminPortal() {
 
           {/* Admin Navigation Tabs */}
           <Tabs defaultValue="dashboard" className="w-full">
-            <TabsList className={`grid w-full ${isOwner ? 'grid-cols-6' : 'grid-cols-5'}`}>
+            <TabsList className={`grid w-full ${isOwner ? 'grid-cols-7' : 'grid-cols-6'}`}>
               <TabsTrigger value="dashboard" data-testid="tab-dashboard">Dashboard</TabsTrigger>
               <TabsTrigger value="approvals" data-testid="tab-approvals">
                 Pending Approvals
@@ -331,6 +571,7 @@ export default function AdminPortal() {
                   <Badge className="ml-2" variant="destructive">{ridersForApproval.length}</Badge>
                 )}
               </TabsTrigger>
+              <TabsTrigger value="categories" data-testid="tab-categories">Categories</TabsTrigger>
               <TabsTrigger value="settings" data-testid="tab-settings">Settings</TabsTrigger>
               <TabsTrigger value="reports" data-testid="tab-reports">Reports</TabsTrigger>
               {isOwner && (
@@ -824,6 +1065,11 @@ export default function AdminPortal() {
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Categories Management Tab */}
+            <TabsContent value="categories" className="space-y-6">
+              <CategoryManagement />
             </TabsContent>
 
             {/* Owner-only User Management Tab */}

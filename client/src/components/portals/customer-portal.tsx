@@ -445,7 +445,7 @@ export default function CustomerPortal() {
                               <p className="text-sm text-muted-foreground mb-2">{item.description}</p>
                             )}
                             <div className="flex items-center justify-between mt-2">
-                              <span className="text-lg font-bold text-green-600">₱{item.price.toFixed(2)}</span>
+                              <span className="text-lg font-bold text-green-600">₱{Number(item.price).toFixed(2)}</span>
                               <div className="flex items-center space-x-2">
                                 {!item.isAvailable ? (
                                   <Badge variant="destructive">Unavailable</Badge>
@@ -487,7 +487,7 @@ export default function CustomerPortal() {
                       <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
                         <div className="flex-1">
                           <h4 className="font-medium">{item.name}</h4>
-                          <p className="text-sm text-muted-foreground">₱{item.price.toFixed(2)} each</p>
+                          <p className="text-sm text-muted-foreground">₱{Number(item.price).toFixed(2)} each</p>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Button
@@ -1009,7 +1009,7 @@ export default function CustomerPortal() {
                 <div key={`${item.menuItemId}-${item.name}`} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex-1">
                     <h4 className="font-medium">{item.name}</h4>
-                    <p className="text-sm text-muted-foreground">₱{item.price.toFixed(2)} each</p>
+                    <p className="text-sm text-muted-foreground">₱{Number(item.price).toFixed(2)} each</p>
                   </div>
                   <div className="flex items-center space-x-3">
                     <div className="flex items-center space-x-2">
