@@ -756,12 +756,12 @@ export default function CustomerPortal() {
               />
             </div>
             <div className="flex gap-2">
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <Select value={selectedCategory || "all"} onValueChange={(value) => setSelectedCategory(value === "all" ? "" : value)}>
                 <SelectTrigger className="w-48" data-testid="select-category-filter">
                   <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Categories</SelectItem>
+                  <SelectItem value="all">All Categories</SelectItem>
                   {categories.map((category) => (
                     <SelectItem key={category.id} value={category.name} data-testid={`category-option-${category.id}`}>
                       {category.icon && `${category.icon} `}{category.name}
