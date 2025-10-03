@@ -37,6 +37,8 @@ export default function MerchantPortal() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [isAddMenuItemOpen, setIsAddMenuItemOpen] = useState(false);
+  const [isEditMenuItemOpen, setIsEditMenuItemOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
   const [menuItemForm, setMenuItemForm] = useState({
     name: '',
     description: '',
@@ -84,6 +86,61 @@ export default function MerchantPortal() {
     },
     onError: (error: Error) => {
       console.error('Failed to create menu item:', error.message);
+    },
+  });
+
+  const updateMenuItemMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const response = await apiRequest("PATCH", `/api/menu-items/${id}`, data);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update menu item');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/menu-items"] });
+      setIsEditMenuItemOpen(false);
+      setEditingItem(null);
+      setMenuItemForm({ name: '', description: '', price: '', category: '' });
+      toast({
+        title: "Menu item updated",
+        description: "Your menu item has been updated successfully.",
+        variant: "default",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const toggleAvailabilityMutation = useMutation({
+    mutationFn: async ({ id, isAvailable }: { id: string; isAvailable: boolean }) => {
+      const response = await apiRequest("PATCH", `/api/menu-items/${id}`, { isAvailable });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update availability');
+      }
+      return response.json();
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/menu-items"] });
+      toast({
+        title: "Availability updated",
+        description: variables.isAvailable ? "Item is now available to customers" : "Item marked as unavailable",
+        variant: "default",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update failed",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -185,6 +242,47 @@ export default function MerchantPortal() {
       price: menuItemForm.price.trim(),
       category: menuItemForm.category.trim() || 'Other',
       restaurantId: userRestaurant?.id
+    });
+  };
+
+  const handleEditMenuItem = (item: any) => {
+    setEditingItem(item);
+    setMenuItemForm({
+      name: item.name,
+      description: item.description || '',
+      price: item.price,
+      category: item.category || ''
+    });
+    setIsEditMenuItemOpen(true);
+  };
+
+  const handleSubmitEditMenuItem = () => {
+    if (!editingItem) return;
+    
+    if (!menuItemForm.name.trim() || !menuItemForm.price.trim()) {
+      toast({
+        title: "Validation error",
+        description: "Name and price are required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    updateMenuItemMutation.mutate({
+      id: editingItem.id,
+      data: {
+        name: menuItemForm.name.trim(),
+        description: menuItemForm.description.trim(),
+        price: menuItemForm.price.trim(),
+        category: menuItemForm.category.trim() || 'Other',
+      }
+    });
+  };
+
+  const handleToggleAvailability = (item: any) => {
+    toggleAvailabilityMutation.mutate({
+      id: item.id,
+      isAvailable: !item.isAvailable
     });
   };
 
@@ -593,6 +691,78 @@ export default function MerchantPortal() {
                 </Dialog>
               </div>
 
+              {/* Edit Menu Item Dialog */}
+              <Dialog open={isEditMenuItemOpen} onOpenChange={setIsEditMenuItemOpen}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Edit Menu Item</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="edit-item-name">Item Name</Label>
+                      <Input 
+                        id="edit-item-name" 
+                        data-testid="input-edit-item-name"
+                        placeholder="Enter item name" 
+                        value={menuItemForm.name}
+                        onChange={(e) => updateMenuItemForm('name', e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="edit-item-description">Description</Label>
+                      <Textarea 
+                        id="edit-item-description" 
+                        data-testid="textarea-edit-item-description"
+                        placeholder="Describe your item" 
+                        value={menuItemForm.description}
+                        onChange={(e) => updateMenuItemForm('description', e.target.value)}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="edit-item-price">Price (₱)</Label>
+                        <Input 
+                          id="edit-item-price" 
+                          data-testid="input-edit-item-price"
+                          type="number" 
+                          placeholder="0.00" 
+                          value={menuItemForm.price}
+                          onChange={(e) => updateMenuItemForm('price', e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-item-category">Category</Label>
+                        <Input 
+                          id="edit-item-category" 
+                          data-testid="input-edit-item-category"
+                          placeholder="e.g., Main Course" 
+                          value={menuItemForm.category}
+                          onChange={(e) => updateMenuItemForm('category', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button 
+                        variant="outline" 
+                        className="flex-1"
+                        data-testid="button-cancel-edit"
+                        onClick={() => setIsEditMenuItemOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        className="flex-1"
+                        data-testid="button-save-edit"
+                        onClick={handleSubmitEditMenuItem}
+                        disabled={updateMenuItemMutation.isPending}
+                      >
+                        {updateMenuItemMutation.isPending ? 'Saving...' : 'Save Changes'}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
               {menuItems.length === 0 ? (
                 <Card>
                   <CardContent className="p-8 text-center">
@@ -634,13 +804,20 @@ export default function MerchantPortal() {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <Button variant="outline" size="sm" data-testid={`button-edit-item-${item.id}`}>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              data-testid={`button-edit-item-${item.id}`}
+                              onClick={() => handleEditMenuItem(item)}
+                            >
                               <Edit className="h-4 w-4" />
                             </Button>
                             <Button 
                               variant="outline" 
                               size="sm"
                               data-testid={`button-toggle-availability-${item.id}`}
+                              onClick={() => handleToggleAvailability(item)}
+                              disabled={toggleAvailabilityMutation.isPending}
                             >
                               {item.isAvailable ? "Disable" : "Enable"}
                             </Button>

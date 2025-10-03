@@ -252,6 +252,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/menu-items/:id", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'merchant') {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const menuItem = await storage.getMenuItem(req.params.id);
+      if (!menuItem) {
+        return res.status(404).json({ error: "Menu item not found" });
+      }
+
+      const restaurant = await storage.getRestaurant(menuItem.restaurantId);
+      if (!restaurant || restaurant.ownerId !== req.user.id) {
+        return res.status(403).json({ error: "Forbidden - You can only update your own menu items" });
+      }
+
+      const updatedMenuItem = await storage.updateMenuItem(req.params.id, {
+        ...req.body,
+        updatedAt: new Date()
+      });
+      
+      res.json(updatedMenuItem);
+    } catch (error) {
+      console.error("Error updating menu item:", error);
+      res.status(500).json({ error: "Failed to update menu item" });
+    }
+  });
+
   // Order routes
   app.get("/api/orders", async (req, res) => {
     if (!req.isAuthenticated()) {
