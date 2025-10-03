@@ -121,6 +121,30 @@ export default function CustomerPortal() {
     queryKey: ["/api/restaurants"],
   });
 
+  // Fetch active categories from the database
+  const { data: categories = [] } = useQuery<any[]>({
+    queryKey: ["/api/categories"],
+    queryFn: async () => {
+      const response = await fetch("/api/categories?activeOnly=true");
+      return response.json();
+    }
+  });
+
+  // Fetch ALL menu items for filtering purposes
+  const { data: allMenuItems = [] } = useQuery<MenuItem[]>({
+    queryKey: ["/api/all-menu-items"],
+    queryFn: async () => {
+      const items: MenuItem[] = [];
+      for (const restaurant of restaurants) {
+        const response = await fetch(`/api/menu-items?restaurantId=${restaurant.id}`);
+        const restaurantItems = await response.json();
+        items.push(...restaurantItems);
+      }
+      return items;
+    },
+    enabled: restaurants.length > 0
+  });
+
   // Fetch menu items for selected restaurant
   const { data: menuItems = [] } = useQuery<MenuItem[]>({
     queryKey: ["/api/menu-items", selectedRestaurant?.id],
@@ -236,15 +260,6 @@ export default function CustomerPortal() {
     }
   }, [socket, user, sendMessage, queryClient, selectedOrderForTracking, orders, toast]);
 
-  const categories = [
-    { id: "burgers", name: "Burgers", image: "🍔" },
-    { id: "pizza", name: "Pizza", image: "🍕" },
-    { id: "asian", name: "Asian", image: "🍜" },
-    { id: "mexican", name: "Mexican", image: "🌮" },
-    { id: "healthy", name: "Healthy", image: "🥗" },
-    { id: "desserts", name: "Desserts", image: "🍰" },
-  ];
-
   const handleUseCurrentLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -260,9 +275,16 @@ export default function CustomerPortal() {
   };
 
   const filteredRestaurants = restaurants.filter((restaurant: Restaurant) => {
+    // Search: Check restaurant name, cuisine, AND menu item categories
+    const restaurantMenuItems = allMenuItems.filter(item => item.restaurantId === restaurant.id);
+    const menuCategories = restaurantMenuItems.map(item => item.category.toLowerCase()).join(' ');
     const matchesSearch = restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         restaurant.cuisine.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = !selectedCategory || restaurant.cuisine.toLowerCase().includes(selectedCategory.toLowerCase());
+                         restaurant.cuisine.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         menuCategories.includes(searchQuery.toLowerCase());
+    
+    // Category filter: Check if restaurant has items in selected category
+    const matchesCategory = !selectedCategory || restaurantMenuItems.some(item => item.category === selectedCategory);
+    
     return matchesSearch && matchesCategory && restaurant.isActive;
   });
 
@@ -718,29 +740,6 @@ export default function CustomerPortal() {
           {/* Restaurants Tab */}
           <TabsContent value="restaurants" className="space-y-6">
             <div>
-              {/* Category Filter */}
-      <section className="py-6 bg-card border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-6 overflow-x-auto">
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => setSelectedCategory(selectedCategory === category.id ? "" : category.id)}
-                className={`flex flex-col items-center space-y-2 p-3 rounded-lg min-w-max transition-colors ${
-                  selectedCategory === category.id
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-background hover:bg-muted"
-                }`}
-                data-testid={`category-${category.id}`}
-              >
-                <span className="text-2xl">{category.image}</span>
-                <span className="text-sm font-medium">{category.name}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Search and Filter */}
       <section className="py-6 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -749,7 +748,7 @@ export default function CustomerPortal() {
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Search restaurants or cuisines..."
+                placeholder="Search restaurants, cuisines, or food categories..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -757,6 +756,19 @@ export default function CustomerPortal() {
               />
             </div>
             <div className="flex gap-2">
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger className="w-48" data-testid="select-category-filter">
+                  <SelectValue placeholder="All Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Categories</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.name} data-testid={`category-option-${category.id}`}>
+                      {category.icon && `${category.icon} `}{category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-48" data-testid="select-sort-by">
                   <SelectValue placeholder="Sort by" />
@@ -768,10 +780,6 @@ export default function CustomerPortal() {
                   <SelectItem value="price">Price</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline" data-testid="button-filters">
-                <Filter className="mr-2 h-4 w-4" />
-                Filters
-              </Button>
             </div>
           </div>
         </div>
