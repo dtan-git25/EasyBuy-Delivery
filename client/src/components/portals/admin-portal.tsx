@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 const systemAccountSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
   email: z.string().email("Invalid email address"),
+  phone: z.string().min(11, "Phone number must be at least 11 digits"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   role: z.enum(["admin", "owner"]),
   firstName: z.string().min(1, "First name is required"),
@@ -147,6 +148,7 @@ export default function AdminPortal() {
     defaultValues: {
       username: "",
       email: "",
+      phone: "",
       password: "",
       role: "admin",
       firstName: "",
@@ -959,6 +961,25 @@ export default function AdminPortal() {
                                       type="email"
                                       placeholder="Enter email address"
                                       data-testid="input-system-email"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={systemAccountForm.control}
+                              name="phone"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Phone Number</FormLabel>
+                                  <FormControl>
+                                    <Input 
+                                      {...field} 
+                                      type="tel"
+                                      placeholder="Enter phone number (e.g., 09123456789)"
+                                      data-testid="input-system-phone"
                                     />
                                   </FormControl>
                                   <FormMessage />

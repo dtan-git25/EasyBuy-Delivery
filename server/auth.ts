@@ -51,6 +51,7 @@ async function comparePasswords(supplied: string, stored: string) {
 export async function createSystemAccount(userData: {
   username: string;
   email: string;
+  phone: string;
   password: string;
   role: 'admin' | 'owner';
   firstName: string;
@@ -85,7 +86,7 @@ export async function createSystemAccount(userData: {
     prefix: null,
     age: null,
     gender: null,
-    phone: null,
+    phone: userData.phone,
     lotHouseNo: null,
     street: null,
     barangay: null,
@@ -353,10 +354,10 @@ export function setupAuth(app: Express) {
         return res.status(403).json({ error: "Only owners can create administrative accounts" });
       }
 
-      const { username, email, password, role, firstName, lastName, middleName } = req.body;
+      const { username, email, phone, password, role, firstName, lastName, middleName } = req.body;
 
       // Validate required fields
-      if (!username || !email || !password || !role || !firstName || !lastName) {
+      if (!username || !email || !phone || !password || !role || !firstName || !lastName) {
         return res.status(400).json({ error: "All required fields must be provided" });
       }
 
@@ -370,10 +371,16 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ error: "Password must be at least 6 characters" });
       }
 
+      // Validate phone number
+      if (phone.length < 11) {
+        return res.status(400).json({ error: "Phone number must be at least 11 digits" });
+      }
+
       // Create the system account
       const newUser = await createSystemAccount({
         username,
         email,
+        phone,
         password,
         role,
         firstName,
