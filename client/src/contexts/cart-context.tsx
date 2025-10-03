@@ -150,7 +150,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
         // If cart becomes empty, remove it
         if (cart.items.length === 0) {
           delete updatedCarts[activeRestaurantId];
-          setActiveRestaurantId(null);
+          
+          // Switch to another available cart if any exist
+          const remainingCartIds = Object.keys(updatedCarts);
+          if (remainingCartIds.length > 0) {
+            setActiveRestaurantId(remainingCartIds[0]);
+          } else {
+            setActiveRestaurantId(null);
+          }
         }
       }
       
@@ -186,22 +193,36 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setAllCarts(currentCarts => {
       const updatedCarts = { ...currentCarts };
       delete updatedCarts[activeRestaurantId];
+      
+      // Switch to another available cart if any exist
+      const remainingCartIds = Object.keys(updatedCarts);
+      if (remainingCartIds.length > 0) {
+        setActiveRestaurantId(remainingCartIds[0]);
+      } else {
+        setActiveRestaurantId(null);
+      }
+      
       return updatedCarts;
     });
-    
-    setActiveRestaurantId(null);
   };
 
   const clearRestaurantCart = (restaurantId: string) => {
     setAllCarts(currentCarts => {
       const updatedCarts = { ...currentCarts };
       delete updatedCarts[restaurantId];
+      
+      // If clearing the active cart, switch to another available cart
+      if (activeRestaurantId === restaurantId) {
+        const remainingCartIds = Object.keys(updatedCarts);
+        if (remainingCartIds.length > 0) {
+          setActiveRestaurantId(remainingCartIds[0]);
+        } else {
+          setActiveRestaurantId(null);
+        }
+      }
+      
       return updatedCarts;
     });
-    
-    if (activeRestaurantId === restaurantId) {
-      setActiveRestaurantId(null);
-    }
   };
 
   const clearAllCarts = () => {
