@@ -10,8 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Store, MapPin, Star, Clock, User, Phone, MessageCircle, Edit, Plus, AlertCircle, CheckCircle, XCircle } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { Store, MapPin, Star, Clock, User, Phone, MessageCircle, Edit, Plus, AlertCircle, CheckCircle, XCircle, Power } from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface Order {
   id: string;
@@ -34,6 +35,7 @@ interface Order {
 export default function MerchantPortal() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [isAddMenuItemOpen, setIsAddMenuItemOpen] = useState(false);
   const [menuItemForm, setMenuItemForm] = useState({
     name: '',
@@ -76,7 +78,58 @@ export default function MerchantPortal() {
     },
     onError: (error: Error) => {
       console.error('Failed to create menu item:', error.message);
-      // You can add toast notification here if available
+    },
+  });
+
+  const requestReapprovalMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/merchant/request-reapproval", {});
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to request re-approval');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      toast({
+        title: "Re-approval requested",
+        description: "Your account has been submitted for admin review again.",
+        variant: "default",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Request failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const toggleRestaurantStatusMutation = useMutation({
+    mutationFn: async ({ restaurantId, isActive }: { restaurantId: string; isActive: boolean }) => {
+      const response = await apiRequest("PATCH", `/api/restaurants/${restaurantId}`, { isActive });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update restaurant status');
+      }
+      return response.json();
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/restaurants"] });
+      toast({
+        title: "Restaurant status updated",
+        description: variables.isActive ? "Your restaurant is now accepting orders!" : "Your restaurant is now closed.",
+        variant: "default",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update failed",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -188,20 +241,53 @@ export default function MerchantPortal() {
               </div>
             </div>
 
-            {/* Store Stats */}
-            <div className="grid grid-cols-2 gap-4">
-              <Card>
-                <CardContent className="p-3 text-center">
-                  <p className="text-sm text-muted-foreground">Today's Orders</p>
-                  <p className="text-xl font-bold text-foreground">{todayOrders.length}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-3 text-center">
-                  <p className="text-sm text-muted-foreground">Revenue</p>
-                  <p className="text-xl font-bold text-foreground">₱{todayRevenue.toFixed(0)}</p>
-                </CardContent>
-              </Card>
+            {/* Store Stats and Controls */}
+            <div className="flex flex-col lg:flex-row items-center gap-4">
+              {/* Open/Close Toggle for Approved Merchants */}
+              {user?.approvalStatus === 'approved' && userRestaurant && (
+                <Card className="w-full lg:w-auto">
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-3">
+                      <Power className={`h-5 w-5 ${userRestaurant.isActive ? 'text-green-600' : 'text-gray-400'}`} />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-foreground">Restaurant Status</p>
+                        <p className="text-xs text-muted-foreground">
+                          {userRestaurant.isActive ? 'Accepting Orders' : 'Not Accepting Orders'}
+                        </p>
+                      </div>
+                      <Button
+                        variant={userRestaurant.isActive ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => toggleRestaurantStatusMutation.mutate({ 
+                          restaurantId: userRestaurant.id, 
+                          isActive: !userRestaurant.isActive 
+                        })}
+                        disabled={toggleRestaurantStatusMutation.isPending}
+                        data-testid="button-toggle-restaurant-status"
+                        className={userRestaurant.isActive ? "bg-green-600 hover:bg-green-700" : ""}
+                      >
+                        {userRestaurant.isActive ? "Close" : "Open"}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Stats */}
+              <div className="grid grid-cols-2 gap-4">
+                <Card>
+                  <CardContent className="p-3 text-center">
+                    <p className="text-sm text-muted-foreground">Today's Orders</p>
+                    <p className="text-xl font-bold text-foreground">{todayOrders.length}</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-3 text-center">
+                    <p className="text-sm text-muted-foreground">Revenue</p>
+                    <p className="text-xl font-bold text-foreground">₱{todayRevenue.toFixed(0)}</p>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
         </div>
@@ -243,13 +329,12 @@ export default function MerchantPortal() {
                   )}
                   <div className="mt-3">
                     <Button 
-                      variant="outline" 
                       size="sm" 
-                      className="border-red-500 text-red-700 hover:bg-red-100 dark:border-red-600 dark:text-red-300 dark:hover:bg-red-900"
-                      onClick={() => window.location.href = 'mailto:support@easybuydelivery.com?subject=Merchant%20Application%20Rejection'}
-                      data-testid="button-contact-support"
+                      onClick={() => requestReapprovalMutation.mutate()}
+                      disabled={requestReapprovalMutation.isPending}
+                      data-testid="button-request-reapproval"
                     >
-                      Contact Support
+                      Request Approval Again
                     </Button>
                   </div>
                 </AlertDescription>

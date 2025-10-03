@@ -1393,6 +1393,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Merchant request re-approval route
+  app.post("/api/merchant/request-reapproval", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    if (req.user.role !== 'merchant') {
+      return res.status(400).json({ error: "Only merchants can request re-approval" });
+    }
+
+    if (req.user.approvalStatus !== 'rejected') {
+      return res.status(400).json({ 
+        error: "Only rejected merchants can request re-approval",
+        currentStatus: req.user.approvalStatus
+      });
+    }
+
+    try {
+      // Update merchant status back to pending
+      const updatedUser = await storage.updateUser(req.user.id, {
+        approvalStatus: 'pending',
+        rejectionReason: null,
+        updatedAt: new Date()
+      });
+
+      res.json({
+        message: "Re-approval request submitted successfully",
+        user: updatedUser,
+        success: true
+      });
+    } catch (error) {
+      console.error("Error requesting re-approval:", error);
+      res.status(500).json({ error: "Failed to submit re-approval request" });
+    }
+  });
+
   // Document download route for admins
   app.get("/api/admin/rider-document/:riderId/:documentType", async (req, res) => {
     if (!req.isAuthenticated() || req.user.role !== 'admin') {
