@@ -101,6 +101,7 @@ export default function CustomerPortal() {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [showCart, setShowCart] = useState(false);
+  const [showAllCarts, setShowAllCarts] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -382,19 +383,37 @@ export default function CustomerPortal() {
   if (selectedRestaurant) {
     return (
       <div className="min-h-screen bg-background">
-        {/* Fixed Cart Button */}
-        {cart.getItemCount() > 0 && (
-          <div className="fixed bottom-4 right-4 z-50">
-            <Button
-              onClick={() => setShowCart(true)}
-              className="rounded-full h-16 w-16 shadow-lg"
-              data-testid="button-view-cart"
-            >
-              <div className="flex flex-col items-center">
-                <ShoppingCart className="h-6 w-6" />
-                <span className="text-xs">{cart.getItemCount()}</span>
-              </div>
-            </Button>
+        {/* Fixed Multi-Cart Buttons */}
+        {cart.getAllCartsCount() > 0 && (
+          <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
+            {/* Current Cart Button */}
+            {cart.getItemCount() > 0 && (
+              <Button
+                onClick={() => setShowCart(true)}
+                className="rounded-full h-16 w-16 shadow-lg relative"
+                data-testid="button-view-cart"
+              >
+                <div className="flex flex-col items-center">
+                  <ShoppingCart className="h-6 w-6" />
+                  <span className="text-xs">{cart.getItemCount()}</span>
+                </div>
+              </Button>
+            )}
+            
+            {/* View All Carts Button */}
+            {cart.getAllCartsCount() > 1 && (
+              <Button
+                onClick={() => setShowAllCarts(true)}
+                variant="secondary"
+                className="rounded-full shadow-lg px-4 py-2"
+                data-testid="button-view-all-carts"
+              >
+                <div className="flex items-center gap-2">
+                  <Package className="h-4 w-4" />
+                  <span className="text-xs font-semibold">{cart.getAllCartsCount()} Carts</span>
+                </div>
+              </Button>
+            )}
           </div>
         )}
 
@@ -497,7 +516,22 @@ export default function CustomerPortal() {
         <Dialog open={showCart} onOpenChange={setShowCart}>
           <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Your Cart</DialogTitle>
+              <DialogTitle>Your Cart - {cart.restaurantName || 'No Restaurant'}</DialogTitle>
+              {cart.getAllCartsCount() > 1 && (
+                <p className="text-sm text-muted-foreground">
+                  You have items in {cart.getAllCartsCount()} restaurants.{' '}
+                  <button 
+                    onClick={() => {
+                      setShowCart(false);
+                      setShowAllCarts(true);
+                    }}
+                    className="text-primary underline"
+                    data-testid="link-view-all-carts"
+                  >
+                    View all carts
+                  </button>
+                </p>
+              )}
             </DialogHeader>
             <div className="space-y-4">
               {cart.items.length === 0 ? (
@@ -595,6 +629,148 @@ export default function CustomerPortal() {
                   </div>
                 </>
               )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* View All Carts Modal */}
+        <Dialog open={showAllCarts} onOpenChange={setShowAllCarts}>
+          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>All Restaurant Carts ({cart.getAllCartsCount()})</DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                You have items in {cart.getAllCartsCount()} restaurant{cart.getAllCartsCount() > 1 ? 's' : ''}. Select which one to checkout.
+              </p>
+            </DialogHeader>
+            <div className="space-y-4">
+              {Object.values(cart.allCarts).map((restaurantCart) => {
+                const isActive = cart.activeRestaurantId === restaurantCart.restaurantId;
+                const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                const markupAmount = subtotal * (restaurantCart.markup / 100);
+                const total = subtotal + markupAmount + restaurantCart.deliveryFee;
+                const itemCount = restaurantCart.items.reduce((sum, item) => sum + item.quantity, 0);
+                
+                return (
+                  <Card key={restaurantCart.restaurantId} className={`p-4 ${isActive ? 'border-primary border-2' : ''}`}>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-semibold text-lg">{restaurantCart.restaurantName}</h3>
+                          <p className="text-sm text-muted-foreground">{itemCount} item{itemCount > 1 ? 's' : ''}</p>
+                        </div>
+                        {isActive && <Badge variant="default">Current</Badge>}
+                      </div>
+                      
+                      <Separator />
+                      
+                      <div className="space-y-2 text-sm">
+                        {restaurantCart.items.map((item) => (
+                          <div key={item.id} className="flex justify-between">
+                            <span>{item.quantity}x {item.name}</span>
+                            <span>₱{(item.price * item.quantity).toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <Separator />
+                      
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span>Subtotal:</span>
+                          <span>₱{subtotal.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Markup ({restaurantCart.markup}%):</span>
+                          <span>₱{markupAmount.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Delivery Fee:</span>
+                          <span>₱{restaurantCart.deliveryFee.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between font-semibold text-base pt-2">
+                          <span>Total:</span>
+                          <span>₱{total.toFixed(2)}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-2 pt-2">
+                        {!isActive && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              cart.switchCart(restaurantCart.restaurantId);
+                              setShowAllCarts(false);
+                              setShowCart(true);
+                            }}
+                            data-testid={`button-switch-cart-${restaurantCart.restaurantId}`}
+                          >
+                            View Cart
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            cart.switchCart(restaurantCart.restaurantId);
+                            setShowAllCarts(false);
+                            setShowCheckout(true);
+                          }}
+                          data-testid={`button-checkout-cart-${restaurantCart.restaurantId}`}
+                        >
+                          Checkout This Cart
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => {
+                            if (confirm(`Clear cart for ${restaurantCart.restaurantName}?`)) {
+                              cart.clearRestaurantCart(restaurantCart.restaurantId);
+                              if (cart.getAllCartsCount() === 0) {
+                                setShowAllCarts(false);
+                              }
+                            }
+                          }}
+                          data-testid={`button-clear-cart-${restaurantCart.restaurantId}`}
+                        >
+                          Clear
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+              
+              <div className="flex justify-between items-center pt-4 border-t">
+                <div>
+                  <p className="font-semibold text-lg">Total for All Carts</p>
+                  <p className="text-sm text-muted-foreground">{cart.getAllCartsCount()} restaurant{cart.getAllCartsCount() > 1 ? 's' : ''}</p>
+                </div>
+                <p className="text-2xl font-bold">₱{cart.getAllCartsTotal().toFixed(2)}</p>
+              </div>
+              
+              <div className="flex gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowAllCarts(false)}
+                  className="flex-1"
+                  data-testid="button-close-all-carts"
+                >
+                  Close
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    if (confirm('Clear all carts? This cannot be undone.')) {
+                      cart.clearAllCarts();
+                      setShowAllCarts(false);
+                    }
+                  }}
+                  className="flex-1"
+                  data-testid="button-clear-all-carts"
+                >
+                  Clear All Carts
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>

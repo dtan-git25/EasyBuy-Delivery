@@ -16,12 +16,32 @@ export interface CartItem {
   specialInstructions?: string;
 }
 
+export interface RestaurantCart {
+  restaurantId: string;
+  restaurantName: string;
+  deliveryFee: number;
+  markup: number;
+  items: CartItem[];
+}
+
 interface CartContextType {
+  // Current active cart
   items: CartItem[];
   restaurantId: string | null;
   restaurantName: string | null;
   deliveryFee: number;
   markup: number;
+  
+  // Multi-cart management
+  allCarts: Record<string, RestaurantCart>;
+  activeRestaurantId: string | null;
+  switchCart: (restaurantId: string) => void;
+  getAllCartsCount: () => number;
+  getAllCartsTotal: () => number;
+  clearRestaurantCart: (restaurantId: string) => void;
+  clearAllCarts: () => void;
+  
+  // Original methods
   addItem: (item: Omit<CartItem, 'id' | 'quantity'>) => void;
   removeItem: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
@@ -36,94 +56,105 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
-  const [restaurantId, setRestaurantId] = useState<string | null>(null);
-  const [restaurantName, setRestaurantName] = useState<string | null>(null);
-  const [deliveryFee, setDeliveryFee] = useState(0);
-  const [markup, setMarkup] = useState(0);
+  const [allCarts, setAllCarts] = useState<Record<string, RestaurantCart>>({});
+  const [activeRestaurantId, setActiveRestaurantId] = useState<string | null>(null);
 
-  // Load cart from localStorage on mount
+  // Load all carts from localStorage on mount
   useEffect(() => {
-    const savedCart = localStorage.getItem('easyBuyCart');
-    if (savedCart) {
+    const savedCarts = localStorage.getItem('easyBuyMultiCarts');
+    if (savedCarts) {
       try {
-        const cartData = JSON.parse(savedCart);
-        setItems(cartData.items || []);
-        setRestaurantId(cartData.restaurantId || null);
-        setRestaurantName(cartData.restaurantName || null);
-        setDeliveryFee(cartData.deliveryFee || 0);
-        setMarkup(cartData.markup || 0);
+        const cartsData = JSON.parse(savedCarts);
+        setAllCarts(cartsData.carts || {});
+        setActiveRestaurantId(cartsData.activeRestaurantId || null);
       } catch (error) {
-        console.error('Error loading cart from localStorage:', error);
+        console.error('Error loading carts from localStorage:', error);
       }
     }
   }, []);
 
-  // Save cart to localStorage whenever it changes
+  // Save all carts to localStorage whenever they change
   useEffect(() => {
-    const cartData = {
-      items,
-      restaurantId,
-      restaurantName,
-      deliveryFee,
-      markup
+    const cartsData = {
+      carts: allCarts,
+      activeRestaurantId
     };
-    localStorage.setItem('easyBuyCart', JSON.stringify(cartData));
-  }, [items, restaurantId, restaurantName, deliveryFee, markup]);
+    localStorage.setItem('easyBuyMultiCarts', JSON.stringify(cartsData));
+  }, [allCarts, activeRestaurantId]);
+
+  // Get current active cart
+  const activeCart = activeRestaurantId ? allCarts[activeRestaurantId] : null;
+  const items = activeCart?.items || [];
+  const restaurantId = activeCart?.restaurantId || null;
+  const restaurantName = activeCart?.restaurantName || null;
+  const deliveryFee = activeCart?.deliveryFee || 0;
+  const markup = activeCart?.markup || 0;
 
   const addItem = (newItem: Omit<CartItem, 'id' | 'quantity'>) => {
-    // If cart is empty or from different restaurant, clear cart and set new restaurant
-    if (!restaurantId || restaurantId !== newItem.restaurant.id) {
-      setRestaurantId(newItem.restaurant.id);
-      setRestaurantName(newItem.restaurant.name);
-      setDeliveryFee(parseFloat(newItem.restaurant.deliveryFee.toString()));
-      setMarkup(parseFloat(newItem.restaurant.markup.toString()));
-      setItems([{
-        ...newItem,
-        price: parseFloat(newItem.price.toString()),
-        id: `${newItem.menuItemId}-${Date.now()}`,
-        quantity: 1
-      }]);
-      return;
-    }
-
-    setItems(currentItems => {
+    const targetRestaurantId = newItem.restaurant.id;
+    
+    setAllCarts(currentCarts => {
+      const updatedCarts = { ...currentCarts };
+      
+      // Get or create cart for this restaurant
+      if (!updatedCarts[targetRestaurantId]) {
+        updatedCarts[targetRestaurantId] = {
+          restaurantId: targetRestaurantId,
+          restaurantName: newItem.restaurant.name,
+          deliveryFee: parseFloat(newItem.restaurant.deliveryFee.toString()),
+          markup: parseFloat(newItem.restaurant.markup.toString()),
+          items: []
+        };
+      }
+      
+      const cart = updatedCarts[targetRestaurantId];
+      
       // Check if item with same menu item and variants already exists
-      const existingItemIndex = currentItems.findIndex(
+      const existingItemIndex = cart.items.findIndex(
         item => item.menuItemId === newItem.menuItemId && 
         JSON.stringify(item.variants) === JSON.stringify(newItem.variants)
       );
 
       if (existingItemIndex >= 0) {
         // Update quantity of existing item
-        const updatedItems = [...currentItems];
-        updatedItems[existingItemIndex].quantity += 1;
-        return updatedItems;
+        cart.items[existingItemIndex].quantity += 1;
       } else {
         // Add new item
-        return [...currentItems, {
+        cart.items.push({
           ...newItem,
           price: parseFloat(newItem.price.toString()),
           id: `${newItem.menuItemId}-${Date.now()}`,
           quantity: 1
-        }];
+        });
       }
+      
+      return updatedCarts;
     });
+    
+    // Switch to this restaurant's cart if not already active
+    if (activeRestaurantId !== targetRestaurantId) {
+      setActiveRestaurantId(targetRestaurantId);
+    }
   };
 
   const removeItem = (itemId: string) => {
-    setItems(currentItems => {
-      const updatedItems = currentItems.filter(item => item.id !== itemId);
+    if (!activeRestaurantId) return;
+    
+    setAllCarts(currentCarts => {
+      const updatedCarts = { ...currentCarts };
+      const cart = updatedCarts[activeRestaurantId];
       
-      // If cart becomes empty, clear restaurant info
-      if (updatedItems.length === 0) {
-        setRestaurantId(null);
-        setRestaurantName(null);
-        setDeliveryFee(0);
-        setMarkup(0);
+      if (cart) {
+        cart.items = cart.items.filter(item => item.id !== itemId);
+        
+        // If cart becomes empty, remove it
+        if (cart.items.length === 0) {
+          delete updatedCarts[activeRestaurantId];
+          setActiveRestaurantId(null);
+        }
       }
       
-      return updatedItems;
+      return updatedCarts;
     });
   };
 
@@ -133,19 +164,67 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    setItems(currentItems =>
-      currentItems.map(item =>
-        item.id === itemId ? { ...item, quantity } : item
-      )
-    );
+    if (!activeRestaurantId) return;
+    
+    setAllCarts(currentCarts => {
+      const updatedCarts = { ...currentCarts };
+      const cart = updatedCarts[activeRestaurantId];
+      
+      if (cart) {
+        cart.items = cart.items.map(item =>
+          item.id === itemId ? { ...item, quantity } : item
+        );
+      }
+      
+      return updatedCarts;
+    });
   };
 
   const clearCart = () => {
-    setItems([]);
-    setRestaurantId(null);
-    setRestaurantName(null);
-    setDeliveryFee(0);
-    setMarkup(0);
+    if (!activeRestaurantId) return;
+    
+    setAllCarts(currentCarts => {
+      const updatedCarts = { ...currentCarts };
+      delete updatedCarts[activeRestaurantId];
+      return updatedCarts;
+    });
+    
+    setActiveRestaurantId(null);
+  };
+
+  const clearRestaurantCart = (restaurantId: string) => {
+    setAllCarts(currentCarts => {
+      const updatedCarts = { ...currentCarts };
+      delete updatedCarts[restaurantId];
+      return updatedCarts;
+    });
+    
+    if (activeRestaurantId === restaurantId) {
+      setActiveRestaurantId(null);
+    }
+  };
+
+  const clearAllCarts = () => {
+    setAllCarts({});
+    setActiveRestaurantId(null);
+  };
+
+  const switchCart = (restaurantId: string) => {
+    if (allCarts[restaurantId]) {
+      setActiveRestaurantId(restaurantId);
+    }
+  };
+
+  const getAllCartsCount = () => {
+    return Object.keys(allCarts).length;
+  };
+
+  const getAllCartsTotal = () => {
+    return Object.values(allCarts).reduce((total, cart) => {
+      const subtotal = cart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const markupAmount = subtotal * (cart.markup / 100);
+      return total + subtotal + markupAmount + cart.deliveryFee;
+    }, 0);
   };
 
   const getSubtotal = () => {
@@ -176,6 +255,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
       restaurantName,
       deliveryFee,
       markup,
+      allCarts,
+      activeRestaurantId,
+      switchCart,
+      getAllCartsCount,
+      getAllCartsTotal,
+      clearRestaurantCart,
+      clearAllCarts,
       addItem,
       removeItem,
       updateQuantity,
