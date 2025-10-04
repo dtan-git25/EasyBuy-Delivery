@@ -262,19 +262,17 @@ export default function Dashboard() {
                       </div>
                       
                       <div className="flex gap-2 pt-2">
-                        {!isActive && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              cart.switchCart(restaurantCart.restaurantId);
-                              setShowAllCarts(false);
-                            }}
-                            data-testid={`button-switch-cart-${restaurantCart.restaurantId}`}
-                          >
-                            View Cart
-                          </Button>
-                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            cart.switchCart(restaurantCart.restaurantId);
+                            setShowAllCarts(false);
+                          }}
+                          data-testid={`button-switch-cart-${restaurantCart.restaurantId}`}
+                        >
+                          View Cart
+                        </Button>
                         <Button
                           size="sm"
                           onClick={() => {

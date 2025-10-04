@@ -674,20 +674,18 @@ export default function CustomerPortal() {
                       </div>
                       
                       <div className="flex gap-2 pt-2">
-                        {!isActive && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              cart.switchCart(restaurantCart.restaurantId);
-                              setShowAllCarts(false);
-                              setShowCart(true);
-                            }}
-                            data-testid={`button-switch-cart-${restaurantCart.restaurantId}`}
-                          >
-                            View Cart
-                          </Button>
-                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            cart.switchCart(restaurantCart.restaurantId);
+                            setShowAllCarts(false);
+                            setShowCart(true);
+                          }}
+                          data-testid={`button-switch-cart-${restaurantCart.restaurantId}`}
+                        >
+                          View Cart
+                        </Button>
                         <Button
                           size="sm"
                           onClick={() => {
