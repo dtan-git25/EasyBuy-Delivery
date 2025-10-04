@@ -30,6 +30,7 @@ export interface IStorage {
   getMenuItem(id: string): Promise<MenuItem | undefined>;
   createMenuItem(item: InsertMenuItem): Promise<MenuItem>;
   updateMenuItem(id: string, updates: Partial<MenuItem>): Promise<MenuItem | undefined>;
+  deleteMenuItem(id: string): Promise<void>;
 
   // Category operations
   getCategories(): Promise<Category[]>;
@@ -206,6 +207,10 @@ export class DatabaseStorage implements IStorage {
   async updateMenuItem(id: string, updates: Partial<MenuItem>): Promise<MenuItem | undefined> {
     const [item] = await db.update(menuItems).set(updates).where(eq(menuItems.id, id)).returning();
     return item || undefined;
+  }
+
+  async deleteMenuItem(id: string): Promise<void> {
+    await db.delete(menuItems).where(eq(menuItems.id, id));
   }
 
   async getCategories(): Promise<Category[]> {

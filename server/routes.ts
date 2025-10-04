@@ -280,6 +280,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/menu-items/:id", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'merchant') {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const menuItem = await storage.getMenuItem(req.params.id);
+      if (!menuItem) {
+        return res.status(404).json({ error: "Menu item not found" });
+      }
+
+      const restaurant = await storage.getRestaurant(menuItem.restaurantId);
+      if (!restaurant || restaurant.ownerId !== req.user.id) {
+        return res.status(403).json({ error: "Forbidden - You can only delete your own menu items" });
+      }
+
+      await storage.deleteMenuItem(req.params.id);
+      res.json({ success: true, message: "Menu item deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting menu item:", error);
+      res.status(500).json({ success: false, error: "Failed to delete menu item" });
+    }
+  });
+
   // Category routes
   app.get("/api/categories", async (req, res) => {
     try {

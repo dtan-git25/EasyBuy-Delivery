@@ -159,7 +159,8 @@ export default function MerchantPortal() {
         const error = await response.json();
         throw new Error(error.error || 'Failed to delete menu item');
       }
-      return response.json();
+      const data = await response.json();
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/menu-items"] });
