@@ -37,6 +37,7 @@ interface CartContextType {
   activeRestaurantId: string | null;
   switchCart: (restaurantId: string) => void;
   getAllCartsCount: () => number;
+  getAllCartsItemCount: () => number;
   getAllCartsTotal: () => number;
   clearRestaurantCart: (restaurantId: string) => void;
   clearAllCarts: () => void;
@@ -240,6 +241,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return Object.keys(allCarts).length;
   };
 
+  const getAllCartsItemCount = () => {
+    return Object.values(allCarts).reduce((total, cart) => {
+      return total + cart.items.reduce((sum, item) => sum + item.quantity, 0);
+    }, 0);
+  };
+
   const getAllCartsTotal = () => {
     return Object.values(allCarts).reduce((total, cart) => {
       const subtotal = cart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -280,6 +287,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       activeRestaurantId,
       switchCart,
       getAllCartsCount,
+      getAllCartsItemCount,
       getAllCartsTotal,
       clearRestaurantCart,
       clearAllCarts,
