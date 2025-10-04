@@ -1,19 +1,23 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Bell, Bike } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Bell, Bike, ShoppingCart } from "lucide-react";
 import CustomerPortal from "@/components/portals/customer-portal";
 import RiderPortal from "@/components/portals/rider-portal";
 import MerchantPortal from "@/components/portals/merchant-portal";
 import AdminPortal from "@/components/portals/admin-portal";
 import ChatWidget from "@/components/chat/chat-widget";
 import { cn } from "@/lib/utils";
+import { useCart } from "@/contexts/cart-context";
 
 type Portal = 'customer' | 'rider' | 'merchant' | 'admin' | 'owner';
 
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
+  const cart = useCart();
   const [activePortal, setActivePortal] = useState<Portal>((user?.role === 'owner' ? 'admin' : user?.role) || 'customer');
+  const [showAllCarts, setShowAllCarts] = useState(false);
 
   // SECURITY: Role-based access control - users can only see their own portal
   const getAuthorizedPortals = () => {
@@ -54,15 +58,15 @@ export default function Dashboard() {
     
     switch (activePortal) {
       case 'customer':
-        return user.role === 'customer' ? <CustomerPortal /> : <CustomerPortal />;
+        return user.role === 'customer' ? <CustomerPortal showAllCartsDialog={showAllCarts} onAllCartsDialogChange={setShowAllCarts} /> : <CustomerPortal showAllCartsDialog={showAllCarts} onAllCartsDialogChange={setShowAllCarts} />;
       case 'rider':
-        return user.role === 'rider' ? <RiderPortal /> : <CustomerPortal />;
+        return user.role === 'rider' ? <RiderPortal /> : <CustomerPortal showAllCartsDialog={showAllCarts} onAllCartsDialogChange={setShowAllCarts} />;
       case 'merchant':
-        return user.role === 'merchant' ? <MerchantPortal /> : <CustomerPortal />;
+        return user.role === 'merchant' ? <MerchantPortal /> : <CustomerPortal showAllCartsDialog={showAllCarts} onAllCartsDialogChange={setShowAllCarts} />;
       case 'admin':
-        return (user.role === 'admin' || user.role === 'owner') ? <AdminPortal /> : <CustomerPortal />;
+        return (user.role === 'admin' || user.role === 'owner') ? <AdminPortal /> : <CustomerPortal showAllCartsDialog={showAllCarts} onAllCartsDialogChange={setShowAllCarts} />;
       default:
-        return <CustomerPortal />;
+        return <CustomerPortal showAllCartsDialog={showAllCarts} onAllCartsDialogChange={setShowAllCarts} />;
     }
   };
 
@@ -111,6 +115,28 @@ export default function Dashboard() {
                   3
                 </span>
               </Button>
+              
+              {/* Cart Button - Only for customers */}
+              {user?.role === 'customer' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="relative"
+                  onClick={() => setShowAllCarts(true)}
+                  data-testid="button-header-cart"
+                >
+                  <ShoppingCart className="h-4 w-4" />
+                  {cart.getAllCartsCount() > 0 && (
+                    <Badge 
+                      className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-xs"
+                      variant="destructive"
+                      data-testid="badge-cart-count"
+                    >
+                      {cart.getAllCartsCount()}
+                    </Badge>
+                  )}
+                </Button>
+              )}
               
               <div className="flex items-center space-x-2">
                 <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
