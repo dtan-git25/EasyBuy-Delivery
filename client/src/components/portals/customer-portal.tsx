@@ -682,7 +682,7 @@ export default function CustomerPortal() {
                             setShowAllCarts(false);
                             setShowCart(true);
                           }}
-                          data-testid={`button-switch-cart-${restaurantCart.restaurantId}`}
+                          data-testid={`button-view-cart-modal-${restaurantCart.restaurantId}`}
                         >
                           View Cart
                         </Button>
