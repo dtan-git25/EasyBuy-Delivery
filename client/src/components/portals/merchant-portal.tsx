@@ -694,13 +694,21 @@ export default function MerchantPortal() {
                         </div>
                         <div>
                           <Label htmlFor="item-category">Category</Label>
-                          <Input 
-                            id="item-category" 
-                            data-testid="input-item-category"
-                            placeholder="e.g., Main Course" 
-                            value={menuItemForm.category}
-                            onChange={(e) => updateMenuItemForm('category', e.target.value)}
-                          />
+                          <Select 
+                            value={menuItemForm.category} 
+                            onValueChange={(value) => updateMenuItemForm('category', value)}
+                          >
+                            <SelectTrigger id="item-category" data-testid="select-item-category">
+                              <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {categories.filter((cat: any) => cat.isActive).map((category: any) => (
+                                <SelectItem key={category.id} value={category.name} data-testid={`option-category-${category.id}`}>
+                                  {category.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
                       <div className="flex space-x-2">
@@ -767,13 +775,21 @@ export default function MerchantPortal() {
                       </div>
                       <div>
                         <Label htmlFor="edit-item-category">Category</Label>
-                        <Input 
-                          id="edit-item-category" 
-                          data-testid="input-edit-item-category"
-                          placeholder="e.g., Main Course" 
-                          value={menuItemForm.category}
-                          onChange={(e) => updateMenuItemForm('category', e.target.value)}
-                        />
+                        <Select 
+                          value={menuItemForm.category} 
+                          onValueChange={(value) => updateMenuItemForm('category', value)}
+                        >
+                          <SelectTrigger id="edit-item-category" data-testid="select-edit-item-category">
+                            <SelectValue placeholder="Select a category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {categories.filter((cat: any) => cat.isActive).map((category: any) => (
+                              <SelectItem key={category.id} value={category.name} data-testid={`option-edit-category-${category.id}`}>
+                                {category.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                     <div className="flex space-x-2">
