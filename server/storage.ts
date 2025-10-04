@@ -58,7 +58,7 @@ export interface IStorage {
   getOrdersByCustomer(customerId: string): Promise<Order[]>;
   getOrdersByRestaurant(restaurantId: string): Promise<Order[]>;
   getOrdersByRider(riderId: string): Promise<Order[]>;
-  getPendingOrders(): Promise<Order[]>;
+  getPendingOrders(): Promise<any[]>;
   createOrder(order: InsertOrder): Promise<Order>;
   updateOrder(id: string, updates: Partial<Order>): Promise<Order | undefined>;
 
@@ -334,12 +334,38 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(orders.createdAt));
   }
 
-  async getPendingOrders(): Promise<Order[]> {
-    return await db
+  async getPendingOrders(): Promise<any[]> {
+    const result = await db
       .select()
       .from(orders)
+      .leftJoin(users, eq(orders.customerId, users.id))
+      .leftJoin(restaurants, eq(orders.restaurantId, restaurants.id))
       .where(eq(orders.status, 'pending'))
       .orderBy(asc(orders.createdAt));
+
+    // Transform to match frontend expectations
+    return result.map(row => ({
+      id: row.orders.id,
+      orderNumber: row.orders.orderNumber,
+      total: row.orders.total,
+      subtotal: row.orders.subtotal,
+      markup: row.orders.markup,
+      deliveryFee: row.orders.deliveryFee,
+      deliveryAddress: row.orders.deliveryAddress,
+      phoneNumber: row.orders.phoneNumber,
+      createdAt: row.orders.createdAt,
+      customer: {
+        name: row.users?.name || 'Unknown',
+        address: row.orders.deliveryAddress,
+        phone: row.orders.phoneNumber,
+      },
+      restaurant: {
+        name: row.restaurants?.name || 'Unknown',
+        address: row.restaurants?.address || 'Unknown',
+      },
+      distance: `${(parseFloat(row.orders.deliveryFee as string) / 10).toFixed(1)} km`,
+      commission: (parseFloat(row.orders.deliveryFee as string) * 0.7).toFixed(2),
+    }));
   }
 
   async createOrder(order: InsertOrder): Promise<Order> {
