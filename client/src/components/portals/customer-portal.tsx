@@ -95,23 +95,14 @@ interface RiderLocationHistory {
   timestamp: string;
 }
 
-interface CustomerPortalProps {
-  showAllCartsDialog?: boolean;
-  onAllCartsDialogChange?: (open: boolean) => void;
-}
-
-export default function CustomerPortal({ showAllCartsDialog, onAllCartsDialogChange }: CustomerPortalProps = {}) {
+export default function CustomerPortal() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("distance");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [showCart, setShowCart] = useState(false);
-  const [localShowAllCarts, setLocalShowAllCarts] = useState(false);
+  const [showAllCarts, setShowAllCarts] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
-  
-  // Use prop value if provided, otherwise use local state
-  const showAllCarts = showAllCartsDialog !== undefined ? showAllCartsDialog : localShowAllCarts;
-  const setShowAllCarts = onAllCartsDialogChange || setLocalShowAllCarts;
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [specialInstructions, setSpecialInstructions] = useState("");
@@ -392,8 +383,8 @@ export default function CustomerPortal({ showAllCartsDialog, onAllCartsDialogCha
   if (selectedRestaurant) {
     return (
       <div className="min-h-screen bg-background">
-        {/* Fixed Multi-Cart Buttons - Hide when dialogs are open */}
-        {cart.getAllCartsCount() > 0 && !showCart && !showAllCarts && !showCheckout && (
+        {/* Fixed Multi-Cart Buttons */}
+        {cart.getAllCartsCount() > 0 && (
           <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
             {/* Current Cart Button */}
             {cart.getItemCount() > 0 && (
@@ -882,6 +873,44 @@ export default function CustomerPortal({ showAllCartsDialog, onAllCartsDialogCha
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Top Navigation Bar */}
+      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-primary">Easy Buy Delivery</h1>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              {/* Cart Indicator */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="relative"
+                onClick={() => setShowAllCarts(true)}
+                data-testid="button-header-cart"
+              >
+                <ShoppingCart className="h-5 w-5" />
+                {cart.getAllCartsCount() > 0 && (
+                  <Badge 
+                    className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                    variant="destructive"
+                    data-testid="badge-cart-count"
+                  >
+                    {cart.getAllCartsCount()}
+                  </Badge>
+                )}
+              </Button>
+              
+              {/* Profile/User Indicator */}
+              <Button variant="ghost" size="sm" data-testid="button-header-profile">
+                <User className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-primary to-secondary text-primary-foreground py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
