@@ -421,16 +421,27 @@ export default function CustomerPortal() {
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold">Menu</h2>
-            {cart.getItemCount() > 0 && (
-              <Button
-                variant="outline"
-                onClick={() => setShowCart(true)}
-                data-testid="button-view-cart-menu"
-              >
-                <ShoppingCart className="mr-2 h-4 w-4" />
-                Cart ({cart.getItemCount()})
-              </Button>
-            )}
+            {(() => {
+              const restaurantCart = cart.allCarts[selectedRestaurant.id];
+              const itemCount = restaurantCart?.items.reduce((sum, item) => sum + item.quantity, 0) || 0;
+              
+              if (itemCount > 0) {
+                return (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      cart.switchCart(selectedRestaurant.id);
+                      setShowCart(true);
+                    }}
+                    data-testid="button-view-cart-menu"
+                  >
+                    <ShoppingCart className="mr-2 h-4 w-4" />
+                    Cart ({itemCount})
+                  </Button>
+                );
+              }
+              return null;
+            })()}
           </div>
           
           {menuItems.length === 0 ? (
@@ -478,26 +489,29 @@ export default function CustomerPortal() {
           )}
         </div>
 
-        {/* Cart Modal */}
+        {/* Cart Modal - Restaurant Specific */}
         <Dialog open={showCart} onOpenChange={setShowCart}>
           <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Your Cart - {cart.restaurantName || 'No Restaurant'}</DialogTitle>
-              {cart.getAllCartsCount() > 1 && (
-                <p className="text-sm text-muted-foreground">
-                  You have items in {cart.getAllCartsCount()} restaurants.{' '}
-                  <button 
-                    onClick={() => {
-                      setShowCart(false);
-                      setShowAllCarts(true);
-                    }}
-                    className="text-primary underline"
-                    data-testid="link-view-all-carts"
-                  >
-                    View all carts
-                  </button>
-                </p>
-              )}
+              <DialogTitle>{selectedRestaurant.name} - Cart</DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                Items from this restaurant only.
+                {cart.getAllCartsCount() > 1 && (
+                  <>
+                    {' '}You have items in {cart.getAllCartsCount()} restaurant{cart.getAllCartsCount() > 1 ? 's' : ''}.{' '}
+                    <button 
+                      onClick={() => {
+                        setShowCart(false);
+                        setShowAllCarts(true);
+                      }}
+                      className="text-primary underline"
+                      data-testid="link-view-all-carts"
+                    >
+                      View all carts
+                    </button>
+                  </>
+                )}
+              </p>
             </DialogHeader>
             <div className="space-y-4">
               {cart.items.length === 0 ? (
