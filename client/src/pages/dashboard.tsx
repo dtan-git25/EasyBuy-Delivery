@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Bell, Bike, ShoppingCart, Package } from "lucide-react";
+import { Bell, Bike, ShoppingCart, Package, Plus, Minus, X } from "lucide-react";
 import { useCart } from "@/contexts/cart-context";
 import CustomerPortal from "@/components/portals/customer-portal";
 import RiderPortal from "@/components/portals/rider-portal";
@@ -20,6 +20,7 @@ export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
   const [activePortal, setActivePortal] = useState<Portal>((user?.role === 'owner' ? 'admin' : user?.role) || 'customer');
   const [showAllCarts, setShowAllCarts] = useState(false);
+  const [showCart, setShowCart] = useState(false);
   const cart = useCart();
 
   // SECURITY: Role-based access control - users can only see their own portal
