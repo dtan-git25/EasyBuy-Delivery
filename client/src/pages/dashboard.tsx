@@ -5,8 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Bell, Bike, ShoppingCart, Package, Plus, Minus, X } from "lucide-react";
 import { useCart } from "@/contexts/cart-context";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import CustomerPortal from "@/components/portals/customer-portal";
 import RiderPortal from "@/components/portals/rider-portal";
 import MerchantPortal from "@/components/portals/merchant-portal";
@@ -21,7 +26,83 @@ export default function Dashboard() {
   const [activePortal, setActivePortal] = useState<Portal>((user?.role === 'owner' ? 'admin' : user?.role) || 'customer');
   const [showAllCarts, setShowAllCarts] = useState(false);
   const [showCart, setShowCart] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [specialInstructions, setSpecialInstructions] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("cash");
+  
   const cart = useCart();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const createOrderMutation = useMutation({
+    mutationFn: async (orderData: any) => {
+      const response = await apiRequest("POST", "/api/orders", orderData);
+      return response.json();
+    },
+    onSuccess: () => {
+      cart.clearCart();
+      setShowCheckout(false);
+      setDeliveryAddress("");
+      setPhoneNumber("");
+      setSpecialInstructions("");
+      setPaymentMethod("cash");
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      toast({
+        title: "Order placed successfully!",
+        description: "Your order has been submitted and you'll receive updates soon.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error placing order",
+        description: "There was an error processing your order. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleCheckout = () => {
+    if (cart.items.length === 0) {
+      toast({
+        title: "Cart is empty",
+        description: "Please add items to your cart before checkout.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!deliveryAddress || !phoneNumber) {
+      toast({
+        title: "Missing information",
+        description: "Please provide delivery address and phone number.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const orderData = {
+      restaurantId: cart.activeRestaurantId,
+      items: cart.items.map(item => ({
+        menuItemId: item.menuItemId,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity
+      })),
+      subtotal: cart.getSubtotal().toFixed(2),
+      markup: cart.getMarkupAmount().toFixed(2),
+      deliveryFee: cart.getDeliveryFee().toFixed(2),
+      total: cart.getTotal().toFixed(2),
+      deliveryAddress,
+      phoneNumber,
+      specialInstructions,
+      paymentMethod,
+      status: 'pending'
+    };
+
+    createOrderMutation.mutate(orderData);
+  };
 
   // SECURITY: Role-based access control - users can only see their own portal
   const getAuthorizedPortals = () => {
@@ -279,6 +360,7 @@ export default function Dashboard() {
                           onClick={() => {
                             cart.switchCart(restaurantCart.restaurantId);
                             setShowAllCarts(false);
+                            setShowCheckout(true);
                           }}
                           data-testid={`button-checkout-cart-${restaurantCart.restaurantId}`}
                         >
@@ -438,7 +520,7 @@ export default function Dashboard() {
                     <Button
                       onClick={() => {
                         setShowCart(false);
-                        setActivePortal('customer');
+                        setShowCheckout(true);
                       }}
                       className="flex-1"
                       data-testid="button-checkout-from-cart"
@@ -449,6 +531,116 @@ export default function Dashboard() {
                   </div>
                 </>
               )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Checkout Modal - Only for Customer users */}
+      {user?.role === 'customer' && (
+        <Dialog open={showCheckout} onOpenChange={setShowCheckout}>
+          <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Checkout</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Delivery Address *</label>
+                <Input
+                  value={deliveryAddress}
+                  onChange={(e) => setDeliveryAddress(e.target.value)}
+                  placeholder="Enter your delivery address"
+                  data-testid="input-delivery-address"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Phone Number *</label>
+                <Input
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="Enter your phone number"
+                  data-testid="input-phone-number"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Special Instructions</label>
+                <Input
+                  value={specialInstructions}
+                  onChange={(e) => setSpecialInstructions(e.target.value)}
+                  placeholder="Any special instructions (optional)"
+                  data-testid="input-special-instructions"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">Payment Method *</label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <SelectTrigger data-testid="select-payment-method">
+                    <SelectValue placeholder="Select payment method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash on Delivery</SelectItem>
+                    <SelectItem value="gcash">GCash</SelectItem>
+                    <SelectItem value="paymaya">PayMaya</SelectItem>
+                    <SelectItem value="card">Credit/Debit Card</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <Separator />
+              
+              <div className="space-y-2">
+                <h4 className="font-medium">Order Summary</h4>
+                <div className="text-sm space-y-1">
+                  {cart.items.map((item) => (
+                    <div key={item.id} className="flex justify-between">
+                      <span>{item.name} x{item.quantity}</span>
+                      <span>₱{(item.price * item.quantity).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+                <Separator />
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span>Subtotal:</span>
+                    <span>₱{cart.getSubtotal().toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Markup ({cart.markup}%):</span>
+                    <span>₱{cart.getMarkupAmount().toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Delivery Fee:</span>
+                    <span>₱{cart.getDeliveryFee().toFixed(2)}</span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between font-semibold">
+                    <span>Total:</span>
+                    <span>₱{cart.getTotal().toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex space-x-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowCheckout(false)}
+                  className="flex-1"
+                  data-testid="button-back-to-cart"
+                >
+                  Back to Cart
+                </Button>
+                <Button
+                  onClick={handleCheckout}
+                  disabled={createOrderMutation.isPending}
+                  className="flex-1"
+                  data-testid="button-place-order"
+                >
+                  {createOrderMutation.isPending ? "Placing Order..." : "Place Order"}
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
