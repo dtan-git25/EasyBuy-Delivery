@@ -268,8 +268,9 @@ export default function Dashboard() {
                           onClick={() => {
                             cart.switchCart(restaurantCart.restaurantId);
                             setShowAllCarts(false);
+                            setShowCart(true);
                           }}
-                          data-testid={`button-switch-cart-${restaurantCart.restaurantId}`}
+                          data-testid={`button-view-cart-${restaurantCart.restaurantId}`}
                         >
                           View Cart
                         </Button>
