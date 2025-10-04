@@ -392,8 +392,8 @@ export default function CustomerPortal({ showAllCartsDialog, onAllCartsDialogCha
   if (selectedRestaurant) {
     return (
       <div className="min-h-screen bg-background">
-        {/* Fixed Multi-Cart Buttons */}
-        {cart.getAllCartsCount() > 0 && (
+        {/* Fixed Multi-Cart Buttons - Hide when dialogs are open */}
+        {cart.getAllCartsCount() > 0 && !showCart && !showAllCarts && !showCheckout && (
           <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
             {/* Current Cart Button */}
             {cart.getItemCount() > 0 && (
