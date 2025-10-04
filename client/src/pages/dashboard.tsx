@@ -122,12 +122,12 @@ export default function Dashboard() {
                   data-testid="button-header-cart"
                 >
                   <ShoppingCart className="h-4 w-4" />
-                  {cart.getAllCartsCount() > 0 && (
+                  {cart.getAllCartsItemCount() > 0 && (
                     <span 
                       className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center"
                       data-testid="badge-cart-count"
                     >
-                      {cart.getAllCartsCount()}
+                      {cart.getAllCartsItemCount()}
                     </span>
                   )}
                 </Button>
