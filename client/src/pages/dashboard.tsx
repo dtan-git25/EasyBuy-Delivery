@@ -334,6 +334,124 @@ export default function Dashboard() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Individual Restaurant Cart Modal - Only for Customer users */}
+      {user?.role === 'customer' && (
+        <Dialog open={showCart} onOpenChange={setShowCart}>
+          <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{cart.restaurantName || 'Restaurant'} - Cart</DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                Items from this restaurant only.
+                {cart.getAllCartsCount() > 1 && (
+                  <>
+                    {' '}You have items in {cart.getAllCartsCount()} restaurant{cart.getAllCartsCount() > 1 ? 's' : ''}.{' '}
+                    <button 
+                      onClick={() => {
+                        setShowCart(false);
+                        setShowAllCarts(true);
+                      }}
+                      className="text-primary underline"
+                      data-testid="link-view-all-carts-from-cart"
+                    >
+                      View all carts
+                    </button>
+                  </>
+                )}
+              </p>
+            </DialogHeader>
+            <div className="space-y-4">
+              {cart.items.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">Your cart is empty</p>
+              ) : (
+                <>
+                  <div className="space-y-3">
+                    {cart.items.map((item) => (
+                      <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex-1">
+                          <h4 className="font-medium">{item.name}</h4>
+                          <p className="text-sm text-muted-foreground">₱{Number(item.price).toFixed(2)} each</p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => cart.updateQuantity(item.id, item.quantity - 1)}
+                            data-testid={`button-decrease-${item.id}`}
+                          >
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                          <span className="w-8 text-center">{item.quantity}</span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => cart.updateQuantity(item.id, item.quantity + 1)}
+                            data-testid={`button-increase-${item.id}`}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => cart.removeItem(item.id)}
+                            data-testid={`button-remove-${item.id}`}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Subtotal:</span>
+                      <span>₱{cart.getSubtotal().toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Markup ({cart.markup}%):</span>
+                      <span>₱{cart.getMarkupAmount().toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Delivery Fee:</span>
+                      <span>₱{cart.getDeliveryFee().toFixed(2)}</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between font-semibold text-lg">
+                      <span>Total:</span>
+                      <span>₱{cart.getTotal().toFixed(2)}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex space-x-2 pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => cart.clearCart()}
+                      className="flex-1"
+                      data-testid="button-clear-cart"
+                    >
+                      Clear Cart
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setShowCart(false);
+                        setActivePortal('customer');
+                      }}
+                      className="flex-1"
+                      data-testid="button-checkout-from-cart"
+                      disabled={cart.items.length === 0}
+                    >
+                      Go to Checkout
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
