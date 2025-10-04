@@ -383,39 +383,43 @@ export default function CustomerPortal() {
   if (selectedRestaurant) {
     return (
       <div className="min-h-screen bg-background">
-        {/* Fixed Multi-Cart Buttons */}
-        {cart.getAllCartsCount() > 0 && (
-          <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
-            {/* Current Cart Button */}
-            {cart.getItemCount() > 0 && (
-              <Button
-                onClick={() => setShowCart(true)}
-                className="rounded-full h-16 w-16 shadow-lg relative"
-                data-testid="button-view-cart"
-              >
-                <div className="flex flex-col items-center">
-                  <ShoppingCart className="h-6 w-6" />
-                  <span className="text-xs">{cart.getItemCount()}</span>
-                </div>
-              </Button>
-            )}
-            
-            {/* View All Carts Button */}
-            {cart.getAllCartsCount() > 1 && (
-              <Button
-                onClick={() => setShowAllCarts(true)}
-                variant="secondary"
-                className="rounded-full shadow-lg px-4 py-2"
-                data-testid="button-view-all-carts"
-              >
-                <div className="flex items-center gap-2">
-                  <Package className="h-4 w-4" />
-                  <span className="text-xs font-semibold">{cart.getAllCartsCount()} Carts</span>
-                </div>
-              </Button>
-            )}
+        {/* Top Navigation Bar */}
+        <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold text-primary">Easy Buy Delivery</h1>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                {/* Cart Indicator */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="relative"
+                  onClick={() => setShowAllCarts(true)}
+                  data-testid="button-header-cart"
+                >
+                  <ShoppingCart className="h-5 w-5" />
+                  {cart.getAllCartsCount() > 0 && (
+                    <Badge 
+                      className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                      variant="destructive"
+                      data-testid="badge-cart-count"
+                    >
+                      {cart.getAllCartsCount()}
+                    </Badge>
+                  )}
+                </Button>
+                
+                {/* Profile/User Indicator */}
+                <Button variant="ghost" size="sm" data-testid="button-header-profile">
+                  <User className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
           </div>
-        )}
+        </header>
 
         {/* Restaurant Header */}
         <div className="relative h-64 bg-cover bg-center" style={{backgroundImage: `url(${selectedRestaurant.image})`}}>
