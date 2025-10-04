@@ -10,7 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Store, MapPin, Star, Clock, User, Phone, MessageCircle, Edit, Plus, AlertCircle, CheckCircle, XCircle, Power } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Store, MapPin, Star, Clock, User, Phone, MessageCircle, Edit, Plus, AlertCircle, CheckCircle, XCircle, Power, Trash2 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -39,6 +41,7 @@ export default function MerchantPortal() {
   const [isAddMenuItemOpen, setIsAddMenuItemOpen] = useState(false);
   const [isEditMenuItemOpen, setIsEditMenuItemOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
+  const [deletingItem, setDeletingItem] = useState<any>(null);
   const [menuItemForm, setMenuItemForm] = useState({
     name: '',
     description: '',
@@ -58,6 +61,11 @@ export default function MerchantPortal() {
 
   const { data: orders = [] } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
+  });
+
+  // Fetch categories for dropdown
+  const { data: categories = [] } = useQuery<any[]>({
+    queryKey: ["/api/categories"],
   });
 
   const updateOrderMutation = useMutation({
@@ -138,6 +146,33 @@ export default function MerchantPortal() {
     onError: (error: Error) => {
       toast({
         title: "Update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteMenuItemMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiRequest("DELETE", `/api/menu-items/${id}`, {});
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete menu item');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/menu-items"] });
+      setDeletingItem(null);
+      toast({
+        title: "Menu item deleted",
+        description: "The menu item has been removed successfully.",
+        variant: "default",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Delete failed",
         description: error.message,
         variant: "destructive",
       });
