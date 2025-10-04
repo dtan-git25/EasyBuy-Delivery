@@ -496,21 +496,6 @@ export default function CustomerPortal() {
               <DialogTitle>{selectedRestaurant.name} - Cart</DialogTitle>
               <p className="text-sm text-muted-foreground">
                 Items from this restaurant only.
-                {cart.getAllCartsCount() > 1 && (
-                  <>
-                    {' '}You have items in {cart.getAllCartsCount()} restaurant{cart.getAllCartsCount() > 1 ? 's' : ''}.{' '}
-                    <button 
-                      onClick={() => {
-                        setShowCart(false);
-                        setShowAllCarts(true);
-                      }}
-                      className="text-primary underline"
-                      data-testid="link-view-all-carts"
-                    >
-                      View all carts
-                    </button>
-                  </>
-                )}
               </p>
             </DialogHeader>
             <div className="space-y-4">
