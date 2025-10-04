@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Bell, Bike, ShoppingCart, Package } from "lucide-react";
@@ -215,81 +216,93 @@ export default function Dashboard() {
                 const markupAmount = subtotal * (restaurantCart.markup / 100);
                 const deliveryFee = parseFloat(restaurantCart.deliveryFee.toString());
                 const total = subtotal + markupAmount + deliveryFee;
+                const itemCount = restaurantCart.items.reduce((sum, item) => sum + item.quantity, 0);
                 
                 return (
-                  <div 
-                    key={restaurantCart.restaurantId} 
-                    className={cn(
-                      "border rounded-lg p-4",
-                      isActive && "border-primary bg-primary/5"
-                    )}
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="font-semibold text-lg">{restaurantCart.restaurantName}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {restaurantCart.items.length} item{restaurantCart.items.length > 1 ? 's' : ''}
-                        </p>
-                      </div>
-                      {isActive && (
-                        <Badge variant="default">Current</Badge>
-                      )}
-                    </div>
-                    
-                    <div className="space-y-2 mb-3">
-                      {restaurantCart.items.map((item) => (
-                        <div key={item.id} className="flex justify-between text-sm">
-                          <span>{item.quantity}x {item.name}</span>
-                          <span>₱{(item.price * item.quantity).toFixed(2)}</span>
+                  <Card key={restaurantCart.restaurantId} className={`p-4 ${isActive ? 'border-primary border-2' : ''}`}>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-semibold text-lg">{restaurantCart.restaurantName}</h3>
+                          <p className="text-sm text-muted-foreground">{itemCount} item{itemCount > 1 ? 's' : ''}</p>
                         </div>
-                      ))}
-                    </div>
-                    
-                    <Separator className="my-3" />
-                    
-                    <div className="space-y-1 text-sm mb-3">
-                      <div className="flex justify-between">
-                        <span>Subtotal:</span>
-                        <span>₱{subtotal.toFixed(2)}</span>
+                        {isActive && <Badge variant="default">Current</Badge>}
                       </div>
-                      <div className="flex justify-between">
-                        <span>Markup ({restaurantCart.markup}%):</span>
-                        <span>₱{markupAmount.toFixed(2)}</span>
+                      
+                      <Separator />
+                      
+                      <div className="space-y-2 text-sm">
+                        {restaurantCart.items.map((item) => (
+                          <div key={item.id} className="flex justify-between">
+                            <span>{item.quantity}x {item.name}</span>
+                            <span>₱{(item.price * item.quantity).toFixed(2)}</span>
+                          </div>
+                        ))}
                       </div>
-                      <div className="flex justify-between">
-                        <span>Delivery Fee:</span>
-                        <span>₱{deliveryFee.toFixed(2)}</span>
+                      
+                      <Separator />
+                      
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span>Subtotal:</span>
+                          <span>₱{subtotal.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Markup ({restaurantCart.markup}%):</span>
+                          <span>₱{markupAmount.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Delivery Fee:</span>
+                          <span>₱{deliveryFee.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between font-semibold text-base pt-2">
+                          <span>Total:</span>
+                          <span>₱{total.toFixed(2)}</span>
+                        </div>
                       </div>
-                      <div className="flex justify-between font-semibold">
-                        <span>Total:</span>
-                        <span>₱{total.toFixed(2)}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex gap-2">
-                      {!isActive && (
+                      
+                      <div className="flex gap-2 pt-2">
+                        {!isActive && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              cart.switchCart(restaurantCart.restaurantId);
+                              setShowAllCarts(false);
+                            }}
+                            data-testid={`button-switch-cart-${restaurantCart.restaurantId}`}
+                          >
+                            View Cart
+                          </Button>
+                        )}
                         <Button
                           size="sm"
-                          variant="outline"
                           onClick={() => {
                             cart.switchCart(restaurantCart.restaurantId);
                             setShowAllCarts(false);
                           }}
-                          className="flex-1"
+                          data-testid={`button-checkout-cart-${restaurantCart.restaurantId}`}
                         >
-                          View Cart
+                          Checkout This Cart
                         </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => cart.clearRestaurantCart(restaurantCart.restaurantId)}
-                        className="flex-1"
-                      >
-                        Clear Cart
-                      </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => {
+                            if (confirm(`Clear cart for ${restaurantCart.restaurantName}?`)) {
+                              cart.clearRestaurantCart(restaurantCart.restaurantId);
+                              if (cart.getAllCartsCount() === 0) {
+                                setShowAllCarts(false);
+                              }
+                            }
+                          }}
+                          data-testid={`button-clear-cart-${restaurantCart.restaurantId}`}
+                        >
+                          Clear
+                        </Button>
+                      </div>
                     </div>
-                  </div>
+                  </Card>
                 );
               })}
               
