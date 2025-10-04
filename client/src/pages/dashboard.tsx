@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Bell, Bike } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import { Bell, Bike, ShoppingCart, Package } from "lucide-react";
+import { useCart } from "@/contexts/cart-context";
 import CustomerPortal from "@/components/portals/customer-portal";
 import RiderPortal from "@/components/portals/rider-portal";
 import MerchantPortal from "@/components/portals/merchant-portal";
@@ -14,6 +18,8 @@ type Portal = 'customer' | 'rider' | 'merchant' | 'admin' | 'owner';
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
   const [activePortal, setActivePortal] = useState<Portal>((user?.role === 'owner' ? 'admin' : user?.role) || 'customer');
+  const [showAllCarts, setShowAllCarts] = useState(false);
+  const cart = useCart();
 
   // SECURITY: Role-based access control - users can only see their own portal
   const getAuthorizedPortals = () => {
@@ -105,6 +111,28 @@ export default function Dashboard() {
 
             {/* User Actions */}
             <div className="flex items-center space-x-3">
+              {/* Cart Button - Only for Customer users */}
+              {user?.role === 'customer' && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="relative"
+                  onClick={() => setShowAllCarts(true)}
+                  data-testid="button-header-cart"
+                >
+                  <ShoppingCart className="h-4 w-4" />
+                  {cart.getAllCartsCount() > 0 && (
+                    <Badge 
+                      className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                      variant="destructive"
+                      data-testid="badge-cart-count"
+                    >
+                      {cart.getAllCartsCount()}
+                    </Badge>
+                  )}
+                </Button>
+              )}
+              
               <Button variant="ghost" size="sm" className="relative">
                 <Bell className="h-4 w-4" />
                 <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
@@ -169,6 +197,132 @@ export default function Dashboard() {
 
       {/* Chat Widget */}
       <ChatWidget />
+
+      {/* View All Carts Dialog - Only for Customer users */}
+      {user?.role === 'customer' && (
+        <Dialog open={showAllCarts} onOpenChange={setShowAllCarts}>
+          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>All Restaurant Carts ({cart.getAllCartsCount()})</DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                You have items in {cart.getAllCartsCount()} restaurant{cart.getAllCartsCount() > 1 ? 's' : ''}. Manage your carts below.
+              </p>
+            </DialogHeader>
+            <div className="space-y-4">
+              {Object.values(cart.allCarts).map((restaurantCart) => {
+                const isActive = cart.activeRestaurantId === restaurantCart.restaurantId;
+                const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                const markupAmount = subtotal * (restaurantCart.markup / 100);
+                const deliveryFee = parseFloat(restaurantCart.deliveryFee.toString());
+                const total = subtotal + markupAmount + deliveryFee;
+                
+                return (
+                  <div 
+                    key={restaurantCart.restaurantId} 
+                    className={cn(
+                      "border rounded-lg p-4",
+                      isActive && "border-primary bg-primary/5"
+                    )}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h3 className="font-semibold text-lg">{restaurantCart.restaurantName}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {restaurantCart.items.length} item{restaurantCart.items.length > 1 ? 's' : ''}
+                        </p>
+                      </div>
+                      {isActive && (
+                        <Badge variant="default">Current</Badge>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2 mb-3">
+                      {restaurantCart.items.map((item) => (
+                        <div key={item.id} className="flex justify-between text-sm">
+                          <span>{item.quantity}x {item.name}</span>
+                          <span>₱{(item.price * item.quantity).toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <Separator className="my-3" />
+                    
+                    <div className="space-y-1 text-sm mb-3">
+                      <div className="flex justify-between">
+                        <span>Subtotal:</span>
+                        <span>₱{subtotal.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Markup ({restaurantCart.markup}%):</span>
+                        <span>₱{markupAmount.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Delivery Fee:</span>
+                        <span>₱{deliveryFee.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between font-semibold">
+                        <span>Total:</span>
+                        <span>₱{total.toFixed(2)}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      {!isActive && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            cart.switchCart(restaurantCart.restaurantId);
+                            setShowAllCarts(false);
+                          }}
+                          className="flex-1"
+                        >
+                          View Cart
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => cart.clearRestaurantCart(restaurantCart.restaurantId)}
+                        className="flex-1"
+                      >
+                        Clear Cart
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+              
+              {cart.getAllCartsCount() === 0 && (
+                <p className="text-center text-muted-foreground py-8">No items in any cart</p>
+              )}
+              
+              {cart.getAllCartsCount() > 0 && (
+                <>
+                  <Separator />
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-semibold">Combined Total</p>
+                      <p className="text-sm text-muted-foreground">{cart.getAllCartsCount()} restaurant{cart.getAllCartsCount() > 1 ? 's' : ''}</p>
+                    </div>
+                    <p className="text-xl font-bold">₱{cart.getAllCartsTotal().toFixed(2)}</p>
+                  </div>
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      cart.clearAllCarts();
+                      setShowAllCarts(false);
+                    }}
+                    className="w-full"
+                  >
+                    Clear All Carts
+                  </Button>
+                </>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

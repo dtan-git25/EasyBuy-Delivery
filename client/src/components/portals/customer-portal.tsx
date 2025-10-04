@@ -383,44 +383,6 @@ export default function CustomerPortal() {
   if (selectedRestaurant) {
     return (
       <div className="min-h-screen bg-background">
-        {/* Top Navigation Bar */}
-        <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold text-primary">Easy Buy Delivery</h1>
-              </div>
-              
-              <div className="flex items-center gap-4">
-                {/* Cart Indicator */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="relative"
-                  onClick={() => setShowAllCarts(true)}
-                  data-testid="button-header-cart"
-                >
-                  <ShoppingCart className="h-5 w-5" />
-                  {cart.getAllCartsCount() > 0 && (
-                    <Badge 
-                      className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-                      variant="destructive"
-                      data-testid="badge-cart-count"
-                    >
-                      {cart.getAllCartsCount()}
-                    </Badge>
-                  )}
-                </Button>
-                
-                {/* Profile/User Indicator */}
-                <Button variant="ghost" size="sm" data-testid="button-header-profile">
-                  <User className="h-5 w-5" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </header>
-
         {/* Restaurant Header */}
         <div className="relative h-64 bg-cover bg-center" style={{backgroundImage: `url(${selectedRestaurant.image})`}}>
           <div className="absolute inset-0 bg-black/50" />
@@ -877,44 +839,6 @@ export default function CustomerPortal() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-primary">Easy Buy Delivery</h1>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              {/* Cart Indicator */}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="relative"
-                onClick={() => setShowAllCarts(true)}
-                data-testid="button-header-cart"
-              >
-                <ShoppingCart className="h-5 w-5" />
-                {cart.getAllCartsCount() > 0 && (
-                  <Badge 
-                    className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-                    variant="destructive"
-                    data-testid="badge-cart-count"
-                  >
-                    {cart.getAllCartsCount()}
-                  </Badge>
-                )}
-              </Button>
-              
-              {/* Profile/User Indicator */}
-              <Button variant="ghost" size="sm" data-testid="button-header-profile">
-                <User className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-primary to-secondary text-primary-foreground py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
