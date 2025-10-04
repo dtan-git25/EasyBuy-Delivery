@@ -294,8 +294,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/categories", async (req, res) => {
-    if (!req.isAuthenticated() || req.user?.role !== 'owner') {
-      return res.status(401).json({ error: "Unauthorized - Admin only" });
+    if (!req.isAuthenticated() || (req.user?.role !== 'owner' && req.user?.role !== 'admin')) {
+      return res.status(401).json({ error: "Unauthorized - Admin or Owner access required" });
     }
 
     try {
@@ -309,8 +309,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.patch("/api/categories/:id", async (req, res) => {
-    if (!req.isAuthenticated() || req.user?.role !== 'owner') {
-      return res.status(401).json({ error: "Unauthorized - Admin only" });
+    if (!req.isAuthenticated() || (req.user?.role !== 'owner' && req.user?.role !== 'admin')) {
+      return res.status(401).json({ error: "Unauthorized - Admin or Owner access required" });
     }
 
     try {
@@ -326,8 +326,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.delete("/api/categories/:id", async (req, res) => {
-    if (!req.isAuthenticated() || req.user?.role !== 'owner') {
-      return res.status(401).json({ error: "Unauthorized - Admin only" });
+    if (!req.isAuthenticated() || (req.user?.role !== 'owner' && req.user?.role !== 'admin')) {
+      return res.status(401).json({ error: "Unauthorized - Admin or Owner access required" });
     }
 
     try {
