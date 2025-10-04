@@ -814,6 +814,29 @@ export default function MerchantPortal() {
                 </DialogContent>
               </Dialog>
 
+              {/* Delete Menu Item Confirmation Dialog */}
+              <AlertDialog open={!!deletingItem} onOpenChange={(open) => !open && setDeletingItem(null)}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Menu Item</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete "{deletingItem?.name}"? This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel data-testid="button-cancel-delete">Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      data-testid="button-confirm-delete"
+                      onClick={() => deletingItem && deleteMenuItemMutation.mutate(deletingItem.id)}
+                      disabled={deleteMenuItemMutation.isPending}
+                      className="bg-destructive hover:bg-destructive/90"
+                    >
+                      {deleteMenuItemMutation.isPending ? 'Deleting...' : 'Delete'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
               {menuItems.length === 0 ? (
                 <Card>
                   <CardContent className="p-8 text-center">
@@ -871,6 +894,14 @@ export default function MerchantPortal() {
                               disabled={toggleAvailabilityMutation.isPending}
                             >
                               {item.isAvailable ? "Disable" : "Enable"}
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              data-testid={`button-delete-item-${item.id}`}
+                              onClick={() => setDeletingItem(item)}
+                            >
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </div>
