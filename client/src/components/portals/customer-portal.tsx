@@ -975,44 +975,66 @@ export default function CustomerPortal() {
             </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {filteredRestaurants.map((restaurant: Restaurant) => (
-                <Card 
-                  key={restaurant.id} 
-                  className="cursor-pointer transition-transform hover:scale-105 hover:shadow-lg"
-                  onClick={() => setSelectedRestaurant(restaurant)}
-                  data-testid={`restaurant-${restaurant.id}`}
-                >
-                  <div className="w-full h-48 bg-muted rounded-t-lg overflow-hidden">
-                    {restaurant.image && (
-                      <img 
-                        src={restaurant.image} 
-                        alt={restaurant.name}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                  </div>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <h4 className="text-lg font-semibold text-foreground">{restaurant.name}</h4>
-                      <Badge variant="secondary">
-                        {restaurant.isActive ? 'Open' : 'Closed'}
-                      </Badge>
+              {filteredRestaurants.map((restaurant: Restaurant) => {
+                const restaurantCart = cart.allCarts[restaurant.id];
+                const itemCount = restaurantCart?.items.reduce((sum, item) => sum + item.quantity, 0) || 0;
+                
+                return (
+                  <Card 
+                    key={restaurant.id} 
+                    className="cursor-pointer transition-transform hover:scale-105 hover:shadow-lg relative"
+                    onClick={() => setSelectedRestaurant(restaurant)}
+                    data-testid={`restaurant-${restaurant.id}`}
+                  >
+                    <div className="w-full h-48 bg-muted rounded-t-lg overflow-hidden">
+                      {restaurant.image && (
+                        <img 
+                          src={restaurant.image} 
+                          alt={restaurant.name}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
                     </div>
-                    <p className="text-sm text-muted-foreground mb-3">{restaurant.cuisine}</p>
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center space-x-1">
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                        <span>{restaurant.rating}</span>
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <h4 className="text-lg font-semibold text-foreground">{restaurant.name}</h4>
+                        <Badge variant="secondary">
+                          {restaurant.isActive ? 'Open' : 'Closed'}
+                        </Badge>
                       </div>
-                      <div className="flex items-center space-x-1">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span>25-35 min</span>
+                      <p className="text-sm text-muted-foreground mb-3">{restaurant.cuisine}</p>
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center space-x-1">
+                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                          <span>{restaurant.rating}</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          <span>25-35 min</span>
+                        </div>
+                        <span className="text-green-600 font-medium">₱{restaurant.deliveryFee} delivery</span>
                       </div>
-                      <span className="text-green-600 font-medium">₱{restaurant.deliveryFee} delivery</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      
+                      {itemCount > 0 && (
+                        <Button
+                          size="sm"
+                          variant="default"
+                          className="w-full mt-3"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            cart.switchCart(restaurant.id);
+                            setShowCart(true);
+                          }}
+                          data-testid={`button-view-cart-${restaurant.id}`}
+                        >
+                          <ShoppingCart className="mr-2 h-4 w-4" />
+                          View Cart ({itemCount})
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
             </div>
