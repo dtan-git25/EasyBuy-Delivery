@@ -261,20 +261,6 @@ export default function CustomerPortal() {
     }
   }, [socket, user, sendMessage, queryClient, selectedOrderForTracking, orders, toast]);
 
-  const handleUseCurrentLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          console.log("Current location:", position.coords);
-          // Handle location update
-        },
-        (error) => {
-          console.error("Location error:", error);
-        }
-      );
-    }
-  };
-
   const filteredRestaurants = restaurants.filter((restaurant: Restaurant) => {
     // Search: Check restaurant name, cuisine, AND menu item categories
     const restaurantMenuItems = allMenuItems.filter(item => item.restaurantId === restaurant.id);
@@ -843,19 +829,46 @@ export default function CustomerPortal() {
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">Delicious Food, Delivered Fast</h2>
             <p className="text-lg opacity-90 mb-8">Order from your favorite restaurants in your area</p>
             
-            {/* Location Input */}
-            <div className="max-w-md mx-auto bg-card rounded-xl p-4 shadow-lg">
-              <div className="flex items-center space-x-3">
-                <MapPin className="text-primary" />
-                <Input
-                  type="text"
-                  placeholder="Enter delivery address"
-                  className="border-0 bg-transparent"
-                  data-testid="input-delivery-location"
-                />
-                <Button size="sm" onClick={handleUseCurrentLocation} data-testid="button-use-location">
-                  <Navigation className="h-4 w-4" />
-                </Button>
+            {/* Search and Filter */}
+            <div className="max-w-4xl mx-auto bg-card rounded-xl p-4 shadow-lg">
+              <div className="flex flex-col lg:flex-row gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="Search restaurants, cuisines, or food categories..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                    data-testid="input-restaurant-search"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Select value={selectedCategory || "all"} onValueChange={(value) => setSelectedCategory(value === "all" ? "" : value)}>
+                    <SelectTrigger className="w-48" data-testid="select-category-filter">
+                      <SelectValue placeholder="All Categories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.name} data-testid={`category-option-${category.id}`}>
+                          {category.icon && `${category.icon} `}{category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="w-48" data-testid="select-sort-by">
+                      <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="distance">Distance</SelectItem>
+                      <SelectItem value="rating">Rating</SelectItem>
+                      <SelectItem value="delivery-time">Delivery Time</SelectItem>
+                      <SelectItem value="price">Price</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           </div>
@@ -878,52 +891,6 @@ export default function CustomerPortal() {
 
           {/* Restaurants Tab */}
           <TabsContent value="restaurants" className="space-y-6">
-            <div>
-      {/* Search and Filter */}
-      <section className="py-6 bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row gap-4 mb-6">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Search restaurants, cuisines, or food categories..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-                data-testid="input-restaurant-search"
-              />
-            </div>
-            <div className="flex gap-2">
-              <Select value={selectedCategory || "all"} onValueChange={(value) => setSelectedCategory(value === "all" ? "" : value)}>
-                <SelectTrigger className="w-48" data-testid="select-category-filter">
-                  <SelectValue placeholder="All Categories" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.name} data-testid={`category-option-${category.id}`}>
-                      {category.icon && `${category.icon} `}{category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-48" data-testid="select-sort-by">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="distance">Distance</SelectItem>
-                  <SelectItem value="rating">Rating</SelectItem>
-                  <SelectItem value="delivery-time">Delivery Time</SelectItem>
-                  <SelectItem value="price">Price</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Restaurant Grid */}
       <section className="py-8 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1022,9 +989,8 @@ export default function CustomerPortal() {
               })}
             </div>
           )}
-            </div>
+        </div>
       </section>
-            </div>
           </TabsContent>
 
           {/* My Orders Tab */}
