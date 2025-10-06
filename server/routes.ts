@@ -597,6 +597,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       // SECURITY: If rider is updating order, check approval status
+      let riderId: string | undefined;
       if (req.user.role === 'rider') {
         const rider = await storage.getRiderByUserId(req.user.id);
         if (!rider) {
@@ -616,12 +617,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
               : "Documents not approved"
           });
         }
+        
+        // Store rider ID for assignment
+        riderId = rider.id;
+      }
+      
+      // Prepare order updates
+      const orderUpdates = { ...req.body };
+      
+      // SECURITY: If rider is accepting an order, verify it's unassigned and pending
+      if (req.user.role === 'rider' && req.body.status === 'accepted' && riderId) {
+        // Get current order state
+        const currentOrder = await storage.getOrder(req.params.id);
+        if (!currentOrder) {
+          return res.status(404).json({ error: "Order not found" });
+        }
+        
+        // Verify order is in pending status and has no rider assigned
+        if (currentOrder.status !== 'pending') {
+          return res.status(409).json({ 
+            error: "Order cannot be accepted",
+            message: `Order is already in '${currentOrder.status}' status`,
+            currentStatus: currentOrder.status
+          });
+        }
+        
+        if (currentOrder.riderId && currentOrder.riderId !== riderId) {
+          return res.status(409).json({ 
+            error: "Order already assigned",
+            message: "Another rider has already accepted this order"
+          });
+        }
+        
+        // Safe to assign order to this rider
+        orderUpdates.riderId = riderId;
+      }
+      
+      // SECURITY: For other order updates by rider, verify they own the order
+      if (req.user.role === 'rider' && req.body.status !== 'accepted' && riderId) {
+        const currentOrder = await storage.getOrder(req.params.id);
+        if (!currentOrder) {
+          return res.status(404).json({ error: "Order not found" });
+        }
+        
+        if (currentOrder.riderId !== riderId) {
+          return res.status(403).json({ 
+            error: "Access denied",
+            message: "You can only update orders assigned to you"
+          });
+        }
       }
       
       // Use enhanced order update with status history tracking
       const order = await storage.updateOrderWithStatusHistory(
         req.params.id, 
-        req.body, 
+        orderUpdates, 
         req.user.id,
         req.body.notes,
         req.body.location

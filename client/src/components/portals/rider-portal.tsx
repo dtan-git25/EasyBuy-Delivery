@@ -69,11 +69,37 @@ export default function RiderPortal() {
   const updateOrderMutation = useMutation({
     mutationFn: async ({ orderId, status }: { orderId: string; status: string }) => {
       const response = await apiRequest("PATCH", `/api/orders/${orderId}`, { status });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to update order");
+      }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/orders/pending"] });
+      
+      const statusMessages: Record<string, string> = {
+        'accepted': 'Order accepted successfully! It will appear in your Active Orders.',
+        'preparing': 'Order marked as preparing',
+        'ready': 'Order marked as ready for pickup',
+        'picked_up': 'Order picked up successfully',
+        'delivered': 'Order delivered successfully! Great job!',
+        'cancelled': 'Order cancelled'
+      };
+      
+      toast({
+        title: "Order Updated",
+        description: statusMessages[variables.status] || "Order status updated successfully",
+        variant: "default",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update order. Please try again.",
+        variant: "destructive",
+      });
     },
   });
 
