@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bike, Wallet, Clock, Star, MapPin, Phone, User, Upload, FileText, CheckCircle, XCircle } from "lucide-react";
+import { Bike, Wallet, Clock, Star, MapPin, Phone, User, Upload, FileText, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -48,10 +48,6 @@ export default function RiderPortal() {
     queryKey: ["/api/wallet"],
   });
 
-  const { data: pendingOrders = [] } = useQuery({
-    queryKey: ["/api/orders/pending"],
-  });
-
   const { data: myOrders = [] } = useQuery({
     queryKey: ["/api/orders"],
   });
@@ -64,6 +60,11 @@ export default function RiderPortal() {
   // Get rider status from profile, default to offline
   const riderStatus = riderProfile?.status || 'offline';
   const documentsStatus = riderProfile?.documentsStatus || 'incomplete';
+
+  const { data: pendingOrders = [] } = useQuery({
+    queryKey: ["/api/orders/pending"],
+    enabled: documentsStatus === 'approved', // Only fetch if rider is approved
+  });
 
   const updateOrderMutation = useMutation({
     mutationFn: async ({ orderId, status }: { orderId: string; status: string }) => {
@@ -521,7 +522,26 @@ export default function RiderPortal() {
             </TabsList>
 
             <TabsContent value="pending" className="space-y-4">
-              {pendingOrders.length === 0 ? (
+              {documentsStatus !== 'approved' ? (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <AlertCircle className="mx-auto h-12 w-12 text-yellow-500 mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Documents Approval Required</h3>
+                    <p className="text-muted-foreground mb-4">
+                      {documentsStatus === 'incomplete' && 'Please upload and submit all required documents to access pending orders.'}
+                      {documentsStatus === 'pending' && 'Your documents are currently under review by admin. You\'ll be able to see and accept orders once approved.'}
+                      {documentsStatus === 'rejected' && 'Your documents were rejected. Please re-upload the required documents to access pending orders.'}
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => document.querySelector('[data-testid="tab-documents"]')?.click()}
+                      data-testid="button-go-to-documents"
+                    >
+                      Go to Documents
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : pendingOrders.length === 0 ? (
                 <Card>
                   <CardContent className="p-8 text-center">
                     <p className="text-muted-foreground">No pending orders available</p>

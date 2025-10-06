@@ -412,6 +412,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
+      // SECURITY: Only approved riders can see pending orders
+      const rider = await storage.getRiderByUserId(req.user.id);
+      if (!rider) {
+        return res.status(404).json({ error: "Rider profile not found" });
+      }
+      
+      if (rider.documentsStatus !== 'approved') {
+        return res.status(403).json({ 
+          error: "Access denied - Documents must be approved",
+          documentsStatus: rider.documentsStatus,
+          message: rider.documentsStatus === 'incomplete' 
+            ? "Please upload and submit all required documents"
+            : rider.documentsStatus === 'pending'
+            ? "Your documents are currently under review by admin"
+            : rider.documentsStatus === 'rejected'
+            ? `Your documents were rejected: ${rider.rejectedReason || 'Please re-upload'}`
+            : "Documents not approved"
+        });
+      }
+      
       const pendingOrders = await storage.getPendingOrders();
       res.json(pendingOrders);
     } catch (error) {
@@ -576,6 +596,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
+      // SECURITY: If rider is updating order, check approval status
+      if (req.user.role === 'rider') {
+        const rider = await storage.getRiderByUserId(req.user.id);
+        if (!rider) {
+          return res.status(404).json({ error: "Rider profile not found" });
+        }
+        
+        if (rider.documentsStatus !== 'approved') {
+          return res.status(403).json({ 
+            error: "Access denied - Documents must be approved to accept or update orders",
+            documentsStatus: rider.documentsStatus,
+            message: rider.documentsStatus === 'incomplete' 
+              ? "Please upload and submit all required documents"
+              : rider.documentsStatus === 'pending'
+              ? "Your documents are currently under review by admin"
+              : rider.documentsStatus === 'rejected'
+              ? `Your documents were rejected: ${rider.rejectedReason || 'Please re-upload'}`
+              : "Documents not approved"
+          });
+        }
+      }
+      
       // Use enhanced order update with status history tracking
       const order = await storage.updateOrderWithStatusHistory(
         req.params.id, 
