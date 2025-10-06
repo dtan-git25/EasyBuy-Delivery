@@ -830,22 +830,22 @@ export default function CustomerPortal() {
             <p className="text-lg opacity-90 mb-8">Order from your favorite restaurants in your area</p>
             
             {/* Search and Filter */}
-            <div className="max-w-4xl mx-auto bg-card rounded-xl p-4 shadow-lg">
+            <div className="max-w-4xl mx-auto bg-card text-card-foreground rounded-xl p-4 shadow-lg">
               <div className="flex flex-col lg:flex-row gap-4">
                 <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-500 dark:text-gray-400" />
                   <Input
                     type="text"
                     placeholder="Search restaurants, cuisines, or food categories..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
                     data-testid="input-restaurant-search"
                   />
                 </div>
                 <div className="flex gap-2">
                   <Select value={selectedCategory || "all"} onValueChange={(value) => setSelectedCategory(value === "all" ? "" : value)}>
-                    <SelectTrigger className="w-48" data-testid="select-category-filter">
+                    <SelectTrigger className="w-48 text-gray-900 dark:text-gray-100" data-testid="select-category-filter">
                       <SelectValue placeholder="All Categories" />
                     </SelectTrigger>
                     <SelectContent>
@@ -858,7 +858,7 @@ export default function CustomerPortal() {
                     </SelectContent>
                   </Select>
                   <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="w-48" data-testid="select-sort-by">
+                    <SelectTrigger className="w-48 text-gray-900 dark:text-gray-100" data-testid="select-sort-by">
                       <SelectValue placeholder="Sort by" />
                     </SelectTrigger>
                     <SelectContent>
