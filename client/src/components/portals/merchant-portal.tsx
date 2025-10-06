@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { useWebSocket } from "@/hooks/use-websocket";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -67,6 +68,43 @@ export default function MerchantPortal() {
   const { data: categories = [] } = useQuery<any[]>({
     queryKey: ["/api/categories"],
   });
+
+  // WebSocket for real-time order updates
+  const { socket, sendMessage } = useWebSocket();
+
+  // Listen for order updates via WebSocket
+  useEffect(() => {
+    if (socket && user) {
+      const handleMessage = (event: MessageEvent) => {
+        try {
+          const data = JSON.parse(event.data);
+          
+          if (data.type === 'order_update' || data.type === 'new_order') {
+            // Refresh orders when any order is updated or created
+            queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+            
+            // Show toast for order updates
+            if (data.order && data.type === 'order_update') {
+              toast({
+                title: "Order Updated",
+                description: `Order #${data.order.orderNumber} status: ${data.order.status}`,
+              });
+            } else if (data.order && data.type === 'new_order') {
+              toast({
+                title: "New Order",
+                description: `New order #${data.order.orderNumber} received!`,
+              });
+            }
+          }
+        } catch (error) {
+          console.error('WebSocket message parsing error:', error);
+        }
+      };
+
+      socket.addEventListener('message', handleMessage);
+      return () => socket.removeEventListener('message', handleMessage);
+    }
+  }, [socket, user, queryClient, toast]);
 
   const updateOrderMutation = useMutation({
     mutationFn: async ({ orderId, status }: { orderId: string; status: string }) => {
