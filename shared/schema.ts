@@ -127,7 +127,7 @@ export const categories = pgTable("categories", {
 // Riders table
 export const riders = pgTable("riders", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull(),
+  userId: varchar("user_id").notNull().unique(),
   vehicleType: text("vehicle_type").notNull(),
   vehicleModel: text("vehicle_model").notNull(),
   plateNumber: text("plate_number").notNull(),
