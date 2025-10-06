@@ -741,7 +741,7 @@ export default function MerchantPortal() {
                               <SelectValue placeholder="Select a category" />
                             </SelectTrigger>
                             <SelectContent>
-                              {categories.filter((cat: any) => cat.isActive).map((category: any) => (
+                              {categories?.filter((cat: any) => cat?.isActive).map((category: any) => (
                                 <SelectItem key={category.id} value={category.name} data-testid={`option-category-${category.id}`}>
                                   {category.name}
                                 </SelectItem>
@@ -822,7 +822,7 @@ export default function MerchantPortal() {
                             <SelectValue placeholder="Select a category" />
                           </SelectTrigger>
                           <SelectContent>
-                            {categories.filter((cat: any) => cat.isActive).map((category: any) => (
+                            {categories?.filter((cat: any) => cat?.isActive).map((category: any) => (
                               <SelectItem key={category.id} value={category.name} data-testid={`option-edit-category-${category.id}`}>
                                 {category.name}
                               </SelectItem>
