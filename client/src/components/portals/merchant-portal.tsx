@@ -36,6 +36,8 @@ interface Order {
 }
 
 export default function MerchantPortal() {
+  console.log('🏪 [MERCHANT PORTAL] Component rendering...');
+  
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -50,8 +52,10 @@ export default function MerchantPortal() {
     category: ''
   });
 
+  console.log('🏪 [MERCHANT PORTAL] Current user:', user);
+
   // Fetch merchant's own restaurant (including inactive ones)
-  const { data: userRestaurant } = useQuery<any>({
+  const { data: userRestaurant, isLoading: isRestaurantLoading, error: restaurantError } = useQuery<any>({
     queryKey: ["/api/merchant/my-restaurant"],
     staleTime: 0, // Always refetch to ensure we have latest data
     gcTime: 0, // Don't cache the data
@@ -60,13 +64,27 @@ export default function MerchantPortal() {
     enabled: user?.role === 'merchant', // Only fetch for merchants
   });
 
-  const { data: orders = [] } = useQuery<Order[]>({
+  console.log('🏪 [MERCHANT PORTAL] Restaurant data:', { 
+    data: userRestaurant, 
+    isLoading: isRestaurantLoading, 
+    error: restaurantError 
+  });
+
+  const { data: orders = [], isLoading: isOrdersLoading } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
   });
 
+  console.log('🏪 [MERCHANT PORTAL] Orders:', { count: orders.length, isLoading: isOrdersLoading });
+
   // Fetch categories for dropdown
-  const { data: categories = [] } = useQuery<any[]>({
+  const { data: categories = [], isLoading: isCategoriesLoading } = useQuery<any[]>({
     queryKey: ["/api/categories"],
+  });
+
+  console.log('🏪 [MERCHANT PORTAL] Categories:', { 
+    data: categories, 
+    count: categories?.length || 0, 
+    isLoading: isCategoriesLoading 
   });
 
   // WebSocket for real-time order updates
@@ -741,7 +759,7 @@ export default function MerchantPortal() {
                               <SelectValue placeholder="Select a category" />
                             </SelectTrigger>
                             <SelectContent>
-                              {categories?.filter((cat: any) => cat?.isActive).map((category: any) => (
+                              {categories?.filter((cat: any) => cat && cat.isActive).map((category: any) => (
                                 <SelectItem key={category.id} value={category.name} data-testid={`option-category-${category.id}`}>
                                   {category.name}
                                 </SelectItem>
@@ -822,7 +840,7 @@ export default function MerchantPortal() {
                             <SelectValue placeholder="Select a category" />
                           </SelectTrigger>
                           <SelectContent>
-                            {categories?.filter((cat: any) => cat?.isActive).map((category: any) => (
+                            {categories?.filter((cat: any) => cat && cat.isActive).map((category: any) => (
                               <SelectItem key={category.id} value={category.name} data-testid={`option-edit-category-${category.id}`}>
                                 {category.name}
                               </SelectItem>

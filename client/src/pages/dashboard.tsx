@@ -129,23 +129,36 @@ export default function Dashboard() {
 
   // SECURITY: Enforce role-based portal access
   const renderPortal = () => {
+    console.log('📍 [DASHBOARD] renderPortal called - User:', user);
+    console.log('📍 [DASHBOARD] User role:', user?.role);
+    console.log('📍 [DASHBOARD] Active portal:', activePortal);
+    
     // Only render portal if user has access to it
-    if (!user) return <CustomerPortal />;
+    if (!user) {
+      console.log('📍 [DASHBOARD] No user, rendering CustomerPortal');
+      return <CustomerPortal />;
+    }
     
     // Render portal based on user's actual role (ignore activePortal state)
     // This prevents blank page issues from race conditions
     switch (user.role) {
       case 'customer':
+        console.log('📍 [DASHBOARD] Rendering CustomerPortal');
         return <CustomerPortal />;
       case 'rider':
+        console.log('📍 [DASHBOARD] Rendering RiderPortal');
         return <RiderPortal />;
       case 'merchant':
+        console.log('📍 [DASHBOARD] Rendering MerchantPortal');
         return <MerchantPortal />;
       case 'admin':
+        console.log('📍 [DASHBOARD] Rendering AdminPortal (admin)');
         return <AdminPortal />;
       case 'owner':
+        console.log('📍 [DASHBOARD] Rendering AdminPortal (owner)');
         return <AdminPortal />;
       default:
+        console.log('📍 [DASHBOARD] Default case, rendering CustomerPortal');
         return <CustomerPortal />;
     }
   };
