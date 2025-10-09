@@ -216,9 +216,9 @@ export const walletTransactions = pgTable("wallet_transactions", {
 // Orders table
 export const orders = pgTable("orders", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  customerId: varchar("customer_id").notNull(),
-  restaurantId: varchar("restaurant_id").notNull(),
-  riderId: varchar("rider_id"),
+  customerId: varchar("customer_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  restaurantId: varchar("restaurant_id").notNull().references(() => restaurants.id, { onDelete: 'cascade' }),
+  riderId: varchar("rider_id").references(() => users.id, { onDelete: 'set null' }),
   orderNumber: text("order_number").notNull().unique(),
   items: jsonb("items").notNull(),
   subtotal: decimal("subtotal", { precision: 8, scale: 2 }).notNull(),
