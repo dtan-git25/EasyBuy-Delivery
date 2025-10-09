@@ -56,6 +56,29 @@ Preferred communication style: Simple, everyday language.
 
 ### Database Integrity & Recent Fixes
 
+#### Order Data Format Fix (October 2025)
+Fixed critical issue where merchant dashboards showed blank page when orders were created due to missing customer data:
+
+**Root Cause**: Merchant portal expected `order.customer.name/phone/address` object, but backend queries only returned raw order data with `customerId` as a string - no customer details joined.
+
+**Implemented Fixes**:
+1. **Updated `getOrdersByRestaurant()` in server/storage.ts**:
+   - Added LEFT JOIN with users table to include customer details
+   - Transforms response to include customer object: `{name: "FirstName LastName", phone, address}`
+   - Customer name properly built from `firstName + lastName` fields
+   - Safe fallbacks for missing data: 'Unknown Customer' if user not found
+
+2. **Fixed `getPendingOrders()` in server/storage.ts**:
+   - Corrected to use `firstName + lastName` (was incorrectly using nonexistent `name` field)
+   - Now returns proper customer names for rider orders
+
+3. **Added defensive error handling in merchant-portal.tsx**:
+   - Optional chaining (`order.customer?.name`) prevents crashes
+   - Multiple fallback levels for all customer fields
+   - Falls back to direct order fields if customer object missing
+
+**Impact**: Merchants can now see orders with full customer details (name, phone, address) without dashboard crashes. Order creation no longer breaks merchant portals.
+
 #### Foreign Key Constraints (October 2025)
 Fixed critical database corruption issue where merchant dashboards broke after receiving orders due to orphaned data:
 

@@ -622,15 +622,15 @@ export default function MerchantPortal() {
                           <div className="space-y-2 text-sm">
                             <div className="flex items-center text-muted-foreground">
                               <User className="mr-2 h-4 w-4" />
-                              {order.customer.name}
+                              {order.customer?.name || 'Unknown Customer'}
                             </div>
                             <div className="flex items-center text-muted-foreground">
                               <Phone className="mr-2 h-4 w-4" />
-                              {order.customer.phone}
+                              {order.customer?.phone || order.phoneNumber || 'No phone'}
                             </div>
                             <div className="flex items-center text-muted-foreground">
                               <MapPin className="mr-2 h-4 w-4" />
-                              {order.customer.address}
+                              {order.customer?.address || order.deliveryAddress || 'No address'}
                             </div>
                             {order.rider && (
                               <div className="flex items-center text-muted-foreground">

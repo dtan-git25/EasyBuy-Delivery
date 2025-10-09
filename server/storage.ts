@@ -321,12 +321,23 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(orders.createdAt));
   }
 
-  async getOrdersByRestaurant(restaurantId: string): Promise<Order[]> {
-    return await db
+  async getOrdersByRestaurant(restaurantId: string): Promise<any[]> {
+    const result = await db
       .select()
       .from(orders)
+      .leftJoin(users, eq(orders.customerId, users.id))
       .where(eq(orders.restaurantId, restaurantId))
       .orderBy(desc(orders.createdAt));
+
+    // Transform to match merchant dashboard expectations
+    return result.map(row => ({
+      ...row.orders,
+      customer: {
+        name: row.users ? `${row.users.firstName || ''} ${row.users.lastName || ''}`.trim() || 'Unknown Customer' : 'Unknown Customer',
+        phone: row.orders.phoneNumber,
+        address: row.orders.deliveryAddress,
+      }
+    }));
   }
 
   async getOrdersByRider(riderId: string): Promise<Order[]> {
@@ -358,7 +369,7 @@ export class DatabaseStorage implements IStorage {
       phoneNumber: row.orders.phoneNumber,
       createdAt: row.orders.createdAt,
       customer: {
-        name: row.users?.name || 'Unknown',
+        name: row.users ? `${row.users.firstName || ''} ${row.users.lastName || ''}`.trim() || 'Unknown' : 'Unknown',
         address: row.orders.deliveryAddress,
         phone: row.orders.phoneNumber,
       },
