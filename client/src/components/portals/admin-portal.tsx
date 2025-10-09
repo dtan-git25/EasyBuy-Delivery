@@ -1326,6 +1326,60 @@ export default function AdminPortal() {
                     </CardContent>
                   </Card>
                 </div>
+
+                {/* Session Management - Full width card */}
+                <Card className="mt-6">
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-red-600 dark:text-red-400">
+                      <AlertCircle className="mr-2 h-5 w-5" />
+                      Session Management (Developer Tool)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                      <h4 className="font-semibold text-red-800 dark:text-red-200 mb-2">
+                        ⚠️ Clear All Sessions
+                      </h4>
+                      <p className="text-sm text-red-700 dark:text-red-300 mb-4">
+                        This action will log out all users including yourself. All users will be required to log in again. 
+                        Use this for debugging session issues or forcing a system-wide logout.
+                      </p>
+                      <Button
+                        variant="destructive"
+                        onClick={async () => {
+                          if (confirm("Are you sure you want to clear ALL sessions? This will log out everyone including yourself.")) {
+                            try {
+                              const response = await apiRequest("POST", "/api/admin/clear-sessions");
+                              const data = await response.json();
+                              if (data.success) {
+                                toast({ 
+                                  title: "All sessions cleared", 
+                                  description: "All users have been logged out. Redirecting to login..." 
+                                });
+                                // Clear browser storage
+                                localStorage.clear();
+                                sessionStorage.clear();
+                                // Redirect to login after a short delay
+                                setTimeout(() => {
+                                  window.location.href = '/';
+                                }, 2000);
+                              }
+                            } catch (error) {
+                              toast({ 
+                                title: "Failed to clear sessions", 
+                                description: "An error occurred while clearing sessions",
+                                variant: "destructive" 
+                              });
+                            }
+                          }
+                        }}
+                        data-testid="button-clear-all-sessions"
+                      >
+                        Clear All Sessions
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
             )}
           </Tabs>
