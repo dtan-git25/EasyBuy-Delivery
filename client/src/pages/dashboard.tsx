@@ -132,24 +132,19 @@ export default function Dashboard() {
     // Only render portal if user has access to it
     if (!user) return <CustomerPortal />;
     
-    // Users can only access their own role's portal
-    // Owner role can access admin portal
-    const expectedPortal = user.role === 'owner' ? 'admin' : user.role;
-    if (activePortal !== expectedPortal) {
-      // Force active portal to match user role if unauthorized access attempted
-      setActivePortal(expectedPortal);
-      return null;
-    }
-    
-    switch (activePortal) {
+    // Render portal based on user's actual role (ignore activePortal state)
+    // This prevents blank page issues from race conditions
+    switch (user.role) {
       case 'customer':
-        return user.role === 'customer' ? <CustomerPortal /> : <CustomerPortal />;
+        return <CustomerPortal />;
       case 'rider':
-        return user.role === 'rider' ? <RiderPortal /> : <CustomerPortal />;
+        return <RiderPortal />;
       case 'merchant':
-        return user.role === 'merchant' ? <MerchantPortal /> : <CustomerPortal />;
+        return <MerchantPortal />;
       case 'admin':
-        return (user.role === 'admin' || user.role === 'owner') ? <AdminPortal /> : <CustomerPortal />;
+        return <AdminPortal />;
+      case 'owner':
+        return <AdminPortal />;
       default:
         return <CustomerPortal />;
     }
