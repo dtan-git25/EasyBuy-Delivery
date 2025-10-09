@@ -288,6 +288,38 @@ export function setupAuth(app: Express) {
     });
   });
 
+  // Clear all sessions endpoint (development/debugging only - Owner access)
+  app.post("/api/admin/clear-sessions", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      // Only owners can clear all sessions
+      if (req.user.role !== 'owner') {
+        return res.status(403).json({ error: "Only owners can clear all sessions" });
+      }
+
+      // Clear all sessions from the database
+      await storage.clearAllSessions();
+
+      // Log out the current user as well
+      req.logout((err) => {
+        if (err) {
+          console.error("Error logging out current user:", err);
+        }
+      });
+
+      res.status(200).json({ 
+        success: true, 
+        message: "All sessions have been cleared. All users must log in again." 
+      });
+    } catch (error) {
+      console.error("Session clearing error:", error);
+      res.status(500).json({ error: "Failed to clear sessions" });
+    }
+  });
+
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     res.json(req.user);

@@ -104,6 +104,9 @@ export interface IStorage {
   getLatestRiderLocation(riderId: string): Promise<RiderLocationHistory | undefined>;
   updateRiderLocation(riderId: string, locationData: { latitude: number; longitude: number; accuracy?: number; heading?: number; speed?: number; batteryLevel?: number; orderId?: string }): Promise<RiderLocationHistory>;
 
+  // Session management
+  clearAllSessions(): Promise<void>;
+
   sessionStore: SessionStore;
 }
 
@@ -770,6 +773,13 @@ export class DatabaseStorage implements IStorage {
     });
 
     return locationRecord;
+  }
+
+  // Session management
+  async clearAllSessions(): Promise<void> {
+    // Clear all sessions from the PostgreSQL session store
+    await pool.query('DELETE FROM session');
+    console.log('All sessions have been cleared');
   }
 }
 
