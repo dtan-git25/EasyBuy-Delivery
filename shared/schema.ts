@@ -80,7 +80,7 @@ export const users = pgTable("users", {
 // Restaurants/Merchants table
 export const restaurants = pgTable("restaurants", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  ownerId: varchar("owner_id").notNull(),
+  ownerId: varchar("owner_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   name: text("name").notNull(),
   description: text("description"),
   address: text("address").notNull(),
@@ -101,7 +101,7 @@ export const restaurants = pgTable("restaurants", {
 // Menu items table
 export const menuItems = pgTable("menu_items", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  restaurantId: varchar("restaurant_id").notNull(),
+  restaurantId: varchar("restaurant_id").notNull().references(() => restaurants.id, { onDelete: 'cascade' }),
   name: text("name").notNull(),
   description: text("description"),
   price: decimal("price", { precision: 8, scale: 2 }).notNull(),
