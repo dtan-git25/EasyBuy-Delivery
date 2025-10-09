@@ -54,6 +54,34 @@ Preferred communication style: Simple, everyday language.
 - **Order Management**: Complex order states with merchant-specific item management
 - **Inventory Control**: Real-time availability tracking with alternative item suggestions
 
+### Database Integrity & Recent Fixes
+
+#### Foreign Key Constraints (October 2025)
+Fixed critical database corruption issue where merchant dashboards broke after receiving orders due to orphaned data:
+
+**Root Cause**: Missing foreign key constraints on orders and related tables allowed orphaned records to corrupt merchant queries.
+
+**Implemented Fixes**:
+1. **Orders Table Constraints**:
+   - `customerId` → `users.id` (CASCADE DELETE)
+   - `restaurantId` → `restaurants.id` (CASCADE DELETE)
+   - `riderId` → `users.id` (SET NULL - preserves order history)
+
+2. **Related Tables Constraints**:
+   - `chat_messages.orderId` → `orders.id` (CASCADE DELETE)
+   - `order_status_history.orderId` → `orders.id` (CASCADE DELETE)
+   - `wallet_transactions.orderId` → `orders.id` (SET NULL - preserves transaction history)
+   - `menu_items.restaurantId` → `restaurants.id` (CASCADE DELETE)
+   - `restaurants.ownerId` → `users.id` (CASCADE DELETE)
+
+**Data Cleanup Performed**:
+- Deleted 4 orphaned orders with invalid restaurant references
+- Deleted 3 orphaned order status history records
+- Deleted 5 orphaned sessions from deleted user accounts
+- Deleted 2 orphaned restaurants and 6 orphaned menu items
+
+**Impact**: Prevents merchant account corruption when orders are created or when merchants/customers are deleted. All related data now cascades properly, maintaining database integrity.
+
 ## External Dependencies
 
 ### Database & ORM
