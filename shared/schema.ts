@@ -196,7 +196,7 @@ export const transactionStatusEnum = pgEnum("transaction_status", [
 export const walletTransactions = pgTable("wallet_transactions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   walletId: varchar("wallet_id").notNull(),
-  orderId: varchar("order_id"), // Optional, for order-related transactions
+  orderId: varchar("order_id").references(() => orders.id, { onDelete: 'set null' }), // Optional, for order-related transactions
   type: transactionTypeEnum("type").notNull(),
   status: transactionStatusEnum("status").default('pending'),
   paymentMethod: paymentMethodEnum("payment_method").notNull(),
@@ -242,7 +242,7 @@ export const orders = pgTable("orders", {
 // Chat messages table
 export const chatMessages = pgTable("chat_messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  orderId: varchar("order_id").notNull(),
+  orderId: varchar("order_id").notNull().references(() => orders.id, { onDelete: 'cascade' }),
   senderId: varchar("sender_id").notNull(),
   message: text("message").notNull(),
   timestamp: timestamp("timestamp").defaultNow(),
@@ -251,7 +251,7 @@ export const chatMessages = pgTable("chat_messages", {
 // Order status history table for tracking order lifecycle
 export const orderStatusHistory = pgTable("order_status_history", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  orderId: varchar("order_id").notNull(),
+  orderId: varchar("order_id").notNull().references(() => orders.id, { onDelete: 'cascade' }),
   status: orderStatusEnum("status").notNull(),
   changedBy: varchar("changed_by").notNull(), // User ID who changed the status
   previousStatus: orderStatusEnum("previous_status"),
