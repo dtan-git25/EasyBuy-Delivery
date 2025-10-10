@@ -340,11 +340,13 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
-  async getOrdersByRider(riderId: string): Promise<Order[]> {
+  // Get orders by rider's user ID (not rider profile ID)
+  // orders.rider_id has FK constraint to users.id
+  async getOrdersByRider(riderUserId: string): Promise<Order[]> {
     return await db
       .select()
       .from(orders)
-      .where(eq(orders.riderId, riderId))
+      .where(eq(orders.riderId, riderUserId))
       .orderBy(desc(orders.createdAt));
   }
 

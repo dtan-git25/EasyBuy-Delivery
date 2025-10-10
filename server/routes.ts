@@ -387,7 +387,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         case 'rider':
           const rider = await storage.getRiderByUserId(req.user.id);
           if (rider) {
-            orders = await storage.getOrdersByRider(rider.id);
+            // Use user ID, not rider profile ID, to query orders
+            // orders.rider_id has FK to users.id
+            orders = await storage.getOrdersByRider(req.user.id);
           } else {
             orders = [];
           }
