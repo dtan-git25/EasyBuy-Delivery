@@ -768,8 +768,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Verify merchant owns this order's restaurant
-      const restaurant = await storage.getRestaurantByOwnerId(req.user.id);
-      if (!restaurant || restaurant.id !== order.restaurantId) {
+      const restaurants = await storage.getRestaurantsByOwner(req.user.id);
+      const restaurant = restaurants.find(r => r.id === order.restaurantId);
+      if (!restaurant) {
         return res.status(403).json({ error: "You can only edit orders from your own restaurant" });
       }
 
