@@ -740,6 +740,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update order items (merchant only)
+  app.patch("/api/orders/:id/items", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    if (req.user.role !== 'merchant') {
+      return res.status(403).json({ error: "Only merchants can edit order items" });
+    }
+
+    try {
+      const { items, reason } = req.body;
+
+      if (!items || !Array.isArray(items)) {
+        return res.status(400).json({ error: "Items array is required" });
+      }
+
+      if (items.length === 0) {
+        return res.status(400).json({ error: "Order must have at least one item" });
+      }
+
+      // Get the order to verify merchant owns it
+      const order = await storage.getOrder(req.params.id);
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+
+      // Verify merchant owns this order's restaurant
+      const restaurant = await storage.getRestaurantByOwnerId(req.user.id);
+      if (!restaurant || restaurant.id !== order.restaurantId) {
+        return res.status(403).json({ error: "You can only edit orders from your own restaurant" });
+      }
+
+      // Calculate new totals based on updated items
+      const subtotal = items.reduce((sum: number, item: any) => {
+        return sum + (parseFloat(item.price) * item.quantity);
+      }, 0);
+
+      // Recalculate markup (assuming 15% default)
+      const markup = subtotal * 0.15;
+      const total = subtotal + markup + parseFloat(order.deliveryFee as string);
+
+      // Update order with new items and totals
+      const updatedOrder = await storage.updateOrder(req.params.id, {
+        items: JSON.stringify(items),
+        subtotal: subtotal.toFixed(2),
+        markup: markup.toFixed(2),
+        total: total.toFixed(2)
+      });
+
+      // Add status history for the modification
+      await storage.createOrderStatusHistory({
+        orderId: req.params.id,
+        status: order.status,
+        updatedBy: req.user.id,
+        notes: `Order items modified by merchant. Reason: ${reason || 'No reason provided'}`,
+        location: null
+      });
+
+      // Send WebSocket notification to customer
+      if (wss) {
+        const message = JSON.stringify({
+          type: 'order_items_updated',
+          order: updatedOrder,
+          reason: reason || 'Merchant modified your order',
+          updatedBy: {
+            id: req.user.id,
+            role: 'merchant'
+          },
+          timestamp: new Date().toISOString()
+        });
+        
+        wss.clients.forEach(client => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
+          }
+        });
+      }
+
+      res.json({ 
+        order: updatedOrder,
+        message: "Order items updated successfully" 
+      });
+    } catch (error) {
+      console.error("Error updating order items:", error);
+      res.status(500).json({ error: "Failed to update order items" });
+    }
+  });
+
   // Rider routes
   app.get("/api/riders", async (req, res) => {
     if (!req.isAuthenticated() || req.user?.role !== 'admin') {

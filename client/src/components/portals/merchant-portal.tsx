@@ -43,6 +43,9 @@ export default function MerchantPortal() {
   const [isEditMenuItemOpen, setIsEditMenuItemOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [deletingItem, setDeletingItem] = useState<any>(null);
+  const [isEditOrderOpen, setIsEditOrderOpen] = useState(false);
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [editedOrderItems, setEditedOrderItems] = useState<any[]>([]);
   const [menuItemForm, setMenuItemForm] = useState({
     name: '',
     description: '',
@@ -113,6 +116,34 @@ export default function MerchantPortal() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+    },
+  });
+
+  const updateOrderItemsMutation = useMutation({
+    mutationFn: async ({ orderId, items, reason }: { orderId: string; items: any[]; reason: string }) => {
+      const response = await apiRequest("PATCH", `/api/orders/${orderId}/items`, { items, reason });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update order items');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      setIsEditOrderOpen(false);
+      setEditingOrder(null);
+      setEditedOrderItems([]);
+      toast({
+        title: "Order Updated",
+        description: "Order items have been updated and customer has been notified.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update Failed",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -645,7 +676,17 @@ export default function MerchantPortal() {
                               <MessageCircle className="mr-2 h-4 w-4" />
                               Chat
                             </Button>
-                            <Button variant="outline" size="sm" className="flex-1">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="flex-1"
+                              onClick={() => {
+                                setEditingOrder(order);
+                                setEditedOrderItems(JSON.parse(JSON.stringify(order.items)));
+                                setIsEditOrderOpen(true);
+                              }}
+                              data-testid={`button-edit-order-${order.id}`}
+                            >
                               <Edit className="mr-2 h-4 w-4" />
                               Edit Order
                             </Button>
@@ -1001,6 +1042,140 @@ export default function MerchantPortal() {
               </div>
             </TabsContent>
           </Tabs>
+
+          {/* Edit Order Dialog */}
+          <Dialog open={isEditOrderOpen} onOpenChange={setIsEditOrderOpen}>
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Edit Order #{editingOrder?.orderNumber}</DialogTitle>
+              </DialogHeader>
+              {editingOrder && (
+                <div className="space-y-4">
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Edit Order Items</AlertTitle>
+                    <AlertDescription>
+                      Modify quantities, mark items as unavailable, or remove items. The customer will be notified of any changes.
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className="space-y-3">
+                    {editedOrderItems.map((item: any, index: number) => (
+                      <Card key={index}>
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <h4 className="font-medium">{item.name}</h4>
+                              <p className="text-sm text-muted-foreground">₱{item.price} each</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2">
+                                <Label htmlFor={`qty-${index}`} className="text-sm">Qty:</Label>
+                                <Input
+                                  id={`qty-${index}`}
+                                  type="number"
+                                  min="0"
+                                  value={item.quantity}
+                                  onChange={(e) => {
+                                    const newItems = [...editedOrderItems];
+                                    newItems[index].quantity = parseInt(e.target.value) || 0;
+                                    setEditedOrderItems(newItems);
+                                  }}
+                                  className="w-20"
+                                  data-testid={`input-qty-${index}`}
+                                />
+                              </div>
+                              <Button
+                                variant={item.unavailable ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => {
+                                  const newItems = [...editedOrderItems];
+                                  newItems[index].unavailable = !newItems[index].unavailable;
+                                  setEditedOrderItems(newItems);
+                                }}
+                                data-testid={`button-toggle-unavailable-${index}`}
+                              >
+                                {item.unavailable ? "Available" : "Unavailable"}
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => {
+                                  setEditedOrderItems(editedOrderItems.filter((_, i) => i !== index));
+                                }}
+                                data-testid={`button-remove-item-${index}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          {item.unavailable && (
+                            <Badge variant="destructive" className="mt-2">Marked as Unavailable</Badge>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {editedOrderItems.length === 0 && (
+                    <Alert variant="destructive">
+                      <XCircle className="h-4 w-4" />
+                      <AlertTitle>No Items</AlertTitle>
+                      <AlertDescription>
+                        You cannot save an order with no items. Please add at least one item or cancel the edit.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  <div>
+                    <Label htmlFor="edit-reason">Reason for Changes (will be sent to customer)</Label>
+                    <Textarea
+                      id="edit-reason"
+                      placeholder="E.g., 'Item X is out of stock, replaced with similar item' or 'Adjusted quantity based on availability'"
+                      className="mt-2"
+                      data-testid="textarea-edit-reason"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setIsEditOrderOpen(false);
+                        setEditingOrder(null);
+                        setEditedOrderItems([]);
+                      }}
+                      data-testid="button-cancel-edit"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        const reason = (document.getElementById('edit-reason') as HTMLTextAreaElement)?.value || 'Order modified by merchant';
+                        if (editedOrderItems.length === 0) {
+                          toast({
+                            title: "Cannot Save",
+                            description: "Order must have at least one item",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        updateOrderItemsMutation.mutate({
+                          orderId: editingOrder.id,
+                          items: editedOrderItems,
+                          reason
+                        });
+                      }}
+                      disabled={updateOrderItemsMutation.isPending || editedOrderItems.length === 0}
+                      data-testid="button-save-order-changes"
+                    >
+                      {updateOrderItemsMutation.isPending ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
         </div>
       </section>
     </div>
