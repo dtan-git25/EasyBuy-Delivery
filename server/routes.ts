@@ -784,7 +784,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Update order with new items and totals
       const updatedOrder = await storage.updateOrder(req.params.id, {
-        items: JSON.stringify(items),
+        items: items as any, // JSONB field accepts array directly
         subtotal: subtotal.toFixed(2),
         markup: markup.toFixed(2),
         total: total.toFixed(2)
