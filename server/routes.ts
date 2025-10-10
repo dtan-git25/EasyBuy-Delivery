@@ -618,8 +618,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
         
-        // Store rider ID for assignment
-        riderId = rider.id;
+        // Store rider's user ID (not rider profile ID) for order assignment
+        // The orders.rider_id column has FK constraint to users.id
+        riderId = req.user.id;
       }
       
       // Prepare order updates
@@ -706,7 +707,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Error updating order:", error);
-      res.status(500).json({ error: "Failed to update order" });
+      
+      // Provide detailed error messages for debugging
+      let errorMessage = "Failed to update order";
+      let errorDetails: any = {};
+      
+      if (error instanceof Error) {
+        errorDetails.message = error.message;
+        
+        // Check for specific database errors
+        if ('code' in error) {
+          const dbError = error as any;
+          if (dbError.code === '23503') {
+            // Foreign key constraint violation
+            errorMessage = "Database constraint violation";
+            errorDetails.constraint = dbError.constraint;
+            errorDetails.detail = dbError.detail;
+          } else if (dbError.code === '23505') {
+            // Unique constraint violation
+            errorMessage = "Duplicate entry";
+            errorDetails.constraint = dbError.constraint;
+          }
+        }
+      }
+      
+      res.status(500).json({ 
+        error: errorMessage,
+        details: errorDetails
+      });
     }
   });
 
