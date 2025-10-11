@@ -46,6 +46,7 @@ export default function MerchantPortal() {
   const [isEditOrderOpen, setIsEditOrderOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [editedOrderItems, setEditedOrderItems] = useState<any[]>([]);
+  const [markingUnavailableOrder, setMarkingUnavailableOrder] = useState<Order | null>(null);
   const [menuItemForm, setMenuItemForm] = useState({
     name: '',
     description: '',
@@ -141,6 +142,32 @@ export default function MerchantPortal() {
     onError: (error: Error) => {
       toast({
         title: "Update Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const markOrderUnavailableMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const response = await apiRequest("POST", `/api/orders/${orderId}/mark-unavailable`, {});
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to mark order unavailable');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      setMarkingUnavailableOrder(null);
+      toast({
+        title: "Order Cancelled",
+        description: "Order marked as unavailable. Customer and rider have been notified.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to cancel order",
         description: error.message,
         variant: "destructive",
       });
@@ -690,9 +717,7 @@ export default function MerchantPortal() {
                               variant="destructive" 
                               size="sm" 
                               className="flex-1"
-                              onClick={() => {
-                                // TODO: Show mark unavailable confirmation
-                              }}
+                              onClick={() => setMarkingUnavailableOrder(order)}
                               data-testid={`button-mark-unavailable-${order.id}`}
                             >
                               <XCircle className="mr-2 h-4 w-4" />
@@ -1050,6 +1075,29 @@ export default function MerchantPortal() {
               </div>
             </TabsContent>
           </Tabs>
+
+          {/* Mark Unavailable Confirmation Dialog */}
+          <AlertDialog open={!!markingUnavailableOrder} onOpenChange={(open) => !open && setMarkingUnavailableOrder(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Mark Order Unavailable?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will cancel order #{markingUnavailableOrder?.orderNumber} and notify the customer and rider that the order is unavailable. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel data-testid="button-cancel-mark-unavailable">Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  data-testid="button-confirm-mark-unavailable"
+                  onClick={() => markingUnavailableOrder && markOrderUnavailableMutation.mutate(markingUnavailableOrder.id)}
+                  disabled={markOrderUnavailableMutation.isPending}
+                  className="bg-destructive hover:bg-destructive/90"
+                >
+                  {markOrderUnavailableMutation.isPending ? 'Cancelling...' : 'Mark Unavailable'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           {/* Edit Order Dialog */}
           <Dialog open={isEditOrderOpen} onOpenChange={setIsEditOrderOpen}>
