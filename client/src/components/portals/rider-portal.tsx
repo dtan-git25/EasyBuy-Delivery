@@ -690,13 +690,7 @@ export default function RiderPortal() {
                             Markup: <span className="font-medium text-foreground">₱{order.markup}</span>
                           </span>
                         </div>
-                        <div className="flex space-x-3">
-                          <Button 
-                            variant="outline"
-                            data-testid={`button-decline-${order.id}`}
-                          >
-                            Decline
-                          </Button>
+                        <div>
                           <Button 
                             onClick={() => acceptOrder(order.id)}
                             disabled={updateOrderMutation.isPending}
