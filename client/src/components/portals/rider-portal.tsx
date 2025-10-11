@@ -111,6 +111,19 @@ export default function RiderPortal() {
                 });
               }
               break;
+
+            case 'chat_message':
+              // Show toast notification for new chat messages
+              if (data.message?.sender?.id !== user.id) {
+                const senderName = data.message?.sender ? 
+                  `${data.message.sender.firstName} ${data.message.sender.lastName}` : 
+                  'Someone';
+                toast({
+                  title: `New message from ${senderName}`,
+                  description: data.message?.message || '',
+                });
+              }
+              break;
           }
         } catch (error) {
           console.error('WebSocket message parsing error:', error);
