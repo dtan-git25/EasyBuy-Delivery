@@ -78,29 +78,52 @@ export default function MerchantPortal() {
   // WebSocket for real-time order updates
   const { socket, sendMessage } = useWebSocket();
 
-  // Listen for order updates via WebSocket
+  // Listen for order updates and chat messages via WebSocket
   useEffect(() => {
     if (socket && user) {
       const handleMessage = (event: MessageEvent) => {
         try {
           const data = JSON.parse(event.data);
           
-          if (data.type === 'order_update' || data.type === 'new_order') {
-            // Refresh orders when any order is updated or created
-            queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
-            
-            // Show toast for order updates
-            if (data.order && data.type === 'order_update') {
-              toast({
-                title: "Order Updated",
-                description: `Order #${data.order.orderNumber} status: ${data.order.status}`,
-              });
-            } else if (data.order && data.type === 'new_order') {
-              toast({
-                title: "New Order",
-                description: `New order #${data.order.orderNumber} received!`,
-              });
-            }
+          switch (data.type) {
+            case 'order_update':
+              // Refresh orders when any order is updated
+              queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+              
+              // Show toast for order updates
+              if (data.order) {
+                toast({
+                  title: "Order Updated",
+                  description: `Order #${data.order.orderNumber} status: ${data.order.status}`,
+                });
+              }
+              break;
+
+            case 'new_order':
+              // Refresh orders when new order is created
+              queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+              
+              // Show toast for new orders
+              if (data.order) {
+                toast({
+                  title: "New Order",
+                  description: `New order #${data.order.orderNumber} received!`,
+                });
+              }
+              break;
+
+            case 'chat_message':
+              // Show toast notification for new chat messages
+              if (data.message?.sender?.id !== user.id) {
+                const senderName = data.message?.sender ? 
+                  `${data.message.sender.firstName} ${data.message.sender.lastName}` : 
+                  'Someone';
+                toast({
+                  title: `New message from ${senderName}`,
+                  description: data.message?.message || '',
+                });
+              }
+              break;
           }
         } catch (error) {
           console.error('WebSocket message parsing error:', error);
