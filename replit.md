@@ -105,6 +105,31 @@ Fixed critical database corruption issue where merchant dashboards broke after r
 
 **Impact**: Prevents merchant account corruption when orders are created or when merchants/customers are deleted. All related data now cascades properly, maintaining database integrity.
 
+#### Real-time Order Cancellation Updates (October 2025)
+Fixed issue where order cancellations by merchants were not updating in real-time for customers and riders:
+
+**Root Cause**: 
+1. Backend sent inconsistent WebSocket message types (`order_items_updated`, `order_cancelled`) instead of the standard `order_update` that portals listen for
+2. Rider portal had no WebSocket listeners for real-time updates at all
+
+**Implemented Fixes**:
+1. **Standardized WebSocket Messages in server/routes.ts**:
+   - Edit Order endpoint: Changed from `order_items_updated` → `order_update`
+   - Mark Unavailable endpoint: Changed from `order_cancelled` → `order_update`
+   - Both endpoints now use consistent `updatedBy` field structure
+
+2. **Added WebSocket Support to Rider Portal**:
+   - Imported `useWebSocket` hook and integrated real-time listeners
+   - Listens for `order_update` messages and invalidates TanStack Query caches
+   - Shows toast notifications for status changes with special handling for cancellations
+   - Mirrors customer portal's WebSocket implementation pattern
+
+3. **Fixed order_status_history Database Constraint**:
+   - Corrected field name from `updatedBy` → `changedBy` in both endpoints
+   - Prevented "null value in column 'changed_by'" constraint violations
+
+**Impact**: When merchants mark orders unavailable or edit order items, customers and riders now see updates immediately without page refresh. All three portals receive synchronized real-time notifications via WebSocket broadcast.
+
 ## External Dependencies
 
 ### Database & ORM
