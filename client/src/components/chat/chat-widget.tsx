@@ -28,6 +28,7 @@ export default function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
+  const [unreadMessages, setUnreadMessages] = useState<Record<string, number>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { socket, sendMessage } = useWebSocket();
@@ -55,14 +56,28 @@ export default function ChatWidget() {
     },
   });
 
-  // WebSocket message handling
+  // WebSocket message handling for real-time chat notifications
   useEffect(() => {
-    if (socket) {
+    if (socket && user) {
       const handleMessage = (event: MessageEvent) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.type === 'chat_message' && data.orderId === selectedOrderId) {
-            queryClient.invalidateQueries({ queryKey: ["/api/orders", selectedOrderId, "chat"] });
+          
+          if (data.type === 'chat_message') {
+            const { orderId, message } = data;
+            
+            // Refresh messages if chat is open for this order
+            if (orderId === selectedOrderId) {
+              queryClient.invalidateQueries({ queryKey: ["/api/orders", selectedOrderId, "chat"] });
+            }
+            
+            // Track unread messages if message is not from current user and chat is not open for this order
+            if (message?.sender?.id !== user.id && orderId !== selectedOrderId) {
+              setUnreadMessages(prev => ({
+                ...prev,
+                [orderId]: (prev[orderId] || 0) + 1
+              }));
+            }
           }
         } catch (error) {
           console.error('WebSocket message parsing error:', error);
@@ -72,14 +87,21 @@ export default function ChatWidget() {
       socket.addEventListener('message', handleMessage);
       return () => socket.removeEventListener('message', handleMessage);
     }
-  }, [socket, selectedOrderId, queryClient]);
+  }, [socket, selectedOrderId, queryClient, user]);
 
-  // Join order room when order is selected
+  // Join order room when order is selected and clear unread messages for that order
   useEffect(() => {
     if (socket && selectedOrderId) {
       sendMessage({
         type: 'join_order',
         orderId: selectedOrderId,
+      });
+      
+      // Clear unread messages for this order when chat is opened
+      setUnreadMessages(prev => {
+        const updated = { ...prev };
+        delete updated[selectedOrderId];
+        return updated;
       });
     }
   }, [socket, selectedOrderId, sendMessage]);
@@ -92,6 +114,9 @@ export default function ChatWidget() {
   const chatableOrders = orders.filter((order: any) => 
     ['accepted', 'preparing', 'ready', 'picked_up'].includes(order.status)
   );
+  
+  // Calculate total unread messages across all orders
+  const totalUnread = Object.values(unreadMessages).reduce((sum, count) => sum + count, 0);
 
   const handleSendMessage = () => {
     if (!selectedOrderId || !newMessage.trim()) return;
@@ -122,14 +147,24 @@ export default function ChatWidget() {
   if (!isOpen) {
     return (
       <div className="fixed bottom-6 right-6 z-50">
-        <Button
-          size="lg"
-          className="w-14 h-14 rounded-full shadow-lg"
-          onClick={() => setIsOpen(true)}
-          data-testid="button-open-chat"
-        >
-          <MessageCircle className="h-6 w-6" />
-        </Button>
+        <div className="relative">
+          <Button
+            size="lg"
+            className="w-14 h-14 rounded-full shadow-lg"
+            onClick={() => setIsOpen(true)}
+            data-testid="button-open-chat"
+          >
+            <MessageCircle className="h-6 w-6" />
+          </Button>
+          {totalUnread > 0 && (
+            <Badge 
+              className="absolute -top-1 -right-1 h-6 min-w-6 flex items-center justify-center rounded-full bg-red-500 text-white px-2"
+              data-testid="badge-unread-count"
+            >
+              {totalUnread > 99 ? '99+' : totalUnread}
+            </Badge>
+          )}
+        </div>
       </div>
     );
   }
@@ -164,6 +199,7 @@ export default function ChatWidget() {
                 {chatableOrders.map((order: any) => (
                   <option key={order.id} value={order.id}>
                     {order.orderNumber} - {order.status.toUpperCase()}
+                    {unreadMessages[order.id] ? ` (${unreadMessages[order.id]} new)` : ''}
                   </option>
                 ))}
               </select>
