@@ -47,6 +47,8 @@ export default function MerchantPortal() {
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [editedOrderItems, setEditedOrderItems] = useState<any[]>([]);
   const [markingUnavailableOrder, setMarkingUnavailableOrder] = useState<Order | null>(null);
+  const [showAddItemsSection, setShowAddItemsSection] = useState(false);
+  const [selectedMenuItem, setSelectedMenuItem] = useState<string>("");
   const [menuItemForm, setMenuItemForm] = useState({
     name: '',
     description: '',
@@ -1164,7 +1166,13 @@ export default function MerchantPortal() {
           </AlertDialog>
 
           {/* Edit Order Dialog */}
-          <Dialog open={isEditOrderOpen} onOpenChange={setIsEditOrderOpen}>
+          <Dialog open={isEditOrderOpen} onOpenChange={(open) => {
+            setIsEditOrderOpen(open);
+            if (!open) {
+              setShowAddItemsSection(false);
+              setSelectedMenuItem("");
+            }
+          }}>
             <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Edit Order #{editingOrder?.orderNumber}</DialogTitle>
@@ -1175,40 +1183,161 @@ export default function MerchantPortal() {
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Edit Order Items</AlertTitle>
                     <AlertDescription>
-                      Modify quantities as needed. The customer will be notified of any changes.
+                      Add new items or modify quantities. Items cannot be removed - only added or increased. The customer will be notified of any changes.
                     </AlertDescription>
                   </Alert>
 
+                  {/* Existing Order Items */}
                   <div className="space-y-3">
+                    <h4 className="font-medium">Current Order Items</h4>
                     {editedOrderItems.map((item: any, index: number) => (
                       <Card key={index}>
                         <CardContent className="p-4">
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1">
-                              <h4 className="font-medium">{item.name}</h4>
-                              <p className="text-sm text-muted-foreground">₱{item.price} each</p>
+                          <div className="space-y-3">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1">
+                                <h4 className="font-medium">{item.name}</h4>
+                                <p className="text-sm text-muted-foreground">₱{item.price} each</p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Label htmlFor={`qty-${index}`} className="text-sm">Qty:</Label>
+                                <Input
+                                  id={`qty-${index}`}
+                                  type="number"
+                                  min="1"
+                                  value={item.quantity}
+                                  onChange={(e) => {
+                                    const value = parseInt(e.target.value);
+                                    if (value >= 1) {
+                                      const newItems = [...editedOrderItems];
+                                      newItems[index].quantity = value;
+                                      setEditedOrderItems(newItems);
+                                    }
+                                  }}
+                                  className="w-20"
+                                  data-testid={`input-qty-${index}`}
+                                />
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <Label htmlFor={`qty-${index}`} className="text-sm">Qty:</Label>
-                              <Input
-                                id={`qty-${index}`}
-                                type="number"
-                                min="1"
-                                value={item.quantity}
-                                onChange={(e) => {
-                                  const newItems = [...editedOrderItems];
-                                  newItems[index].quantity = parseInt(e.target.value) || 1;
-                                  setEditedOrderItems(newItems);
+                            
+                            {/* Replace Item Option */}
+                            <div className="flex items-center gap-2 pt-2 border-t">
+                              <Label className="text-xs text-muted-foreground">Replace with:</Label>
+                              <Select
+                                value={item.id}
+                                onValueChange={(newMenuItemId) => {
+                                  const newMenuItem = menuItems.find((mi: any) => mi.id === newMenuItemId);
+                                  if (newMenuItem) {
+                                    const newItems = [...editedOrderItems];
+                                    newItems[index] = {
+                                      id: newMenuItem.id,
+                                      name: newMenuItem.name,
+                                      price: newMenuItem.price,
+                                      quantity: item.quantity // Keep the same quantity
+                                    };
+                                    setEditedOrderItems(newItems);
+                                    toast({
+                                      title: "Item Replaced",
+                                      description: `Replaced with ${newMenuItem.name}`,
+                                    });
+                                  }
                                 }}
-                                className="w-20"
-                                data-testid={`input-qty-${index}`}
-                              />
+                              >
+                                <SelectTrigger className="h-8 text-xs" data-testid={`select-replace-${index}`}>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {menuItems.filter((menuItem: any) => menuItem.isAvailable).map((menuItem: any) => (
+                                    <SelectItem key={menuItem.id} value={menuItem.id}>
+                                      {menuItem.name} - ₱{menuItem.price}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </div>
                           </div>
                         </CardContent>
                       </Card>
                     ))}
                   </div>
+
+                  {/* Add New Items Section */}
+                  {!showAddItemsSection ? (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => setShowAddItemsSection(true)}
+                      data-testid="button-show-add-items"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Menu Items to Order
+                    </Button>
+                  ) : (
+                    <Card className="border-2 border-primary">
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium">Add Menu Items</h4>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setShowAddItemsSection(false);
+                              setSelectedMenuItem("");
+                            }}
+                          >
+                            <XCircle className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        
+                        <div className="space-y-3">
+                          <div>
+                            <Label>Select Menu Item</Label>
+                            <Select 
+                              value={selectedMenuItem} 
+                              onValueChange={setSelectedMenuItem}
+                            >
+                              <SelectTrigger data-testid="select-menu-item">
+                                <SelectValue placeholder="Choose an item from your menu" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {menuItems.filter((menuItem: any) => menuItem.isAvailable).map((menuItem: any) => (
+                                  <SelectItem key={menuItem.id} value={menuItem.id}>
+                                    {menuItem.name} - ₱{menuItem.price}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <Button
+                            onClick={() => {
+                              const selectedItem = menuItems.find((item: any) => item.id === selectedMenuItem);
+                              if (selectedItem) {
+                                const newItem = {
+                                  id: selectedItem.id,
+                                  name: selectedItem.name,
+                                  price: selectedItem.price,
+                                  quantity: 1
+                                };
+                                setEditedOrderItems([...editedOrderItems, newItem]);
+                                setSelectedMenuItem("");
+                                toast({
+                                  title: "Item Added",
+                                  description: `${selectedItem.name} added to order`,
+                                });
+                              }
+                            }}
+                            disabled={!selectedMenuItem}
+                            className="w-full"
+                            data-testid="button-add-selected-item"
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Selected Item
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
 
 
                   <div>
