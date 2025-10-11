@@ -520,7 +520,7 @@ export default function RiderPortal() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Today's Orders</p>
-                    <p className="text-2xl font-bold text-foreground">{todayOrders.length}</p>
+                    <p className="text-2xl font-bold text-foreground">{todayDeliveredOrders.length}</p>
                   </div>
                 </div>
               </CardContent>
