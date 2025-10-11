@@ -52,6 +52,7 @@ Preferred communication style: Simple, everyday language.
 - **Pricing Model**: Multi-tier pricing with markup, delivery fees, merchant fees, and convenience fees
 - **Wallet System**: Pre-funded wallets for riders with commission deduction
 - **Order Management**: Complex order states with merchant-specific item management
+- **Edit Order Functionality**: Merchants can modify active orders by adding new items, changing quantities (min 1), or replacing items with different menu options - prevents item deletion to avoid disputes
 - **Inventory Control**: Real-time availability tracking with alternative item suggestions
 
 ### Database Integrity & Recent Fixes
@@ -167,6 +168,48 @@ Fixed issues with real-time order updates and implemented proper order history f
 - Completed/cancelled orders automatically move to Order History
 - Active Orders tab only shows current work, keeping dashboards clean
 - Both portals maintain complete order history for reporting and reference
+
+#### Enhanced Edit Order Functionality (October 2025)
+Implemented comprehensive order editing capabilities for merchants to handle inventory changes and customer requests while preventing disputes:
+
+**Features Implemented**:
+1. **Add New Menu Items** (merchant-portal.tsx):
+   - "Add Menu Items to Order" button reveals dropdown of available menu items
+   - Merchants can select items from their current menu and add to existing orders
+   - Each added item starts with quantity 1
+   - Toast notifications confirm when items are added
+
+2. **Edit Item Quantities**:
+   - Number input for each order item with validation
+   - Minimum quantity enforced at 1 (prevents deletion)
+   - If merchant tries to enter 0 or negative, reverts to minimum of 1
+   - Preserves quantities when replacing items
+
+3. **Replace Items with Different Options**:
+   - "Replace with:" dropdown for each order item
+   - Shows all available menu items from restaurant
+   - Replaces item while preserving the original quantity
+   - Useful when original item is out of stock
+   - Toast notification shows what item was replaced
+
+4. **Backend Integration**:
+   - Uses existing `/api/orders/:id/items` endpoint
+   - Automatically recalculates: subtotal, markup, delivery fee, total
+   - Creates status history entry with merchant's reason
+   - Sends WebSocket notifications to customer and assigned rider
+   - Real-time updates ensure all parties see changes immediately
+
+**Dispute Prevention**:
+- Items cannot be deleted (only added or quantity increased)
+- Minimum quantity of 1 enforced at UI and validation level
+- Merchants must provide reason for all changes (sent to customer)
+- All edits logged in order status history for audit trail
+
+**Impact**:
+- Merchants can adapt orders based on inventory availability
+- Customers receive transparent communication about order modifications
+- No disputes over removed items - only additions or replacements
+- Order totals automatically recalculated, ensuring pricing accuracy
 
 ## External Dependencies
 
