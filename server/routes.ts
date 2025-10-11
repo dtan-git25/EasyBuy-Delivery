@@ -830,6 +830,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Mark order as unavailable (merchant only)
+  app.post("/api/orders/:id/mark-unavailable", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    if (req.user.role !== 'merchant') {
+      return res.status(403).json({ error: "Only merchants can mark orders unavailable" });
+    }
+
+    try {
+      // Get the order to verify merchant owns it
+      const order = await storage.getOrder(req.params.id);
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+
+      // Verify merchant owns this order's restaurant
+      const restaurants = await storage.getRestaurantsByOwner(req.user.id);
+      const restaurant = restaurants.find(r => r.id === order.restaurantId);
+      if (!restaurant) {
+        return res.status(403).json({ error: "You can only cancel orders from your own restaurant" });
+      }
+
+      // Update order status to cancelled
+      const updatedOrder = await storage.updateOrder(req.params.id, {
+        status: 'cancelled'
+      });
+
+      // Add status history
+      await storage.createOrderStatusHistory({
+        orderId: req.params.id,
+        status: 'cancelled',
+        updatedBy: req.user.id,
+        notes: 'Order marked as unavailable by merchant',
+        location: null
+      });
+
+      // Send WebSocket notification to customer and rider
+      if (wss) {
+        const message = JSON.stringify({
+          type: 'order_cancelled',
+          order: updatedOrder,
+          reason: 'Order cancelled due to unavailability',
+          cancelledBy: {
+            id: req.user.id,
+            role: 'merchant'
+          },
+          timestamp: new Date().toISOString()
+        });
+        
+        wss.clients.forEach(client => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
+          }
+        });
+      }
+
+      res.json({ 
+        order: updatedOrder,
+        message: "Order marked as unavailable and cancelled" 
+      });
+    } catch (error) {
+      console.error("Error marking order unavailable:", error);
+      res.status(500).json({ error: "Failed to mark order unavailable" });
+    }
+  });
+
   // Rider routes
   app.get("/api/riders", async (req, res) => {
     if (!req.isAuthenticated() || req.user?.role !== 'admin') {
