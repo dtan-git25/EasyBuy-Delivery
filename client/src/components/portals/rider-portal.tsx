@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Bike, Wallet, Clock, Star, MapPin, Phone, User, Upload, FileText, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useWebSocket } from "@/lib/websocket";
 
 interface PendingOrder {
   id: string;
@@ -65,6 +66,50 @@ export default function RiderPortal() {
     queryKey: ["/api/orders/pending"],
     enabled: documentsStatus === 'approved', // Only fetch if rider is approved
   });
+
+  // WebSocket for real-time order updates
+  const { socket, sendMessage } = useWebSocket();
+
+  // Listen for real-time order updates
+  useEffect(() => {
+    if (socket && user) {
+      // Join tracking for real-time order updates
+      sendMessage({
+        type: 'join_tracking',
+        userId: user.id,
+        userRole: user.role
+      });
+
+      const handleMessage = (event: MessageEvent) => {
+        try {
+          const data = JSON.parse(event.data);
+          
+          if (data.type === 'order_update') {
+            // Invalidate orders when any order updates
+            queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/orders/pending"] });
+            
+            // Show toast for order status changes
+            if (data.order && data.updatedBy) {
+              const statusText = data.order.status === 'cancelled' 
+                ? 'cancelled by merchant' 
+                : data.order.status;
+              
+              toast({
+                title: "Order Status Updated",
+                description: `Order #${data.order.orderNumber} is now ${statusText}`,
+              });
+            }
+          }
+        } catch (error) {
+          console.error('WebSocket message parsing error:', error);
+        }
+      };
+
+      socket.addEventListener('message', handleMessage);
+      return () => socket.removeEventListener('message', handleMessage);
+    }
+  }, [socket, user, sendMessage, queryClient, toast]);
 
   const updateOrderMutation = useMutation({
     mutationFn: async ({ orderId, status }: { orderId: string; status: string }) => {

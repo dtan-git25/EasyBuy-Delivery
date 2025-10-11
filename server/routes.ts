@@ -803,7 +803,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send WebSocket notification to customer
       if (wss) {
         const message = JSON.stringify({
-          type: 'order_items_updated',
+          type: 'order_update',
           order: updatedOrder,
           reason: reason || 'Merchant modified your order',
           updatedBy: {
@@ -871,10 +871,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send WebSocket notification to customer and rider
       if (wss) {
         const message = JSON.stringify({
-          type: 'order_cancelled',
+          type: 'order_update',
           order: updatedOrder,
           reason: 'Order cancelled due to unavailability',
-          cancelledBy: {
+          updatedBy: {
             id: req.user.id,
             role: 'merchant'
           },
