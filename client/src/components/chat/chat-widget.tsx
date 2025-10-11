@@ -67,12 +67,12 @@ export default function ChatWidget() {
             const { orderId, message } = data;
             
             // Refresh messages if chat is open for this order
-            if (orderId === selectedOrderId) {
+            if (isOpen && orderId === selectedOrderId) {
               queryClient.invalidateQueries({ queryKey: ["/api/orders", selectedOrderId, "chat"] });
             }
             
-            // Track unread messages if message is not from current user and chat is not open for this order
-            if (message?.sender?.id !== user.id && orderId !== selectedOrderId) {
+            // Track unread messages if message is not from current user and chat is not viewing this order
+            if (message?.sender?.id !== user.id && (!isOpen || orderId !== selectedOrderId)) {
               setUnreadMessages(prev => ({
                 ...prev,
                 [orderId]: (prev[orderId] || 0) + 1
@@ -87,7 +87,7 @@ export default function ChatWidget() {
       socket.addEventListener('message', handleMessage);
       return () => socket.removeEventListener('message', handleMessage);
     }
-  }, [socket, selectedOrderId, queryClient, user]);
+  }, [socket, isOpen, selectedOrderId, queryClient, user]);
 
   // Join order room when order is selected and clear unread messages for that order
   useEffect(() => {
@@ -97,7 +97,7 @@ export default function ChatWidget() {
         orderId: selectedOrderId,
       });
       
-      // Clear unread messages for this order when chat is opened
+      // Clear unread messages for this order
       setUnreadMessages(prev => {
         const updated = { ...prev };
         delete updated[selectedOrderId];
@@ -105,6 +105,17 @@ export default function ChatWidget() {
       });
     }
   }, [socket, selectedOrderId, sendMessage]);
+  
+  // Clear unread messages for selected order when widget is opened
+  useEffect(() => {
+    if (isOpen && selectedOrderId) {
+      setUnreadMessages(prev => {
+        const updated = { ...prev };
+        delete updated[selectedOrderId];
+        return updated;
+      });
+    }
+  }, [isOpen, selectedOrderId]);
 
   // Auto-scroll to bottom of messages
   useEffect(() => {

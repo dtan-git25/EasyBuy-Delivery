@@ -241,6 +241,20 @@ export default function CustomerPortal() {
               }
               break;
 
+            case 'chat_message':
+              // Show toast notification for new chat messages
+              if (data.message?.sender?.id !== user.id) {
+                const order = orders.find(o => o.id === data.orderId);
+                const senderName = data.message?.sender ? 
+                  `${data.message.sender.firstName} ${data.message.sender.lastName}` : 
+                  'Someone';
+                toast({
+                  title: `New message from ${senderName}`,
+                  description: order ? `Order #${order.orderNumber}: ${data.message?.message || ''}` : data.message?.message || '',
+                });
+              }
+              break;
+
             case 'rider_location_update':
               // Update rider location for active tracking
               if (selectedOrderForTracking) {
