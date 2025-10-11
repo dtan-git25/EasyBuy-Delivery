@@ -130,6 +130,44 @@ Fixed issue where order cancellations by merchants were not updating in real-tim
 
 **Impact**: When merchants mark orders unavailable or edit order items, customers and riders now see updates immediately without page refresh. All three portals receive synchronized real-time notifications via WebSocket broadcast.
 
+#### Real-time New Order Updates and Order History (October 2025)
+Fixed issues with real-time order updates and implemented proper order history for both Rider and Merchant portals:
+
+**Problems Fixed**:
+1. New orders not appearing in rider's Pending Orders automatically - required page refresh
+2. Completed/cancelled orders not moving to Order History - stayed in Active Orders
+3. Rider portal only listened for `order_update` messages, missing `new_order` broadcasts
+
+**Implemented Fixes**:
+1. **Enhanced Rider Portal WebSocket Listener** (rider-portal.tsx):
+   - Added `new_order` message handler to refresh pending orders instantly
+   - Kept `order_update` handler for status changes
+   - Shows contextual toast notifications for new orders and status updates
+   - Uses switch statement for cleaner message routing
+
+2. **Rider Portal Order Filtering**:
+   - `activeOrders`: ['accepted', 'preparing', 'ready', 'picked_up']
+   - `historicalOrders`: ['delivered', 'cancelled'] - NEW
+   - `todayDeliveredOrders`: Only delivered orders from today for earnings calculation
+   - Order History tab now displays all completed and cancelled orders
+
+3. **Merchant Portal Order Filtering**:
+   - `activeOrders`: ['pending', 'accepted', 'preparing'] - unchanged
+   - `historicalOrders`: ['ready', 'picked_up', 'delivered', 'cancelled'] - NEW
+   - Order History tab shows full order details with status-coded badges
+
+4. **Order History UI Implementation**:
+   - Both portals now have fully functional Order History tabs
+   - Display: Order number, date/time, status badge, customer details, items, total
+   - Color-coded status badges: green (delivered), red (cancelled), gray (others)
+   - Empty state messaging when no historical orders exist
+
+**Impact**: 
+- Riders see new orders instantly without refresh when customers place orders
+- Completed/cancelled orders automatically move to Order History
+- Active Orders tab only shows current work, keeping dashboards clean
+- Both portals maintain complete order history for reporting and reference
+
 ## External Dependencies
 
 ### Database & ORM
