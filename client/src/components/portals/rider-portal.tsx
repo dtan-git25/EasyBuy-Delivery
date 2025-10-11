@@ -776,7 +776,18 @@ export default function RiderPortal() {
                         </div>
                         <div className="text-right">
                           <p className="font-medium text-foreground">₱{order.total}</p>
-                          <Badge variant="default">Delivered</Badge>
+                          <Badge 
+                            variant={
+                              order.status === 'delivered' ? 'default' : 
+                              order.status === 'cancelled' ? 'destructive' : 
+                              'secondary'
+                            }
+                            data-testid={`status-badge-${order.id}`}
+                          >
+                            {order.status === 'delivered' ? 'Delivered' : 
+                             order.status === 'cancelled' ? 'Cancelled' : 
+                             order.status.charAt(0).toUpperCase() + order.status.slice(1).replace('_', ' ')}
+                          </Badge>
                         </div>
                       </div>
                     </CardContent>
