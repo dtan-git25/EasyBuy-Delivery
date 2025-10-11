@@ -342,6 +342,10 @@ export default function MerchantPortal() {
     ['pending', 'accepted', 'preparing'].includes(order.status)
   );
 
+  const historicalOrders = orders.filter((order: Order) => 
+    ['ready', 'picked_up', 'delivered', 'cancelled'].includes(order.status)
+  );
+
   const todayOrders = orders.filter((order: Order) => {
     const today = new Date().toDateString();
     const orderDate = new Date(order.createdAt).toDateString();
@@ -1029,11 +1033,71 @@ export default function MerchantPortal() {
 
             {/* Order History */}
             <TabsContent value="history" className="space-y-4">
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <p className="text-muted-foreground">Order history will appear here</p>
-                </CardContent>
-              </Card>
+              {historicalOrders.length === 0 ? (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <p className="text-muted-foreground">No order history yet</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                historicalOrders.map((order: Order) => (
+                  <Card key={order.id} data-testid={`history-order-${order.id}`}>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h3 className="font-semibold text-lg">Order #{order.orderNumber}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(order.createdAt).toLocaleDateString()} at {new Date(order.createdAt).toLocaleTimeString()}
+                          </p>
+                        </div>
+                        <Badge 
+                          variant={
+                            order.status === 'delivered' ? 'default' : 
+                            order.status === 'cancelled' ? 'destructive' : 
+                            'secondary'
+                          }
+                          data-testid={`status-badge-${order.id}`}
+                        >
+                          {order.status}
+                        </Badge>
+                      </div>
+                      
+                      <div className="space-y-2 mb-4">
+                        <p className="text-sm">
+                          <span className="font-medium">Customer:</span> {order.customer?.name || 'Unknown'}
+                        </p>
+                        <p className="text-sm">
+                          <span className="font-medium">Address:</span> {order.customer?.address || order.deliveryAddress || 'N/A'}
+                        </p>
+                        <p className="text-sm">
+                          <span className="font-medium">Phone:</span> {order.customer?.phone || order.phoneNumber || 'N/A'}
+                        </p>
+                      </div>
+
+                      <div className="border-t pt-4">
+                        <h4 className="font-medium mb-2">Order Items:</h4>
+                        {order.items && order.items.length > 0 ? (
+                          <ul className="space-y-1">
+                            {order.items.map((item: any, idx: number) => (
+                              <li key={idx} className="text-sm flex justify-between">
+                                <span>{item.quantity}x {item.name}</span>
+                                <span>₱{(parseFloat(item.price) * item.quantity).toFixed(2)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No items</p>
+                        )}
+                        
+                        <div className="mt-4 pt-4 border-t flex justify-between items-center">
+                          <span className="font-semibold">Total:</span>
+                          <span className="text-lg font-bold">₱{order.total}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </TabsContent>
 
             {/* Analytics */}

@@ -84,22 +84,33 @@ export default function RiderPortal() {
         try {
           const data = JSON.parse(event.data);
           
-          if (data.type === 'order_update') {
-            // Invalidate orders when any order updates
-            queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
-            queryClient.invalidateQueries({ queryKey: ["/api/orders/pending"] });
-            
-            // Show toast for order status changes
-            if (data.order && data.updatedBy) {
-              const statusText = data.order.status === 'cancelled' 
-                ? 'cancelled by merchant' 
-                : data.order.status;
-              
+          switch (data.type) {
+            case 'new_order':
+              // New order created - refresh pending orders list
+              queryClient.invalidateQueries({ queryKey: ["/api/orders/pending"] });
               toast({
-                title: "Order Status Updated",
-                description: `Order #${data.order.orderNumber} is now ${statusText}`,
+                title: "New Order Available",
+                description: `New order #${data.order.orderNumber || 'pending'} is ready for pickup!`,
               });
-            }
+              break;
+              
+            case 'order_update':
+              // Existing order updated - refresh both lists
+              queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+              queryClient.invalidateQueries({ queryKey: ["/api/orders/pending"] });
+              
+              // Show toast for order status changes
+              if (data.order && data.updatedBy) {
+                const statusText = data.order.status === 'cancelled' 
+                  ? 'cancelled by merchant' 
+                  : data.order.status;
+                
+                toast({
+                  title: "Order Status Updated",
+                  description: `Order #${data.order.orderNumber} is now ${statusText}`,
+                });
+              }
+              break;
           }
         } catch (error) {
           console.error('WebSocket message parsing error:', error);
@@ -401,17 +412,18 @@ export default function RiderPortal() {
     ['accepted', 'preparing', 'ready', 'picked_up'].includes(order.status)
   );
 
-  const completedOrders = myOrders.filter((order: any) => 
-    order.status === 'delivered'
+  const historicalOrders = myOrders.filter((order: any) => 
+    ['delivered', 'cancelled'].includes(order.status)
   );
 
-  const todayOrders = completedOrders.filter((order: any) => {
+  const todayDeliveredOrders = historicalOrders.filter((order: any) => {
+    if (order.status !== 'delivered') return false;
     const today = new Date().toDateString();
     const orderDate = new Date(order.createdAt).toDateString();
     return today === orderDate;
   });
 
-  const todayEarnings = todayOrders.reduce((sum: number, order: any) => {
+  const todayEarnings = todayDeliveredOrders.reduce((sum: number, order: any) => {
     return sum + parseFloat(order.commission || '0') + parseFloat(order.markup || '0');
   }, 0);
 
@@ -751,15 +763,15 @@ export default function RiderPortal() {
             </TabsContent>
 
             <TabsContent value="history" className="space-y-4">
-              {completedOrders.length === 0 ? (
+              {historicalOrders.length === 0 ? (
                 <Card>
                   <CardContent className="p-8 text-center">
-                    <p className="text-muted-foreground">No completed orders yet</p>
+                    <p className="text-muted-foreground">No order history yet</p>
                   </CardContent>
                 </Card>
               ) : (
-                completedOrders.map((order: any) => (
-                  <Card key={order.id} data-testid={`completed-order-${order.id}`}>
+                historicalOrders.map((order: any) => (
+                  <Card key={order.id} data-testid={`history-order-${order.id}`}>
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div>
