@@ -672,10 +672,6 @@ export default function MerchantPortal() {
                           </div>
 
                           <div className="mt-4 flex space-x-2">
-                            <Button variant="outline" size="sm" className="flex-1">
-                              <MessageCircle className="mr-2 h-4 w-4" />
-                              Chat
-                            </Button>
                             <Button 
                               variant="outline" 
                               size="sm" 
@@ -689,6 +685,18 @@ export default function MerchantPortal() {
                             >
                               <Edit className="mr-2 h-4 w-4" />
                               Edit Order
+                            </Button>
+                            <Button 
+                              variant="destructive" 
+                              size="sm" 
+                              className="flex-1"
+                              onClick={() => {
+                                // TODO: Show mark unavailable confirmation
+                              }}
+                              data-testid={`button-mark-unavailable-${order.id}`}
+                            >
+                              <XCircle className="mr-2 h-4 w-4" />
+                              Mark Unavailable
                             </Button>
                           </div>
                         </div>
@@ -1055,7 +1063,7 @@ export default function MerchantPortal() {
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Edit Order Items</AlertTitle>
                     <AlertDescription>
-                      Modify quantities, mark items as unavailable, or remove items. The customer will be notified of any changes.
+                      Modify quantities as needed. The customer will be notified of any changes.
                     </AlertDescription>
                   </Alert>
 
@@ -1069,63 +1077,27 @@ export default function MerchantPortal() {
                               <p className="text-sm text-muted-foreground">₱{item.price} each</p>
                             </div>
                             <div className="flex items-center gap-2">
-                              <div className="flex items-center gap-2">
-                                <Label htmlFor={`qty-${index}`} className="text-sm">Qty:</Label>
-                                <Input
-                                  id={`qty-${index}`}
-                                  type="number"
-                                  min="0"
-                                  value={item.quantity}
-                                  onChange={(e) => {
-                                    const newItems = [...editedOrderItems];
-                                    newItems[index].quantity = parseInt(e.target.value) || 0;
-                                    setEditedOrderItems(newItems);
-                                  }}
-                                  className="w-20"
-                                  data-testid={`input-qty-${index}`}
-                                />
-                              </div>
-                              <Button
-                                variant={item.unavailable ? "default" : "outline"}
-                                size="sm"
-                                onClick={() => {
+                              <Label htmlFor={`qty-${index}`} className="text-sm">Qty:</Label>
+                              <Input
+                                id={`qty-${index}`}
+                                type="number"
+                                min="1"
+                                value={item.quantity}
+                                onChange={(e) => {
                                   const newItems = [...editedOrderItems];
-                                  newItems[index].unavailable = !newItems[index].unavailable;
+                                  newItems[index].quantity = parseInt(e.target.value) || 1;
                                   setEditedOrderItems(newItems);
                                 }}
-                                data-testid={`button-toggle-unavailable-${index}`}
-                              >
-                                {item.unavailable ? "Available" : "Unavailable"}
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => {
-                                  setEditedOrderItems(editedOrderItems.filter((_, i) => i !== index));
-                                }}
-                                data-testid={`button-remove-item-${index}`}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                                className="w-20"
+                                data-testid={`input-qty-${index}`}
+                              />
                             </div>
                           </div>
-                          {item.unavailable && (
-                            <Badge variant="destructive" className="mt-2">Marked as Unavailable</Badge>
-                          )}
                         </CardContent>
                       </Card>
                     ))}
                   </div>
 
-                  {editedOrderItems.length === 0 && (
-                    <Alert variant="destructive">
-                      <XCircle className="h-4 w-4" />
-                      <AlertTitle>No Items</AlertTitle>
-                      <AlertDescription>
-                        You cannot save an order with no items. Please add at least one item or cancel the edit.
-                      </AlertDescription>
-                    </Alert>
-                  )}
 
                   <div>
                     <Label htmlFor="edit-reason">Reason for Changes (will be sent to customer)</Label>
@@ -1152,21 +1124,13 @@ export default function MerchantPortal() {
                     <Button
                       onClick={() => {
                         const reason = (document.getElementById('edit-reason') as HTMLTextAreaElement)?.value || 'Order modified by merchant';
-                        if (editedOrderItems.length === 0) {
-                          toast({
-                            title: "Cannot Save",
-                            description: "Order must have at least one item",
-                            variant: "destructive",
-                          });
-                          return;
-                        }
                         updateOrderItemsMutation.mutate({
                           orderId: editingOrder.id,
                           items: editedOrderItems,
                           reason
                         });
                       }}
-                      disabled={updateOrderItemsMutation.isPending || editedOrderItems.length === 0}
+                      disabled={updateOrderItemsMutation.isPending}
                       data-testid="button-save-order-changes"
                     >
                       {updateOrderItemsMutation.isPending ? 'Saving...' : 'Save Changes'}
