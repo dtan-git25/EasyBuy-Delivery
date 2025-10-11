@@ -795,7 +795,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.createOrderStatusHistory({
         orderId: req.params.id,
         status: order.status,
-        updatedBy: req.user.id,
+        changedBy: req.user.id,
         notes: `Order items modified by merchant. Reason: ${reason || 'No reason provided'}`,
         location: null
       });
@@ -863,7 +863,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.createOrderStatusHistory({
         orderId: req.params.id,
         status: 'cancelled',
-        updatedBy: req.user.id,
+        changedBy: req.user.id,
         notes: 'Order marked as unavailable by merchant',
         location: null
       });
