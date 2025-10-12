@@ -94,7 +94,7 @@ export default function ChatWidget() {
     },
   });
 
-  // WebSocket message handling for real-time chat notifications
+  // WebSocket message handling for real-time chat notifications and order updates
   useEffect(() => {
     if (socket && user) {
       const handleMessage = (event: MessageEvent) => {
@@ -117,6 +117,33 @@ export default function ChatWidget() {
               }));
             }
           }
+          
+          // Handle order status updates to clean up chat for completed/cancelled orders
+          if (data.type === 'order_update') {
+            const { orderId, newStatus } = data;
+            
+            // If the currently selected order is completed or cancelled, clear chat
+            if (orderId === selectedOrderId && ['delivered', 'cancelled'].includes(newStatus)) {
+              // Clear the selected order to close the chat
+              setSelectedOrderId(null);
+              
+              // Clear unread messages for this order
+              setUnreadMessages(prev => {
+                const updated = { ...prev };
+                delete updated[orderId];
+                return updated;
+              });
+              
+              // Refresh orders list to remove from dropdown
+              queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+              
+              // Notify user
+              toast({
+                title: "Order " + (newStatus === 'delivered' ? 'Completed' : 'Cancelled'),
+                description: "Chat has been closed for this order.",
+              });
+            }
+          }
         } catch (error) {
           console.error('WebSocket message parsing error:', error);
         }
@@ -125,7 +152,7 @@ export default function ChatWidget() {
       socket.addEventListener('message', handleMessage);
       return () => socket.removeEventListener('message', handleMessage);
     }
-  }, [socket, isOpen, selectedOrderId, queryClient, user]);
+  }, [socket, isOpen, selectedOrderId, queryClient, user, toast]);
 
   // TEMPORARILY DISABLED - Infinite loop issue, needs investigation
   // Join order room when order is selected and clear unread messages for that order
