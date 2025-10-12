@@ -184,16 +184,20 @@ export default function ChatWidget() {
     }
   }, [selectedOrderId]);
   
-  // Clear unread messages for selected order when widget is opened
+  // Clear unread messages and refetch messages when widget is reopened
   useEffect(() => {
     if (isOpen && selectedOrderId) {
+      // Clear unread count for this order
       setUnreadMessages(prev => {
         const updated = { ...prev };
         delete updated[selectedOrderId];
         return updated;
       });
+      
+      // Refetch messages to show any received while chat was closed
+      queryClient.invalidateQueries({ queryKey: ["/api/orders", selectedOrderId, "chat"] });
     }
-  }, [isOpen, selectedOrderId]);
+  }, [isOpen, selectedOrderId, queryClient]);
 
   // Auto-scroll to bottom of messages
   useEffect(() => {
