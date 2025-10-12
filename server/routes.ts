@@ -994,6 +994,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Cannot send messages to completed or cancelled orders" });
       }
       
+      // Log incoming data for debugging
+      console.log("Chat message request:", {
+        orderId: req.params.id,
+        senderId: req.user.id,
+        message: req.body.message,
+        bodyKeys: Object.keys(req.body)
+      });
+      
       const messageData = insertChatMessageSchema.parse({
         orderId: req.params.id,
         senderId: req.user.id,
@@ -1030,6 +1038,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(chatMessage);
     } catch (error) {
       console.error("Error sending chat message:", error);
+      // Log more details about the error
+      if (error instanceof Error) {
+        console.error("Error details:", error.message);
+        console.error("Error stack:", error.stack);
+      }
       res.status(400).json({ error: "Invalid message data" });
     }
   });

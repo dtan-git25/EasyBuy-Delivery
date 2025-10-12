@@ -32,6 +32,7 @@ export default function ChatWidget() {
   const [newMessage, setNewMessage] = useState("");
   const [unreadMessages, setUnreadMessages] = useState<Record<string, number>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const joinedOrderRef = useRef<string | null>(null);
 
   const { socket, sendMessage } = useWebSocket();
 
@@ -49,18 +50,26 @@ export default function ChatWidget() {
 
   const sendMessageMutation = useMutation({
     mutationFn: async ({ orderId, message }: { orderId: string; message: string }) => {
+      console.log("Sending chat message:", { orderId, message });
       const response = await apiRequest("POST", `/api/orders/${orderId}/chat`, { message });
+      console.log("Chat API response status:", response.status);
+      
       if (!response.ok) {
         const error = await response.json();
+        console.error("Chat API error response:", error);
         throw new Error(error.error || 'Failed to send message');
       }
-      return response.json();
+      const result = await response.json();
+      console.log("Chat message sent successfully:", result);
+      return result;
     },
     onSuccess: () => {
+      console.log("Chat mutation onSuccess triggered");
       queryClient.invalidateQueries({ queryKey: ["/api/orders", selectedOrderId, "chat"] });
       setNewMessage("");
     },
     onError: (error: Error) => {
+      console.error("Chat mutation onError triggered:", error);
       toast({
         title: "Failed to send message",
         description: error.message,
@@ -102,24 +111,62 @@ export default function ChatWidget() {
     }
   }, [socket, isOpen, selectedOrderId, queryClient, user]);
 
+  // TEMPORARILY DISABLED - Infinite loop issue, needs investigation
   // Join order room when order is selected and clear unread messages for that order
+  // useEffect(() => {
+  //   if (!socket || !selectedOrderId || !user) {
+  //     joinedOrderRef.current = null;
+  //     return;
+  //   }
+  //   
+  //   // Skip if we've already joined this order
+  //   if (joinedOrderRef.current === selectedOrderId) {
+  //     return;
+  //   }
+  //   
+  //   const joinOrderRoom = () => {
+  //     if (socket.readyState === WebSocket.OPEN && joinedOrderRef.current !== selectedOrderId) {
+  //       console.log("Joining order room:", selectedOrderId);
+  //       socket.send(JSON.stringify({
+  //         type: 'join_order',
+  //         orderId: selectedOrderId,
+  //         userId: user.id,
+  //         userRole: user.role,
+  //       }));
+  //       joinedOrderRef.current = selectedOrderId;
+  //     }
+  //   };
+  //   
+  //   // If socket is already open, join immediately
+  //   if (socket.readyState === WebSocket.OPEN) {
+  //     joinOrderRoom();
+  //   } else {
+  //     // Otherwise, wait for socket to open
+  //     socket.addEventListener('open', joinOrderRoom, { once: true });
+  //   }
+  //   
+  //   // Clear unread messages for this order
+  //   setUnreadMessages(prev => {
+  //     const updated = { ...prev };
+  //     delete updated[selectedOrderId];
+  //     return updated;
+  //   });
+  //   
+  //   return () => {
+  //     socket.removeEventListener('open', joinOrderRoom);
+  //   };
+  // }, [socket, selectedOrderId, user]);
+  
+  // Clear unread messages when selecting an order
   useEffect(() => {
-    if (socket && selectedOrderId && user) {
-      sendMessage({
-        type: 'join_order',
-        orderId: selectedOrderId,
-        userId: user.id,
-        userRole: user.role,
-      });
-      
-      // Clear unread messages for this order
+    if (selectedOrderId) {
       setUnreadMessages(prev => {
         const updated = { ...prev };
         delete updated[selectedOrderId];
         return updated;
       });
     }
-  }, [socket, selectedOrderId, user, sendMessage]);
+  }, [selectedOrderId]);
   
   // Clear unread messages for selected order when widget is opened
   useEffect(() => {
