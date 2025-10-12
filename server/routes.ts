@@ -983,6 +983,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
+      // Check if order exists and is in active status
+      const order = await storage.getOrderById(req.params.id);
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+      
+      // Prevent messages to completed or cancelled orders
+      if (['delivered', 'cancelled'].includes(order.status)) {
+        return res.status(400).json({ error: "Cannot send messages to completed or cancelled orders" });
+      }
+      
       const messageData = insertChatMessageSchema.parse({
         orderId: req.params.id,
         senderId: req.user.id,
