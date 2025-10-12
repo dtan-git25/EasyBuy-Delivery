@@ -984,7 +984,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       // Check if order exists and is in active status
-      const order = await storage.getOrderById(req.params.id);
+      const order = await storage.getOrder(req.params.id);
       if (!order) {
         return res.status(404).json({ error: "Order not found" });
       }
