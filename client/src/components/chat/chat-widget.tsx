@@ -91,10 +91,12 @@ export default function ChatWidget() {
 
   // Join order room when order is selected and clear unread messages for that order
   useEffect(() => {
-    if (socket && selectedOrderId) {
+    if (socket && selectedOrderId && user) {
       sendMessage({
         type: 'join_order',
         orderId: selectedOrderId,
+        userId: user.id,
+        userRole: user.role,
       });
       
       // Clear unread messages for this order
@@ -104,7 +106,7 @@ export default function ChatWidget() {
         return updated;
       });
     }
-  }, [socket, selectedOrderId, sendMessage]);
+  }, [socket, selectedOrderId, user, sendMessage]);
   
   // Clear unread messages for selected order when widget is opened
   useEffect(() => {

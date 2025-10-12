@@ -991,12 +991,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const chatMessage = await storage.createChatMessage(messageData);
       
-      // Broadcast message via WebSocket
+      // Broadcast message via WebSocket with full sender info
       if (wss) {
+        const messageWithSender = {
+          ...chatMessage,
+          sender: {
+            id: req.user.id,
+            firstName: req.user.firstName,
+            lastName: req.user.lastName,
+            role: req.user.role
+          }
+        };
+        
         const message = JSON.stringify({
           type: 'chat_message',
           orderId: req.params.id,
-          message: chatMessage
+          message: messageWithSender
         });
         
         wss.clients.forEach(client => {
