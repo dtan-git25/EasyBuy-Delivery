@@ -122,11 +122,8 @@ export default function ChatWidget() {
           if (data.type === 'order_update') {
             const { orderId, newStatus } = data;
             
-            // If the currently selected order is completed or cancelled, clear chat
-            if (orderId === selectedOrderId && ['delivered', 'cancelled'].includes(newStatus)) {
-              // Clear the selected order to close the chat
-              setSelectedOrderId(null);
-              
+            // Clean up chat state for any order that completes or is cancelled
+            if (['delivered', 'cancelled'].includes(newStatus)) {
               // Clear unread messages for this order
               setUnreadMessages(prev => {
                 const updated = { ...prev };
@@ -134,14 +131,22 @@ export default function ChatWidget() {
                 return updated;
               });
               
-              // Refresh orders list to remove from dropdown
+              // If this was the selected order, close the chat
+              if (orderId === selectedOrderId) {
+                setSelectedOrderId(null);
+                
+                // Notify user that chat was closed
+                toast({
+                  title: "Order " + (newStatus === 'delivered' ? 'Completed' : 'Cancelled'),
+                  description: "Chat has been closed for this order.",
+                });
+              }
+              
+              // Invalidate orders query to refresh dropdown and remove completed order
               queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
               
-              // Notify user
-              toast({
-                title: "Order " + (newStatus === 'delivered' ? 'Completed' : 'Cancelled'),
-                description: "Chat has been closed for this order.",
-              });
+              // Invalidate chat messages for this order to prevent stale data
+              queryClient.invalidateQueries({ queryKey: ["/api/orders", orderId, "chat"] });
             }
           }
         } catch (error) {
