@@ -994,19 +994,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Cannot send messages to completed or cancelled orders" });
       }
       
-      // Log incoming data for debugging
-      console.log("Chat message request:", {
-        orderId: req.params.id,
-        senderId: req.user.id,
-        message: req.body.message,
-        bodyKeys: Object.keys(req.body)
-      });
+      // DIAGNOSTIC LOGGING: Show exactly what we receive and expect
+      console.log("=== BACKEND CHAT MESSAGE DIAGNOSTICS ===");
+      console.log("1. Order ID from URL:", req.params.id);
+      console.log("2. Sender ID from session:", req.user.id);
+      console.log("3. Request body:", req.body);
+      console.log("4. Body type:", typeof req.body);
+      console.log("5. Body keys:", Object.keys(req.body));
+      console.log("6. Message field:", req.body.message);
+      console.log("7. Message type:", typeof req.body.message);
+      console.log("8. Message value:", JSON.stringify(req.body.message));
+      console.log("9. Expected schema fields: orderId, senderId, message");
       
-      const messageData = insertChatMessageSchema.parse({
+      const dataToValidate = {
         orderId: req.params.id,
         senderId: req.user.id,
         message: req.body.message
-      });
+      };
+      console.log("10. Data to validate:", dataToValidate);
+      console.log("11. Validation data JSON:", JSON.stringify(dataToValidate, null, 2));
+      console.log("=========================================");
+      
+      const messageData = insertChatMessageSchema.parse(dataToValidate);
       
       const chatMessage = await storage.createChatMessage(messageData);
       

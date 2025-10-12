@@ -50,17 +50,33 @@ export default function ChatWidget() {
 
   const sendMessageMutation = useMutation({
     mutationFn: async ({ orderId, message }: { orderId: string; message: string }) => {
-      console.log("Sending chat message:", { orderId, message });
-      const response = await apiRequest("POST", `/api/orders/${orderId}/chat`, { message });
-      console.log("Chat API response status:", response.status);
+      // DIAGNOSTIC LOGGING: Show complete payload details
+      console.log("=== CHAT MESSAGE SEND DIAGNOSTICS ===");
+      console.log("1. Input Parameters:", { orderId, message });
+      console.log("2. Message type:", typeof message);
+      console.log("3. Message length:", message.length);
+      console.log("4. Message trimmed:", message.trim());
+      
+      const payload = { message };
+      console.log("5. Request Payload:", payload);
+      console.log("6. Payload JSON:", JSON.stringify(payload));
+      console.log("7. Payload keys:", Object.keys(payload));
+      console.log("8. API Endpoint:", `/api/orders/${orderId}/chat`);
+      console.log("9. Expected format: { message: string }");
+      console.log("=====================================");
+      
+      const response = await apiRequest("POST", `/api/orders/${orderId}/chat`, payload);
+      console.log("10. Response Status:", response.status);
+      console.log("11. Response OK:", response.ok);
       
       if (!response.ok) {
         const error = await response.json();
-        console.error("Chat API error response:", error);
+        console.error("12. ERROR Response:", error);
+        console.error("13. Error details:", JSON.stringify(error, null, 2));
         throw new Error(error.error || 'Failed to send message');
       }
       const result = await response.json();
-      console.log("Chat message sent successfully:", result);
+      console.log("14. SUCCESS Response:", result);
       return result;
     },
     onSuccess: () => {
