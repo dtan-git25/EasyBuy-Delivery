@@ -55,6 +55,7 @@ export default function MerchantPortal() {
     price: '',
     category: ''
   });
+  const [optionValues, setOptionValues] = useState<Array<{optionTypeId: number, value: string, price: string}>>([]);
 
   // Fetch merchant's own restaurant (including inactive ones)
   const { data: userRestaurant } = useQuery<any>({
@@ -73,6 +74,12 @@ export default function MerchantPortal() {
   // Fetch categories for dropdown
   const { data: categories = [] } = useQuery<any[]>({
     queryKey: ["/api/categories"],
+  });
+
+  // Fetch active option types for menu item customization
+  const { data: activeOptionTypes = [] } = useQuery<any[]>({
+    queryKey: ["/api/option-types/active"],
+    enabled: isAddMenuItemOpen || isEditMenuItemOpen,
   });
 
   // WebSocket for real-time order updates
@@ -208,13 +215,34 @@ export default function MerchantPortal() {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
+      // Save option values if any
+      if (optionValues.length > 0 && data.id) {
+        for (const optionValue of optionValues) {
+          await apiRequest("POST", `/api/menu-items/${data.id}/options`, {
+            optionTypeId: optionValue.optionTypeId,
+            value: optionValue.value,
+            price: optionValue.price
+          });
+        }
+      }
+      
       queryClient.invalidateQueries({ queryKey: ["/api/menu-items"] });
       setIsAddMenuItemOpen(false);
       setMenuItemForm({ name: '', description: '', price: '', category: '' });
+      setOptionValues([]);
+      toast({
+        title: "Menu item created",
+        description: "Your menu item has been added successfully.",
+      });
     },
     onError: (error: Error) => {
       console.error('Failed to create menu item:', error.message);
+      toast({
+        title: "Creation failed",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -227,11 +255,32 @@ export default function MerchantPortal() {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async (data, variables) => {
+      // Always delete existing options first (even if new list is empty)
+      const existingResponse = await fetch(`/api/menu-items/${variables.id}/options`);
+      if (existingResponse.ok) {
+        const existingOptions = await existingResponse.json();
+        for (const option of existingOptions) {
+          await apiRequest("DELETE", `/api/menu-items/${variables.id}/options/${option.id}`, {});
+        }
+      }
+      
+      // Create new option values only if any exist
+      if (optionValues.length > 0) {
+        for (const optionValue of optionValues) {
+          await apiRequest("POST", `/api/menu-items/${variables.id}/options`, {
+            optionTypeId: optionValue.optionTypeId,
+            value: optionValue.value,
+            price: optionValue.price
+          });
+        }
+      }
+      
       queryClient.invalidateQueries({ queryKey: ["/api/menu-items"] });
       setIsEditMenuItemOpen(false);
       setEditingItem(null);
       setMenuItemForm({ name: '', description: '', price: '', category: '' });
+      setOptionValues([]);
       toast({
         title: "Menu item updated",
         description: "Your menu item has been updated successfully.",
@@ -406,7 +455,7 @@ export default function MerchantPortal() {
     });
   };
 
-  const handleEditMenuItem = (item: any) => {
+  const handleEditMenuItem = async (item: any) => {
     setEditingItem(item);
     setMenuItemForm({
       name: item.name,
@@ -414,6 +463,20 @@ export default function MerchantPortal() {
       price: item.price,
       category: item.category || ''
     });
+    
+    // Load existing option values
+    const response = await fetch(`/api/menu-items/${item.id}/options`);
+    if (response.ok) {
+      const existingOptions = await response.json();
+      setOptionValues(existingOptions.map((opt: any) => ({
+        optionTypeId: opt.optionTypeId,
+        value: opt.value,
+        price: opt.price
+      })));
+    } else {
+      setOptionValues([]);
+    }
+    
     setIsEditMenuItemOpen(true);
   };
 
@@ -449,6 +512,20 @@ export default function MerchantPortal() {
 
   const updateMenuItemForm = (field: string, value: string) => {
     setMenuItemForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const addOptionValue = (optionTypeId: number, optionTypeName: string) => {
+    setOptionValues(prev => [...prev, { optionTypeId, value: '', price: '' }]);
+  };
+
+  const updateOptionValue = (index: number, field: 'value' | 'price', newValue: string) => {
+    setOptionValues(prev => prev.map((opt, i) => 
+      i === index ? { ...opt, [field]: newValue } : opt
+    ));
+  };
+
+  const removeOptionValue = (index: number) => {
+    setOptionValues(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleUseCurrentLocation = () => {
@@ -853,12 +930,72 @@ export default function MerchantPortal() {
                           </Select>
                         </div>
                       </div>
+
+                      {/* Product Options Section */}
+                      {activeOptionTypes.length > 0 && (
+                        <div className="space-y-3">
+                          <Label>Product Options (Optional)</Label>
+                          <div className="space-y-4">
+                            {activeOptionTypes.map((optionType: any) => (
+                              <div key={optionType.id} className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <p className="text-sm font-medium" data-testid={`label-option-type-${optionType.id}`}>
+                                    {optionType.name}
+                                  </p>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => addOptionValue(optionType.id, optionType.name)}
+                                    data-testid={`button-add-option-${optionType.id}`}
+                                  >
+                                    <Plus className="h-3 w-3 mr-1" />
+                                    Add {optionType.name}
+                                  </Button>
+                                </div>
+                                <div className="space-y-2">
+                                  {optionValues
+                                    .map((opt, index) => ({ ...opt, index }))
+                                    .filter(opt => opt.optionTypeId === optionType.id)
+                                    .map(({ index }) => (
+                                      <div key={index} className="flex gap-2 items-center">
+                                        <Input
+                                          placeholder="Value (e.g., Small)"
+                                          value={optionValues[index].value}
+                                          onChange={(e) => updateOptionValue(index, 'value', e.target.value)}
+                                          data-testid={`input-option-value-${index}`}
+                                        />
+                                        <Input
+                                          type="number"
+                                          placeholder="Price (₱)"
+                                          value={optionValues[index].price}
+                                          onChange={(e) => updateOptionValue(index, 'price', e.target.value)}
+                                          data-testid={`input-option-price-${index}`}
+                                        />
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => removeOptionValue(index)}
+                                          data-testid={`button-remove-option-${index}`}
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       <div className="flex space-x-2">
                         <Button 
                           variant="outline" 
                           className="flex-1"
                           data-testid="button-cancel"
-                          onClick={() => setIsAddMenuItemOpen(false)}
+                          onClick={() => { setIsAddMenuItemOpen(false); setOptionValues([]); }}
                         >
                           Cancel
                         </Button>
@@ -934,12 +1071,72 @@ export default function MerchantPortal() {
                         </Select>
                       </div>
                     </div>
+
+                    {/* Product Options Section */}
+                    {activeOptionTypes.length > 0 && (
+                      <div className="space-y-3">
+                        <Label>Product Options (Optional)</Label>
+                        <div className="space-y-4">
+                          {activeOptionTypes.map((optionType: any) => (
+                            <div key={optionType.id} className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <p className="text-sm font-medium" data-testid={`label-edit-option-type-${optionType.id}`}>
+                                  {optionType.name}
+                                </p>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => addOptionValue(optionType.id, optionType.name)}
+                                  data-testid={`button-edit-add-option-${optionType.id}`}
+                                >
+                                  <Plus className="h-3 w-3 mr-1" />
+                                  Add {optionType.name}
+                                </Button>
+                              </div>
+                              <div className="space-y-2">
+                                {optionValues
+                                  .map((opt, index) => ({ ...opt, index }))
+                                  .filter(opt => opt.optionTypeId === optionType.id)
+                                  .map(({ index }) => (
+                                    <div key={index} className="flex gap-2 items-center">
+                                      <Input
+                                        placeholder="Value (e.g., Small)"
+                                        value={optionValues[index].value}
+                                        onChange={(e) => updateOptionValue(index, 'value', e.target.value)}
+                                        data-testid={`input-edit-option-value-${index}`}
+                                      />
+                                      <Input
+                                        type="number"
+                                        placeholder="Price (₱)"
+                                        value={optionValues[index].price}
+                                        onChange={(e) => updateOptionValue(index, 'price', e.target.value)}
+                                        data-testid={`input-edit-option-price-${index}`}
+                                      />
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => removeOptionValue(index)}
+                                        data-testid={`button-edit-remove-option-${index}`}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="flex space-x-2">
                       <Button 
                         variant="outline" 
                         className="flex-1"
                         data-testid="button-cancel-edit"
-                        onClick={() => setIsEditMenuItemOpen(false)}
+                        onClick={() => { setIsEditMenuItemOpen(false); setOptionValues([]); }}
                       >
                         Cancel
                       </Button>
