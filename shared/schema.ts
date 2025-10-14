@@ -124,6 +124,28 @@ export const categories = pgTable("categories", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Option Types table - Admin creates option categories (Size, Flavor, Add-ons, etc.)
+export const optionTypes = pgTable("option_types", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(), // e.g., "Size", "Flavor", "Add-ons", "Toppings"
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Menu Item Option Values table - Merchants add specific values for each option type
+export const menuItemOptionValues = pgTable("menu_item_option_values", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  menuItemId: varchar("menu_item_id").notNull().references(() => menuItems.id, { onDelete: 'cascade' }),
+  optionTypeId: varchar("option_type_id").notNull().references(() => optionTypes.id, { onDelete: 'cascade' }),
+  value: text("value").notNull(), // e.g., "Large", "Apple", "Extra Cheese"
+  price: decimal("price", { precision: 8, scale: 2 }).notNull(), // Additional price for this option
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Riders table
 export const riders = pgTable("riders", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -367,6 +389,18 @@ export const insertCategorySchema = createInsertSchema(categories).omit({
   updatedAt: true,
 });
 
+export const insertOptionTypeSchema = createInsertSchema(optionTypes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMenuItemOptionValueSchema = createInsertSchema(menuItemOptionValues).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertRiderSchema = createInsertSchema(riders).omit({
   id: true,
   createdAt: true,
@@ -507,6 +541,10 @@ export type MenuItem = typeof menuItems.$inferSelect;
 export type InsertMenuItem = z.infer<typeof insertMenuItemSchema>;
 export type Category = typeof categories.$inferSelect;
 export type InsertCategory = z.infer<typeof insertCategorySchema>;
+export type OptionType = typeof optionTypes.$inferSelect;
+export type InsertOptionType = z.infer<typeof insertOptionTypeSchema>;
+export type MenuItemOptionValue = typeof menuItemOptionValues.$inferSelect;
+export type InsertMenuItemOptionValue = z.infer<typeof insertMenuItemOptionValueSchema>;
 export type Rider = typeof riders.$inferSelect;
 export type InsertRider = z.infer<typeof insertRiderSchema>;
 export type Order = typeof orders.$inferSelect;
