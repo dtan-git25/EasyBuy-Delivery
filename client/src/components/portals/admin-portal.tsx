@@ -39,6 +39,227 @@ const categorySchema = z.object({
 
 type CategoryForm = z.infer<typeof categorySchema>;
 
+const optionTypeSchema = z.object({
+  name: z.string().min(1, "Option type name is required"),
+  description: z.string().optional(),
+});
+
+type OptionTypeForm = z.infer<typeof optionTypeSchema>;
+
+function OptionTypeManagement() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [isCreating, setIsCreating] = useState(false);
+  const [editingOptionType, setEditingOptionType] = useState<any>(null);
+
+  const { data: optionTypes = [] } = useQuery({
+    queryKey: ["/api/option-types"],
+  });
+
+  const optionTypeForm = useForm<OptionTypeForm>({
+    resolver: zodResolver(optionTypeSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+    },
+  });
+
+  const createOptionTypeMutation = useMutation({
+    mutationFn: async (data: OptionTypeForm) => {
+      const response = await apiRequest("POST", "/api/option-types", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/option-types"] });
+      toast({ title: "Option type created successfully!" });
+      setIsCreating(false);
+      optionTypeForm.reset();
+    },
+    onError: () => {
+      toast({ title: "Failed to create option type", variant: "destructive" });
+    },
+  });
+
+  const updateOptionTypeMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<OptionTypeForm> }) => {
+      const response = await apiRequest("PATCH", `/api/option-types/${id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/option-types"] });
+      toast({ title: "Option type updated successfully!" });
+      setEditingOptionType(null);
+      optionTypeForm.reset();
+    },
+    onError: () => {
+      toast({ title: "Failed to update option type", variant: "destructive" });
+    },
+  });
+
+  const toggleActiveMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      const response = await apiRequest("PATCH", `/api/option-types/${id}`, { isActive });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/option-types"] });
+      toast({ title: "Option type status updated!" });
+    },
+    onError: () => {
+      toast({ title: "Failed to update option type status", variant: "destructive" });
+    },
+  });
+
+  const deleteOptionTypeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/option-types/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/option-types"] });
+      toast({ title: "Option type deleted successfully!" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete option type", variant: "destructive" });
+    },
+  });
+
+  const onSubmit = (data: OptionTypeForm) => {
+    if (editingOptionType) {
+      updateOptionTypeMutation.mutate({ id: editingOptionType.id, data });
+    } else {
+      createOptionTypeMutation.mutate(data);
+    }
+  };
+
+  const startEdit = (optionType: any) => {
+    setEditingOptionType(optionType);
+    optionTypeForm.setValue("name", optionType.name);
+    optionTypeForm.setValue("description", optionType.description || "");
+    setIsCreating(true);
+  };
+
+  const cancelEdit = () => {
+    setEditingOptionType(null);
+    setIsCreating(false);
+    optionTypeForm.reset();
+  };
+
+  return (
+    <div className="grid lg:grid-cols-2 gap-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Option Types List</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {optionTypes.map((optionType: any) => (
+              <div key={optionType.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <div>
+                  <p className="font-medium text-foreground" data-testid={`text-option-type-name-${optionType.id}`}>{optionType.name}</p>
+                  {optionType.description && (
+                    <p className="text-sm text-muted-foreground" data-testid={`text-option-type-description-${optionType.id}`}>{optionType.description}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={optionType.isActive}
+                    onCheckedChange={(checked) => toggleActiveMutation.mutate({ id: optionType.id, isActive: checked })}
+                    data-testid={`toggle-option-type-${optionType.id}`}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => startEdit(optionType)}
+                    data-testid={`edit-option-type-${optionType.id}`}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      if (confirm("Are you sure you want to delete this option type?")) {
+                        deleteOptionTypeMutation.mutate(optionType.id);
+                      }
+                    }}
+                    data-testid={`delete-option-type-${optionType.id}`}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            ))}
+            {optionTypes.length === 0 && (
+              <p className="text-center text-muted-foreground py-8">No option types found. Create one to get started!</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{editingOptionType ? "Edit Option Type" : "Create New Option Type"}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!isCreating ? (
+            <Button onClick={() => setIsCreating(true)} className="w-full" data-testid="button-create-option-type">
+              Create New Option Type
+            </Button>
+          ) : (
+            <Form {...optionTypeForm}>
+              <form onSubmit={optionTypeForm.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={optionTypeForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Option Type Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Size, Flavor, Add-ons, etc." data-testid="input-option-type-name" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={optionTypeForm.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description (Optional)</FormLabel>
+                      <FormControl>
+                        <Input {...field} data-testid="input-option-type-description" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    type="submit"
+                    disabled={createOptionTypeMutation.isPending || updateOptionTypeMutation.isPending}
+                    data-testid="button-submit-option-type"
+                  >
+                    {editingOptionType ? "Update Option Type" : "Create Option Type"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={cancelEdit}
+                    data-testid="button-cancel-option-type"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function CategoryManagement() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -556,7 +777,7 @@ export default function AdminPortal() {
 
           {/* Admin Navigation Tabs */}
           <Tabs defaultValue="dashboard" className="w-full">
-            <TabsList className={`grid w-full ${isOwner ? 'grid-cols-7' : 'grid-cols-6'}`}>
+            <TabsList className={`grid w-full ${isOwner ? 'grid-cols-8' : 'grid-cols-7'}`}>
               <TabsTrigger value="dashboard" data-testid="tab-dashboard">Dashboard</TabsTrigger>
               <TabsTrigger value="approvals" data-testid="tab-approvals">
                 Pending Approvals
@@ -572,6 +793,7 @@ export default function AdminPortal() {
                 )}
               </TabsTrigger>
               <TabsTrigger value="categories" data-testid="tab-categories">Categories</TabsTrigger>
+              <TabsTrigger value="option-types" data-testid="tab-option-types">Option Types</TabsTrigger>
               <TabsTrigger value="settings" data-testid="tab-settings">Settings</TabsTrigger>
               <TabsTrigger value="reports" data-testid="tab-reports">Reports</TabsTrigger>
               {isOwner && (
@@ -1070,6 +1292,11 @@ export default function AdminPortal() {
             {/* Categories Management Tab */}
             <TabsContent value="categories" className="space-y-6">
               <CategoryManagement />
+            </TabsContent>
+
+            {/* Option Types Management Tab */}
+            <TabsContent value="option-types" className="space-y-6">
+              <OptionTypeManagement />
             </TabsContent>
 
             {/* Owner-only User Management Tab */}
