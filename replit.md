@@ -211,6 +211,93 @@ Implemented comprehensive order editing capabilities for merchants to handle inv
 - No disputes over removed items - only additions or replacements
 - Order totals automatically recalculated, ensuring pricing accuracy
 
+#### Customizable Product Options System (October 2025)
+Implemented a two-level product options system where admins create option types globally and merchants add specific values with individual prices for their menu items:
+
+**Architecture**:
+1. **Database Schema**:
+   - `option_types` table: Admin-managed global option types (Size, Flavor, Add-ons, etc.)
+     - Fields: id, name, description, isActive, timestamps
+   - `menu_item_option_values` table: Merchant-specific option values linked to menu items
+     - Fields: id, menuItemId (FK), optionTypeId (FK), value, price, isActive, timestamps
+     - Example: Size option type → Small (₱50), Large (₱80) values for a specific menu item
+
+2. **Backend Implementation** (server/storage.ts, server/routes.ts):
+   - **Option Types Storage**: Full CRUD operations with active/inactive toggle
+   - **Menu Item Options Storage**: CRUD with joins to include option type data
+   - **API Routes**:
+     - Admin routes: `/api/option-types` (GET/POST/PATCH/DELETE) - admin-only access
+     - Active types: `/api/option-types/active` (GET) - public access for merchants/customers
+     - Menu item options: `/api/menu-items/:menuItemId/options` (GET/POST/PATCH/DELETE) - merchant ownership validation
+
+3. **Admin Portal Integration** (admin-portal.tsx):
+   - **OptionTypeManagement Component**: Full CRUD interface for option types
+     - Create/Edit forms with name and description fields
+     - List view with active/inactive toggle switches
+     - Delete functionality with confirmation
+     - Follows CategoryManagement component pattern
+   - **Tab Integration**: Added "Option Types" tab to admin portal navigation
+   - **Test Coverage**: Complete data-testid attributes for automated testing
+
+4. **Merchant Portal Integration** (merchant-portal.tsx):
+   - **State Management**: 
+     - `optionValues` array state for managing option values during menu item creation/editing
+     - Fetches active option types when dialogs open
+     - Loads existing option values when editing menu items
+   - **Helper Functions**:
+     - `addOptionValue()`: Adds new option value to state
+     - `updateOptionValue()`: Updates value or price
+     - `removeOptionValue()`: Removes option value from state
+   - **Menu Item Forms** (Create & Edit):
+     - "Product Options" section appears when active option types exist
+     - For each option type: displays name with "Add [Type]" button
+     - For each added value: shows value input, price input, remove button
+     - Cancel button properly resets option values state
+   - **CRUD Flow**:
+     - **Create**: Saves menu item first, then creates option values using returned menuItemId
+     - **Update**: Always deletes existing options first, then creates new ones (allows removing all options)
+     - **Load**: Fetches existing option values when edit dialog opens
+   - **Test Coverage**: All interactive and display elements have proper data-testid attributes
+
+5. **Data Flow**:
+   ```
+   Admin creates option types (Size, Flavor, Add-ons)
+   ↓
+   Merchants see active option types in menu item forms
+   ↓
+   Merchants add specific values with prices (Small ₱50, Large ₱80)
+   ↓
+   Values saved to menu_item_option_values table
+   ↓
+   [PENDING] Customers see options when browsing menu items
+   ↓
+   [PENDING] Customers select options when adding to cart
+   ↓
+   [PENDING] Selected options included in order with adjusted pricing
+   ```
+
+**Current Status**:
+- ✅ Database schema created and verified
+- ✅ Storage layer implemented with proper type safety
+- ✅ API routes secure with authentication and authorization
+- ✅ Admin UI complete for managing option types
+- ✅ Merchant UI complete for adding option values to menu items
+- ⏳ Customer UI pending (display options, allow selection)
+- ⏳ Cart/order system pending (handle selected options, pricing calculation)
+
+**Key Design Decisions**:
+- Option types are global (admin-controlled) to ensure consistency across platform
+- Option values are menu-item-specific with individual pricing (merchant-controlled)
+- Active/inactive toggles allow temporary disabling without data loss
+- Update flow always deletes and recreates to prevent stale data (allows removing all options)
+- Optional feature - merchants can create menu items without options
+
+**Impact**:
+- Admins can create standardized option types once, used by all merchants
+- Merchants have flexibility to add custom pricing for each option value
+- System supports common use cases: sizes, flavors, add-ons, customizations
+- Foundation ready for customer selection and order processing integration
+
 ## External Dependencies
 
 ### Database & ORM
