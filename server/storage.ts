@@ -1,4 +1,4 @@
-import { users, restaurants, menuItems, categories, riders, wallets, orders, chatMessages, systemSettings, walletTransactions, orderStatusHistory, riderLocationHistory, type User, type InsertUser, type Restaurant, type InsertRestaurant, type MenuItem, type InsertMenuItem, type Category, type InsertCategory, type Rider, type InsertRider, type Order, type InsertOrder, type ChatMessage, type InsertChatMessage, type Wallet, type SystemSettings, type WalletTransaction, type InsertWalletTransaction, type OrderStatusHistory, type InsertOrderStatusHistory, type RiderLocationHistory, type InsertRiderLocationHistory } from "@shared/schema";
+import { users, restaurants, menuItems, categories, riders, wallets, orders, chatMessages, systemSettings, walletTransactions, orderStatusHistory, riderLocationHistory, optionTypes, menuItemOptionValues, type User, type InsertUser, type Restaurant, type InsertRestaurant, type MenuItem, type InsertMenuItem, type Category, type InsertCategory, type Rider, type InsertRider, type Order, type InsertOrder, type ChatMessage, type InsertChatMessage, type Wallet, type SystemSettings, type WalletTransaction, type InsertWalletTransaction, type OrderStatusHistory, type InsertOrderStatusHistory, type RiderLocationHistory, type InsertRiderLocationHistory, type OptionType, type InsertOptionType, type MenuItemOptionValue, type InsertMenuItemOptionValue } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc } from "drizzle-orm";
 import session from "express-session";
@@ -39,6 +39,22 @@ export interface IStorage {
   createCategory(category: InsertCategory): Promise<Category>;
   updateCategory(id: string, updates: Partial<Category>): Promise<Category | undefined>;
   deleteCategory(id: string): Promise<void>;
+
+  // Option Type operations
+  getOptionTypes(): Promise<OptionType[]>;
+  getActiveOptionTypes(): Promise<OptionType[]>;
+  getOptionType(id: string): Promise<OptionType | undefined>;
+  createOptionType(optionType: InsertOptionType): Promise<OptionType>;
+  updateOptionType(id: string, updates: Partial<OptionType>): Promise<OptionType | undefined>;
+  deleteOptionType(id: string): Promise<void>;
+
+  // Menu Item Option Values operations
+  getMenuItemOptionValues(menuItemId: string): Promise<(MenuItemOptionValue & { optionType: OptionType })[]>;
+  getMenuItemOptionValue(id: string): Promise<MenuItemOptionValue | undefined>;
+  createMenuItemOptionValue(optionValue: InsertMenuItemOptionValue): Promise<MenuItemOptionValue>;
+  updateMenuItemOptionValue(id: string, updates: Partial<MenuItemOptionValue>): Promise<MenuItemOptionValue | undefined>;
+  deleteMenuItemOptionValue(id: string): Promise<void>;
+  deleteMenuItemOptionValues(menuItemId: string, optionTypeId: string): Promise<void>;
 
   // Rider operations
   getRiders(): Promise<(Rider & { user: User })[]>;
@@ -241,6 +257,74 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCategory(id: string): Promise<void> {
     await db.delete(categories).where(eq(categories.id, id));
+  }
+
+  async getOptionTypes(): Promise<OptionType[]> {
+    return await db.select().from(optionTypes).orderBy(asc(optionTypes.name));
+  }
+
+  async getActiveOptionTypes(): Promise<OptionType[]> {
+    return await db.select().from(optionTypes).where(eq(optionTypes.isActive, true)).orderBy(asc(optionTypes.name));
+  }
+
+  async getOptionType(id: string): Promise<OptionType | undefined> {
+    const [optionType] = await db.select().from(optionTypes).where(eq(optionTypes.id, id));
+    return optionType || undefined;
+  }
+
+  async createOptionType(optionType: InsertOptionType): Promise<OptionType> {
+    const [newOptionType] = await db.insert(optionTypes).values(optionType).returning();
+    return newOptionType;
+  }
+
+  async updateOptionType(id: string, updates: Partial<OptionType>): Promise<OptionType | undefined> {
+    const [optionType] = await db.update(optionTypes).set(updates).where(eq(optionTypes.id, id)).returning();
+    return optionType || undefined;
+  }
+
+  async deleteOptionType(id: string): Promise<void> {
+    await db.delete(optionTypes).where(eq(optionTypes.id, id));
+  }
+
+  async getMenuItemOptionValues(menuItemId: string): Promise<(MenuItemOptionValue & { optionType: OptionType })[]> {
+    const result = await db
+      .select()
+      .from(menuItemOptionValues)
+      .leftJoin(optionTypes, eq(menuItemOptionValues.optionTypeId, optionTypes.id))
+      .where(eq(menuItemOptionValues.menuItemId, menuItemId));
+    
+    return result.map(row => ({
+      ...row.menu_item_option_values,
+      optionType: row.option_types!
+    }));
+  }
+
+  async getMenuItemOptionValue(id: string): Promise<MenuItemOptionValue | undefined> {
+    const [optionValue] = await db.select().from(menuItemOptionValues).where(eq(menuItemOptionValues.id, id));
+    return optionValue || undefined;
+  }
+
+  async createMenuItemOptionValue(optionValue: InsertMenuItemOptionValue): Promise<MenuItemOptionValue> {
+    const [newOptionValue] = await db.insert(menuItemOptionValues).values(optionValue).returning();
+    return newOptionValue;
+  }
+
+  async updateMenuItemOptionValue(id: string, updates: Partial<MenuItemOptionValue>): Promise<MenuItemOptionValue | undefined> {
+    const [optionValue] = await db.update(menuItemOptionValues).set(updates).where(eq(menuItemOptionValues.id, id)).returning();
+    return optionValue || undefined;
+  }
+
+  async deleteMenuItemOptionValue(id: string): Promise<void> {
+    await db.delete(menuItemOptionValues).where(eq(menuItemOptionValues.id, id));
+  }
+
+  async deleteMenuItemOptionValues(menuItemId: string, optionTypeId: string): Promise<void> {
+    await db.delete(menuItemOptionValues).where(
+      and(
+        eq(menuItemOptionValues.menuItemId, menuItemId),
+        eq(menuItemOptionValues.optionTypeId, optionTypeId)
+      )
+    );
   }
 
   async getRiders(): Promise<(Rider & { user: User })[]> {
