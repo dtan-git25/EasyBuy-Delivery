@@ -376,6 +376,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public route for active option types (used by merchants and customers)
+  app.get("/api/option-types/active", async (req, res) => {
+    try {
+      const activeOptionTypes = await storage.getActiveOptionTypes();
+      res.json(activeOptionTypes);
+    } catch (error) {
+      console.error("Error fetching active option types:", error);
+      res.status(500).json({ error: "Failed to fetch active option types" });
+    }
+  });
+
   app.post("/api/option-types", async (req, res) => {
     if (!req.isAuthenticated() || (req.user?.role !== 'owner' && req.user?.role !== 'admin')) {
       return res.status(401).json({ error: "Unauthorized - Admin or Owner access required" });
