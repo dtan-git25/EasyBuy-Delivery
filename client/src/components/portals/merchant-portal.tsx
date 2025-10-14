@@ -16,6 +16,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Store, MapPin, Star, Clock, User, Phone, MessageCircle, Edit, Plus, AlertCircle, CheckCircle, XCircle, Power, Trash2 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { MenuItemOptionsModal } from "@/components/MenuItemOptionsModal";
 
 interface Order {
   id: string;
@@ -56,6 +57,8 @@ export default function MerchantPortal() {
     category: ''
   });
   const [optionValues, setOptionValues] = useState<Array<{optionTypeId: number, value: string, price: string}>>([]);
+  const [showOptionsModal, setShowOptionsModal] = useState(false);
+  const [selectedMenuItemForOptions, setSelectedMenuItemForOptions] = useState<any>(null);
 
   // Fetch merchant's own restaurant (including inactive ones)
   const { data: userRestaurant } = useQuery<any>({
@@ -526,6 +529,24 @@ export default function MerchantPortal() {
 
   const removeOptionValue = (index: number) => {
     setOptionValues(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleAddItemWithOptions = (item: any, quantity: number, selectedOptions: Record<string, string>, totalPrice: number) => {
+    const newItem = {
+      id: item.id,
+      name: item.name,
+      price: totalPrice,
+      quantity: quantity,
+      variants: selectedOptions
+    };
+    setEditedOrderItems([...editedOrderItems, newItem]);
+    setSelectedMenuItem("");
+    setShowOptionsModal(false);
+    setSelectedMenuItemForOptions(null);
+    toast({
+      title: "Item Added",
+      description: `${item.name} added to order with customizations`,
+    });
   };
 
   const handleUseCurrentLocation = () => {
@@ -1418,6 +1439,11 @@ export default function MerchantPortal() {
                               <div className="flex-1">
                                 <h4 className="font-medium">{item.name}</h4>
                                 <p className="text-sm text-muted-foreground">₱{item.price} each</p>
+                                {item.variants && Object.keys(item.variants).length > 0 && (
+                                  <div className="text-xs text-muted-foreground mt-1">
+                                    {Object.entries(item.variants).map(([key, value]) => `${key}: ${value}`).join(', ')}
+                                  </div>
+                                )}
                               </div>
                               <div className="flex items-center gap-2">
                                 <Label htmlFor={`qty-${index}`} className="text-sm">Qty:</Label>
@@ -1533,18 +1559,8 @@ export default function MerchantPortal() {
                             onClick={() => {
                               const selectedItem = menuItems.find((item: any) => item.id === selectedMenuItem);
                               if (selectedItem) {
-                                const newItem = {
-                                  id: selectedItem.id,
-                                  name: selectedItem.name,
-                                  price: selectedItem.price,
-                                  quantity: 1
-                                };
-                                setEditedOrderItems([...editedOrderItems, newItem]);
-                                setSelectedMenuItem("");
-                                toast({
-                                  title: "Item Added",
-                                  description: `${selectedItem.name} added to order`,
-                                });
+                                setSelectedMenuItemForOptions(selectedItem);
+                                setShowOptionsModal(true);
                               }
                             }}
                             disabled={!selectedMenuItem}
@@ -1601,6 +1617,14 @@ export default function MerchantPortal() {
               )}
             </DialogContent>
           </Dialog>
+
+          {/* Options Selection Modal for Edit Order */}
+          <MenuItemOptionsModal
+            isOpen={showOptionsModal}
+            onClose={() => setShowOptionsModal(false)}
+            menuItem={selectedMenuItemForOptions}
+            onAddToCart={handleAddItemWithOptions}
+          />
         </div>
       </section>
     </div>
