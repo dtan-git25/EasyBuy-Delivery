@@ -871,6 +871,14 @@ export default function CustomerPortal() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Options Selection Modal */}
+        <MenuItemOptionsModal
+          isOpen={showOptionsModal}
+          onClose={() => setShowOptionsModal(false)}
+          menuItem={selectedMenuItemForOptions}
+          onAddToCart={handleAddToCartWithOptions}
+        />
       </div>
     );
   }
