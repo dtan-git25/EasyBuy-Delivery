@@ -14,6 +14,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useWebSocket } from "@/lib/websocket";
 import { useAuth } from "@/hooks/use-auth";
+import { MenuItemOptionsModal } from "@/components/MenuItemOptionsModal";
 
 interface Restaurant {
   id: string;
@@ -111,6 +112,10 @@ export default function CustomerPortal() {
   // Enhanced tracking state
   const [activeTab, setActiveTab] = useState("restaurants");
   const [selectedOrderForTracking, setSelectedOrderForTracking] = useState<string | null>(null);
+  
+  // Options modal state
+  const [showOptionsModal, setShowOptionsModal] = useState(false);
+  const [selectedMenuItemForOptions, setSelectedMenuItemForOptions] = useState<MenuItem | null>(null);
   
   const cart = useCart();
   const { toast } = useToast();
@@ -298,24 +303,48 @@ export default function CustomerPortal() {
     return acc;
   }, {});
 
-  const addToCart = (menuItem: MenuItem) => {
-    if (!selectedRestaurant) return;
+  const openOptionsModal = (menuItem: MenuItem) => {
+    setSelectedMenuItemForOptions(menuItem);
+    setShowOptionsModal(true);
+  };
+
+  const handleAddToCartWithOptions = (quantity: number, selectedOptions: any[], totalPrice: number) => {
+    if (!selectedRestaurant || !selectedMenuItemForOptions) return;
     
-    cart.addItem({
-      menuItemId: menuItem.id,
-      name: menuItem.name,
-      price: parseFloat(menuItem.price.toString()),
-      restaurant: {
-        id: selectedRestaurant.id,
-        name: selectedRestaurant.name,
-        deliveryFee: parseFloat(selectedRestaurant.deliveryFee.toString()),
-        markup: parseFloat(selectedRestaurant.markup.toString())
-      }
+    // Convert selected options to variants format for cart
+    const variants: Record<string, string> = {};
+    selectedOptions.forEach(opt => {
+      variants[opt.optionTypeName] = opt.valueName;
     });
+
+    // Calculate price per item (including options but not quantity)
+    const basePrice = parseFloat(selectedMenuItemForOptions.price.toString());
+    const optionsPrice = selectedOptions.reduce((sum, opt) => sum + opt.price, 0);
+    const pricePerItem = basePrice + optionsPrice;
+
+    // Add item to cart with proper quantity
+    for (let i = 0; i < quantity; i++) {
+      cart.addItem({
+        menuItemId: selectedMenuItemForOptions.id,
+        name: selectedMenuItemForOptions.name,
+        price: pricePerItem,
+        restaurant: {
+          id: selectedRestaurant.id,
+          name: selectedRestaurant.name,
+          deliveryFee: parseFloat(selectedRestaurant.deliveryFee.toString()),
+          markup: parseFloat(selectedRestaurant.markup.toString())
+        },
+        variants: Object.keys(variants).length > 0 ? variants : undefined
+      });
+    }
+    
+    const optionsText = selectedOptions.length > 0 
+      ? ` with ${selectedOptions.map(opt => opt.valueName).join(', ')}`
+      : '';
     
     toast({
       title: "Added to cart",
-      description: `${menuItem.name} has been added to your cart.`,
+      description: `${quantity}x ${selectedMenuItemForOptions.name}${optionsText} has been added to your cart.`,
     });
   };
 
@@ -469,7 +498,7 @@ export default function CustomerPortal() {
                                   <Badge variant="destructive">Unavailable</Badge>
                                 ) : (
                                   <Button
-                                    onClick={() => addToCart(item)}
+                                    onClick={() => openOptionsModal(item)}
                                     data-testid={`button-add-to-cart-${item.id}`}
                                   >
                                     <ShoppingCart className="mr-2 h-4 w-4" />
@@ -508,6 +537,11 @@ export default function CustomerPortal() {
                       <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
                         <div className="flex-1">
                           <h4 className="font-medium">{item.name}</h4>
+                          {item.variants && Object.keys(item.variants).length > 0 && (
+                            <p className="text-xs text-muted-foreground">
+                              {Object.entries(item.variants).map(([key, value]) => `${key}: ${value}`).join(', ')}
+                            </p>
+                          )}
                           <p className="text-sm text-muted-foreground">₱{Number(item.price).toFixed(2)} each</p>
                         </div>
                         <div className="flex items-center space-x-2">
@@ -796,9 +830,16 @@ export default function CustomerPortal() {
                 <h4 className="font-medium">Order Summary</h4>
                 <div className="text-sm space-y-1">
                   {cart.items.map((item) => (
-                    <div key={item.id} className="flex justify-between">
-                      <span>{item.name} x{item.quantity}</span>
-                      <span>₱{(item.price * item.quantity).toFixed(2)}</span>
+                    <div key={item.id} className="space-y-0.5">
+                      <div className="flex justify-between">
+                        <span>{item.name} x{item.quantity}</span>
+                        <span>₱{(item.price * item.quantity).toFixed(2)}</span>
+                      </div>
+                      {item.variants && Object.keys(item.variants).length > 0 && (
+                        <div className="text-xs text-muted-foreground pl-2">
+                          {Object.entries(item.variants).map(([key, value]) => `${key}: ${value}`).join(', ')}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1158,6 +1199,11 @@ export default function CustomerPortal() {
                 <div key={`${item.menuItemId}-${item.name}`} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex-1">
                     <h4 className="font-medium">{item.name}</h4>
+                    {item.variants && Object.keys(item.variants).length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {Object.entries(item.variants).map(([key, value]) => `${key}: ${value}`).join(', ')}
+                      </p>
+                    )}
                     <p className="text-sm text-muted-foreground">₱{Number(item.price).toFixed(2)} each</p>
                   </div>
                   <div className="flex items-center space-x-3">
@@ -1319,6 +1365,14 @@ export default function CustomerPortal() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Options Selection Modal */}
+      <MenuItemOptionsModal
+        isOpen={showOptionsModal}
+        onClose={() => setShowOptionsModal(false)}
+        menuItem={selectedMenuItemForOptions}
+        onAddToCart={handleAddToCartWithOptions}
+      />
     </div>
   );
 }
