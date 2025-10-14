@@ -195,18 +195,22 @@ export default function CustomerPortal() {
     refetchInterval: 30000, // Refresh every 30 seconds for live tracking
   });
 
-  // Create order mutation
+  // Create order mutation for all carts
   const createOrderMutation = useMutation({
-    mutationFn: async (orderData: any) => {
-      const response = await apiRequest("POST", "/api/orders", orderData);
-      return response.json();
+    mutationFn: async (ordersData: any[]) => {
+      const responses = await Promise.all(
+        ordersData.map(orderData => 
+          apiRequest("POST", "/api/orders", orderData).then(res => res.json())
+        )
+      );
+      return responses;
     },
     onSuccess: () => {
-      cart.clearCart();
+      cart.clearAllCarts();
       setShowCheckout(false);
       setActiveTab("orders"); // Switch to orders tab after successful order
       toast({
-        title: "Order placed successfully!",
+        title: "Orders placed successfully!",
         description: "Your order has been submitted and you'll receive updates soon.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
@@ -398,20 +402,12 @@ export default function CustomerPortal() {
   };
 
   const handleCheckout = () => {
-    // Validate cart and restaurant context
-    if (cart.items.length === 0) {
+    // Validate that we have at least one cart
+    const allCarts = Object.values(cart.allCarts);
+    if (allCarts.length === 0 || allCarts.every(c => c.items.length === 0)) {
       toast({
         title: "Cart is empty",
         description: "Please add items to your cart before checkout.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!cart.restaurantId) {
-      toast({
-        title: "No restaurant selected",
-        description: "Please select a restaurant first.",
         variant: "destructive",
       });
       return;
@@ -435,26 +431,35 @@ export default function CustomerPortal() {
       return;
     }
 
-    const orderData = {
-      restaurantId: cart.restaurantId,
-      items: cart.items.map(item => ({
-        menuItemId: item.menuItemId,
-        quantity: item.quantity,
-        price: item.price,
-        name: item.name
-      })),
-      subtotal: cart.getSubtotal().toFixed(2),
-      markup: cart.getMarkupAmount().toFixed(2),
-      deliveryFee: cart.getDeliveryFee().toFixed(2),
-      total: cart.getTotal().toFixed(2),
-      deliveryAddress,
-      phoneNumber,
-      specialInstructions,
-      paymentMethod,
-      status: 'pending'
-    };
+    // Create an order for each restaurant cart
+    const ordersData = allCarts
+      .filter(restaurantCart => restaurantCart.items.length > 0)
+      .map(restaurantCart => {
+        const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const markupAmount = (subtotal * restaurantCart.markup) / 100;
+        const total = subtotal + markupAmount + restaurantCart.deliveryFee;
 
-    createOrderMutation.mutate(orderData);
+        return {
+          restaurantId: restaurantCart.restaurantId,
+          items: restaurantCart.items.map(item => ({
+            menuItemId: item.menuItemId,
+            quantity: item.quantity,
+            price: item.price,
+            name: item.name
+          })),
+          subtotal: subtotal.toFixed(2),
+          markup: markupAmount.toFixed(2),
+          deliveryFee: restaurantCart.deliveryFee.toFixed(2),
+          total: total.toFixed(2),
+          deliveryAddress,
+          phoneNumber,
+          specialInstructions,
+          paymentMethod,
+          status: 'pending'
+        };
+      });
+
+    createOrderMutation.mutate(ordersData);
   };
 
   // Restaurant Detail View with Real Menu Items
@@ -750,20 +755,10 @@ export default function CustomerPortal() {
                             setShowAllCarts(false);
                             setShowCart(true);
                           }}
+                          className="flex-1"
                           data-testid={`button-view-cart-modal-${restaurantCart.restaurantId}`}
                         >
                           View Cart
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            cart.switchCart(restaurantCart.restaurantId);
-                            setShowAllCarts(false);
-                            setShowCheckout(true);
-                          }}
-                          data-testid={`button-checkout-cart-${restaurantCart.restaurantId}`}
-                        >
-                          Checkout This Cart
                         </Button>
                         <Button
                           variant="destructive"
@@ -804,17 +799,14 @@ export default function CustomerPortal() {
                   Close
                 </Button>
                 <Button
-                  variant="destructive"
                   onClick={() => {
-                    if (confirm('Clear all carts? This cannot be undone.')) {
-                      cart.clearAllCarts();
-                      setShowAllCarts(false);
-                    }
+                    setShowAllCarts(false);
+                    setShowCheckout(true);
                   }}
                   className="flex-1"
-                  data-testid="button-clear-all-carts"
+                  data-testid="button-checkout-all-carts"
                 >
-                  Clear All Carts
+                  Checkout All Carts
                 </Button>
               </div>
             </div>
@@ -1382,26 +1374,41 @@ export default function CustomerPortal() {
                 </Select>
               </div>
 
-              <div className="bg-muted p-4 rounded-lg">
-                <h3 className="font-medium mb-2">Order Summary</h3>
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span>Subtotal:</span>
-                    <span>₱{cart.getSubtotal().toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Markup:</span>
-                    <span>₱{cart.getMarkupAmount().toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Delivery Fee:</span>
-                    <span>₱{cart.getDeliveryFee().toFixed(2)}</span>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between font-semibold">
-                    <span>Total:</span>
-                    <span>₱{cart.getTotal().toFixed(2)}</span>
-                  </div>
+              <div className="bg-muted p-4 rounded-lg space-y-3">
+                <h3 className="font-medium mb-2">Order Summary - All Merchants</h3>
+                {Object.values(cart.allCarts).filter(c => c.items.length > 0).map((restaurantCart) => {
+                  const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                  const markupAmount = (subtotal * restaurantCart.markup) / 100;
+                  const total = subtotal + markupAmount + restaurantCart.deliveryFee;
+                  
+                  return (
+                    <div key={restaurantCart.restaurantId} className="border-b pb-2 last:border-b-0">
+                      <p className="font-medium text-sm mb-1">{restaurantCart.restaurantName}</p>
+                      <div className="space-y-1 text-xs text-muted-foreground">
+                        <div className="flex justify-between">
+                          <span>Subtotal:</span>
+                          <span>₱{subtotal.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Markup ({restaurantCart.markup}%):</span>
+                          <span>₱{markupAmount.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Delivery:</span>
+                          <span>₱{restaurantCart.deliveryFee.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between font-semibold text-sm text-foreground">
+                          <span>Total:</span>
+                          <span>₱{total.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                <Separator />
+                <div className="flex justify-between font-bold text-base">
+                  <span>Grand Total:</span>
+                  <span>₱{cart.getAllCartsTotal().toFixed(2)}</span>
                 </div>
               </div>
 
