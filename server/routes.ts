@@ -1224,9 +1224,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // System settings routes (admin only)
+  // System settings routes
+  // GET: All authenticated users can read settings (customers need multi-merchant config)
   app.get("/api/settings", async (req, res) => {
-    if (!req.isAuthenticated() || req.user?.role !== 'admin') {
+    if (!req.isAuthenticated()) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
@@ -1239,6 +1240,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // PATCH: Only admins can update settings
   app.patch("/api/settings", async (req, res) => {
     if (!req.isAuthenticated() || req.user?.role !== 'admin') {
       return res.status(401).json({ error: "Unauthorized" });
@@ -1331,40 +1333,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching admin stats:", error);
       res.status(500).json({ error: "Failed to fetch admin stats" });
-    }
-  });
-
-  // Admin Settings Routes
-  app.get("/api/settings", async (req, res) => {
-    if (!req.isAuthenticated() || req.user?.role !== 'admin') {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    try {
-      const settings = await storage.getSystemSettings();
-      res.json(settings || {
-        baseDeliveryFee: '25',
-        perKmRate: '15',
-        convenienceFee: '10',
-        showConvenienceFee: true
-      });
-    } catch (error) {
-      console.error("Error fetching settings:", error);
-      res.status(500).json({ error: "Failed to fetch settings" });
-    }
-  });
-
-  app.patch("/api/settings", async (req, res) => {
-    if (!req.isAuthenticated() || req.user?.role !== 'admin') {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    try {
-      const updatedSettings = await storage.updateSystemSettings(req.body);
-      res.json(updatedSettings);
-    } catch (error) {
-      console.error("Error updating settings:", error);
-      res.status(500).json({ error: "Failed to update settings" });
     }
   });
 
