@@ -170,18 +170,20 @@ Fixed issues with real-time order updates and implemented proper order history f
 - Both portals maintain complete order history for reporting and reference
 
 #### Enhanced Edit Order Functionality (October 2025)
-Implemented comprehensive order editing capabilities for merchants to handle inventory changes and customer requests while preventing disputes:
+Implemented comprehensive order editing capabilities for merchants to handle inventory changes and customer requests:
 
 **Features Implemented**:
 1. **Add New Menu Items** (merchant-portal.tsx):
    - "Add Menu Items to Order" button reveals dropdown of available menu items
    - Merchants can select items from their current menu and add to existing orders
+   - Items added with customizable options (size, flavor, add-ons, etc.)
+   - Inline option selection interface with real-time price calculation
    - Each added item starts with quantity 1
    - Toast notifications confirm when items are added
 
 2. **Edit Item Quantities**:
    - Number input for each order item with validation
-   - Minimum quantity enforced at 1 (prevents deletion)
+   - Minimum quantity enforced at 1
    - If merchant tries to enter 0 or negative, reverts to minimum of 1
    - Preserves quantities when replacing items
 
@@ -192,24 +194,32 @@ Implemented comprehensive order editing capabilities for merchants to handle inv
    - Useful when original item is out of stock
    - Toast notification shows what item was replaced
 
-4. **Backend Integration**:
+4. **Delete Order Items**:
+   - Trash icon button next to each item's quantity control
+   - Confirmation AlertDialog before deletion with item name
+   - Validation prevents deleting last item (orders must have at least one item)
+   - Shows error toast if attempting to remove final item
+   - Successfully deleted items update order total immediately
+   - Data-testid attributes for comprehensive testing
+
+5. **Backend Integration**:
    - Uses existing `/api/orders/:id/items` endpoint
    - Automatically recalculates: subtotal, markup, delivery fee, total
    - Creates status history entry with merchant's reason
    - Sends WebSocket notifications to customer and assigned rider
    - Real-time updates ensure all parties see changes immediately
 
-**Dispute Prevention**:
-- Items cannot be deleted (only added or quantity increased)
-- Minimum quantity of 1 enforced at UI and validation level
+**Validation & Safety**:
+- Orders must maintain at least one item
 - Merchants must provide reason for all changes (sent to customer)
 - All edits logged in order status history for audit trail
+- Confirmation dialog prevents accidental deletions
 
 **Impact**:
-- Merchants can adapt orders based on inventory availability
+- Merchants can fully adapt orders based on inventory availability (add, modify, replace, or remove items)
 - Customers receive transparent communication about order modifications
-- No disputes over removed items - only additions or replacements
-- Order totals automatically recalculated, ensuring pricing accuracy
+- Order totals automatically recalculated with option prices, ensuring pricing accuracy
+- Real-time updates keep all parties synchronized
 
 #### Customizable Product Options System (October 2025)
 Implemented a two-level product options system where admins create option types globally and merchants add specific values with individual prices for their menu items:
