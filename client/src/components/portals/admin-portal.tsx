@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -602,7 +602,23 @@ export default function AdminPortal() {
     perKmRate: (settings as any)?.perKmRate || '15',
     convenienceFee: (settings as any)?.convenienceFee || '10',
     showConvenienceFee: (settings as any)?.showConvenienceFee ?? true,
+    allowMultiMerchantCheckout: (settings as any)?.allowMultiMerchantCheckout ?? false,
+    maxMerchantsPerOrder: (settings as any)?.maxMerchantsPerOrder || 2,
   });
+
+  // Sync tempSettings when settings data changes
+  useEffect(() => {
+    if (settings) {
+      setTempSettings({
+        baseDeliveryFee: (settings as any).baseDeliveryFee || '25',
+        perKmRate: (settings as any).perKmRate || '15',
+        convenienceFee: (settings as any).convenienceFee || '10',
+        showConvenienceFee: (settings as any).showConvenienceFee ?? true,
+        allowMultiMerchantCheckout: (settings as any).allowMultiMerchantCheckout ?? false,
+        maxMerchantsPerOrder: (settings as any).maxMerchantsPerOrder || 2,
+      });
+    }
+  }, [settings]);
 
   const systemAccountForm = useForm<SystemAccountForm>({
     resolver: zodResolver(systemAccountSchema),
@@ -1093,6 +1109,73 @@ export default function AdminPortal() {
                             </div>
                           </div>
                         ))
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Multi-Merchant Checkout Settings */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <ShoppingCart className="mr-2 h-5 w-5 text-primary" />
+                      Multi-Merchant Checkout
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="multi-merchant-toggle" className="text-base">
+                            Allow Multi-Merchant Checkout
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            Enable customers to order from multiple merchants in one checkout
+                          </p>
+                        </div>
+                        <Switch
+                          id="multi-merchant-toggle"
+                          checked={tempSettings.allowMultiMerchantCheckout}
+                          onCheckedChange={(checked) => {
+                            setTempSettings(prev => ({ ...prev, allowMultiMerchantCheckout: checked }));
+                            updateSetting('allowMultiMerchantCheckout', checked);
+                          }}
+                          data-testid="switch-allow-multi-merchant"
+                        />
+                      </div>
+
+                      {tempSettings.allowMultiMerchantCheckout && (
+                        <div className="pt-4 border-t">
+                          <Label htmlFor="max-merchants">Maximum Merchants Per Order</Label>
+                          <div className="flex items-center space-x-2 mt-2">
+                            <Input
+                              id="max-merchants"
+                              type="number"
+                              min={2}
+                              max={5}
+                              value={tempSettings.maxMerchantsPerOrder}
+                              onChange={(e) => {
+                                const value = parseInt(e.target.value);
+                                if (value >= 2 && value <= 5) {
+                                  setTempSettings(prev => ({ ...prev, maxMerchantsPerOrder: value }));
+                                }
+                              }}
+                              className="w-24"
+                              data-testid="input-max-merchants"
+                            />
+                            <Button 
+                              size="sm"
+                              onClick={() => updateSetting('maxMerchantsPerOrder', tempSettings.maxMerchantsPerOrder)}
+                              disabled={updateSettingsMutation.isPending}
+                              data-testid="button-update-max-merchants"
+                            >
+                              Update
+                            </Button>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Set between 2 and 5 merchants
+                          </p>
+                        </div>
                       )}
                     </div>
                   </CardContent>

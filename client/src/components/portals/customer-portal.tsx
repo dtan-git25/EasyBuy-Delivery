@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin, Clock, Star, Search, Filter, Navigation, ArrowLeft, ShoppingCart, Plus, Minus, X, Package, User, Phone, CheckCircle, AlertCircle } from "lucide-react";
@@ -116,6 +117,10 @@ export default function CustomerPortal() {
   // Options modal state
   const [showOptionsModal, setShowOptionsModal] = useState(false);
   const [selectedMenuItemForOptions, setSelectedMenuItemForOptions] = useState<MenuItem | null>(null);
+  
+  // Replace cart dialog state
+  const [showReplaceCartDialog, setShowReplaceCartDialog] = useState(false);
+  const [pendingMenuItem, setPendingMenuItem] = useState<MenuItem | null>(null);
   
   const cart = useCart();
   const { toast } = useToast();
@@ -304,8 +309,52 @@ export default function CustomerPortal() {
   }, {});
 
   const openOptionsModal = (menuItem: MenuItem) => {
+    if (!selectedRestaurant) return;
+    
+    // Check if we can add from this restaurant
+    const validation = cart.canAddFromRestaurant(selectedRestaurant.id);
+    
+    if (!validation.allowed) {
+      if (validation.reason === 'single-merchant-only') {
+        // Show replace cart dialog
+        setPendingMenuItem(menuItem);
+        setShowReplaceCartDialog(true);
+        return;
+      } else if (validation.reason === 'max-merchants-reached') {
+        // Show error toast
+        const existingRestaurants = Object.values(cart.allCarts).map(c => c.restaurantName).join(', ');
+        toast({
+          title: "Maximum merchants reached",
+          description: `You can only order from ${cart.maxMerchantsPerOrder} merchants at once. Current: ${existingRestaurants}`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
+    // If allowed, proceed to open options modal
     setSelectedMenuItemForOptions(menuItem);
     setShowOptionsModal(true);
+  };
+
+  const handleConfirmReplaceCart = () => {
+    if (!pendingMenuItem || !selectedRestaurant) return;
+    
+    // Clear all existing carts
+    cart.clearAllCarts();
+    
+    // Open options modal for the pending item
+    setSelectedMenuItemForOptions(pendingMenuItem);
+    setShowOptionsModal(true);
+    
+    // Close the replace dialog and clear pending item
+    setShowReplaceCartDialog(false);
+    setPendingMenuItem(null);
+    
+    toast({
+      title: "Cart replaced",
+      description: `Your previous cart has been cleared. You can now add items from ${selectedRestaurant.name}.`,
+    });
   };
 
   const handleAddToCartWithOptions = (quantity: number, selectedOptions: any[], totalPrice: number) => {
@@ -1381,6 +1430,44 @@ export default function CustomerPortal() {
         menuItem={selectedMenuItemForOptions}
         onAddToCart={handleAddToCartWithOptions}
       />
+
+      {/* Replace Cart Confirmation Dialog */}
+      <AlertDialog open={showReplaceCartDialog} onOpenChange={setShowReplaceCartDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Replace cart items?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {!cart.isMultiMerchantAllowed && (
+                <>
+                  Multi-merchant checkout is currently disabled. You can only order from one merchant at a time.
+                  <br /><br />
+                  Your current cart contains items from {Object.values(cart.allCarts).map(c => c.restaurantName).join(', ')}.
+                  <br /><br />
+                  Do you want to clear your current cart and start a new order from {selectedRestaurant?.name}?
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              onClick={() => {
+                setShowReplaceCartDialog(false);
+                setPendingMenuItem(null);
+              }}
+              data-testid="button-cancel-replace-cart"
+            >
+              Keep Current Cart
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmReplaceCart}
+              className="bg-destructive hover:bg-destructive/90"
+              data-testid="button-confirm-replace-cart"
+            >
+              Replace Cart
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

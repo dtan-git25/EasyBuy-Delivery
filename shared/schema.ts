@@ -305,6 +305,8 @@ export const systemSettings = pgTable("system_settings", {
   perKmRate: decimal("per_km_rate", { precision: 8, scale: 2 }).default('15'),
   convenienceFee: decimal("convenience_fee", { precision: 8, scale: 2 }).default('10'),
   showConvenienceFee: boolean("show_convenience_fee").default(true),
+  allowMultiMerchantCheckout: boolean("allow_multi_merchant_checkout").default(false),
+  maxMerchantsPerOrder: integer("max_merchants_per_order").default(2),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 

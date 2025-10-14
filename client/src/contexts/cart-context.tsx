@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
 
 export interface CartItem {
   id: string;
@@ -42,6 +43,11 @@ interface CartContextType {
   clearRestaurantCart: (restaurantId: string) => void;
   clearAllCarts: () => void;
   
+  // Multi-merchant settings
+  canAddFromRestaurant: (restaurantId: string) => { allowed: boolean; reason?: string };
+  isMultiMerchantAllowed: boolean;
+  maxMerchantsPerOrder: number;
+  
   // Original methods
   addItem: (item: Omit<CartItem, 'id' | 'quantity'>) => void;
   removeItem: (itemId: string) => void;
@@ -59,6 +65,14 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [allCarts, setAllCarts] = useState<Record<string, RestaurantCart>>({});
   const [activeRestaurantId, setActiveRestaurantId] = useState<string | null>(null);
+
+  // Fetch system settings for multi-merchant rules
+  const { data: settings } = useQuery({
+    queryKey: ["/api/settings"],
+  });
+
+  const isMultiMerchantAllowed = (settings as any)?.allowMultiMerchantCheckout ?? false;
+  const maxMerchantsPerOrder = (settings as any)?.maxMerchantsPerOrder ?? 2;
 
   // Load all carts from localStorage on mount
   useEffect(() => {
@@ -90,6 +104,39 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const restaurantName = activeCart?.restaurantName || null;
   const deliveryFee = activeCart?.deliveryFee || 0;
   const markup = activeCart?.markup || 0;
+
+  // Check if we can add items from a new restaurant
+  const canAddFromRestaurant = (restaurantId: string): { allowed: boolean; reason?: string } => {
+    // If restaurant already has a cart, always allow
+    if (allCarts[restaurantId]) {
+      return { allowed: true };
+    }
+
+    const existingCartsCount = Object.keys(allCarts).length;
+
+    // If no existing carts, always allow
+    if (existingCartsCount === 0) {
+      return { allowed: true };
+    }
+
+    // If multi-merchant is disabled, don't allow adding from different merchant
+    if (!isMultiMerchantAllowed) {
+      return { 
+        allowed: false, 
+        reason: 'single-merchant-only'
+      };
+    }
+
+    // If multi-merchant is enabled, check if we've reached the limit
+    if (existingCartsCount >= maxMerchantsPerOrder) {
+      return { 
+        allowed: false, 
+        reason: 'max-merchants-reached'
+      };
+    }
+
+    return { allowed: true };
+  };
 
   const addItem = (newItem: Omit<CartItem, 'id' | 'quantity'>) => {
     const targetRestaurantId = newItem.restaurant.id;
@@ -291,6 +338,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       getAllCartsTotal,
       clearRestaurantCart,
       clearAllCarts,
+      canAddFromRestaurant,
+      isMultiMerchantAllowed,
+      maxMerchantsPerOrder,
       addItem,
       removeItem,
       updateQuantity,
