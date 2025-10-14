@@ -16,7 +16,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Store, MapPin, Star, Clock, User, Phone, MessageCircle, Edit, Plus, AlertCircle, CheckCircle, XCircle, Power, Trash2 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { MenuItemOptionsModal } from "@/components/MenuItemOptionsModal";
 
 interface Order {
   id: string;
@@ -57,8 +56,9 @@ export default function MerchantPortal() {
     category: ''
   });
   const [optionValues, setOptionValues] = useState<Array<{optionTypeId: number, value: string, price: string}>>([]);
-  const [showOptionsModal, setShowOptionsModal] = useState(false);
-  const [selectedMenuItemForOptions, setSelectedMenuItemForOptions] = useState<any>(null);
+  const [availableItemOptions, setAvailableItemOptions] = useState<any[]>([]);
+  const [selectedItemOptions, setSelectedItemOptions] = useState<Record<string, string>>({});
+  const [newItemQuantity, setNewItemQuantity] = useState(1);
 
   // Fetch merchant's own restaurant (including inactive ones)
   const { data: userRestaurant } = useQuery<any>({
@@ -531,21 +531,54 @@ export default function MerchantPortal() {
     setOptionValues(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleAddItemWithOptions = (item: any, quantity: number, selectedOptions: Record<string, string>, totalPrice: number) => {
+  const fetchItemOptions = async (menuItemId: string) => {
+    try {
+      const response = await fetch(`/api/menu-items/${menuItemId}/options`);
+      if (response.ok) {
+        const options = await response.json();
+        setAvailableItemOptions(options);
+      } else {
+        setAvailableItemOptions([]);
+      }
+    } catch (error) {
+      setAvailableItemOptions([]);
+    }
+  };
+
+  const calculateItemPrice = (basePrice: string, selectedOptions: Record<string, string>) => {
+    let total = parseFloat(basePrice);
+    Object.entries(selectedOptions).forEach(([optionType, optionValue]) => {
+      const option = availableItemOptions.find(opt => 
+        opt.optionType.name === optionType && opt.value === optionValue
+      );
+      if (option) {
+        total += parseFloat(option.price);
+      }
+    });
+    return total;
+  };
+
+  const handleAddItemToOrder = () => {
+    const selectedItem = menuItems.find((item: any) => item.id === selectedMenuItem);
+    if (!selectedItem) return;
+
+    const itemPrice = calculateItemPrice(selectedItem.price, selectedItemOptions);
     const newItem = {
-      id: item.id,
-      name: item.name,
-      price: totalPrice,
-      quantity: quantity,
-      variants: selectedOptions
+      id: selectedItem.id,
+      name: selectedItem.name,
+      price: itemPrice,
+      quantity: newItemQuantity,
+      variants: selectedItemOptions
     };
+    
     setEditedOrderItems([...editedOrderItems, newItem]);
     setSelectedMenuItem("");
-    setShowOptionsModal(false);
-    setSelectedMenuItemForOptions(null);
+    setAvailableItemOptions([]);
+    setSelectedItemOptions({});
+    setNewItemQuantity(1);
     toast({
       title: "Item Added",
-      description: `${item.name} added to order with customizations`,
+      description: `${selectedItem.name} added to order`,
     });
   };
 
@@ -1520,27 +1553,40 @@ export default function MerchantPortal() {
                     </Button>
                   ) : (
                     <Card className="border-2 border-primary">
-                      <CardContent className="p-4 space-y-3">
+                      <CardContent className="p-4 space-y-4">
                         <div className="flex items-center justify-between">
-                          <h4 className="font-medium">Add Menu Items</h4>
+                          <h4 className="font-medium">Add Menu Item</h4>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => {
                               setShowAddItemsSection(false);
                               setSelectedMenuItem("");
+                              setAvailableItemOptions([]);
+                              setSelectedItemOptions({});
+                              setNewItemQuantity(1);
                             }}
                           >
                             <XCircle className="h-4 w-4" />
                           </Button>
                         </div>
                         
-                        <div className="space-y-3">
+                        <div className="space-y-4">
+                          {/* Menu Item Selection */}
                           <div>
                             <Label>Select Menu Item</Label>
                             <Select 
                               value={selectedMenuItem} 
-                              onValueChange={setSelectedMenuItem}
+                              onValueChange={(value) => {
+                                setSelectedMenuItem(value);
+                                setSelectedItemOptions({});
+                                setNewItemQuantity(1);
+                                if (value) {
+                                  fetchItemOptions(value);
+                                } else {
+                                  setAvailableItemOptions([]);
+                                }
+                              }}
                             >
                               <SelectTrigger data-testid="select-menu-item">
                                 <SelectValue placeholder="Choose an item from your menu" />
@@ -1555,26 +1601,127 @@ export default function MerchantPortal() {
                             </Select>
                           </div>
 
+                          {/* Options Selection (grouped by type) */}
+                          {selectedMenuItem && availableItemOptions.length > 0 && (() => {
+                            const optionsByType = availableItemOptions.reduce((acc: any, option: any) => {
+                              const typeName = option.optionType.name;
+                              if (!acc[typeName]) acc[typeName] = [];
+                              acc[typeName].push(option);
+                              return acc;
+                            }, {});
+
+                            return (
+                              <div className="space-y-3">
+                                <h5 className="text-sm font-medium">Customize Options</h5>
+                                {Object.entries(optionsByType).map(([typeName, options]: [string, any]) => (
+                                  <div key={typeName}>
+                                    <Label className="text-sm">{typeName}</Label>
+                                    <Select
+                                      value={selectedItemOptions[typeName] || ""}
+                                      onValueChange={(value) => {
+                                        setSelectedItemOptions(prev => ({
+                                          ...prev,
+                                          [typeName]: value
+                                        }));
+                                      }}
+                                    >
+                                      <SelectTrigger className="mt-1">
+                                        <SelectValue placeholder={`Choose ${typeName.toLowerCase()}`} />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {options.map((opt: any) => (
+                                          <SelectItem key={opt.id} value={opt.value}>
+                                            {opt.value} {parseFloat(opt.price) > 0 && `(+₱${parseFloat(opt.price).toFixed(2)})`}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })()}
+
+                          {/* Quantity and Price */}
+                          {selectedMenuItem && (() => {
+                            const selectedItem = menuItems.find((item: any) => item.id === selectedMenuItem);
+                            const itemPrice = selectedItem ? calculateItemPrice(selectedItem.price, selectedItemOptions) : 0;
+                            const totalPrice = itemPrice * newItemQuantity;
+
+                            return (
+                              <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <Label>Quantity</Label>
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => setNewItemQuantity(Math.max(1, newItemQuantity - 1))}
+                                      disabled={newItemQuantity <= 1}
+                                    >
+                                      -
+                                    </Button>
+                                    <span className="w-12 text-center font-medium">{newItemQuantity}</span>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => setNewItemQuantity(newItemQuantity + 1)}
+                                    >
+                                      +
+                                    </Button>
+                                  </div>
+                                </div>
+
+                                <div className="bg-muted p-3 rounded-lg">
+                                  <div className="flex justify-between items-center">
+                                    <div>
+                                      <p className="text-sm text-muted-foreground">Price per item</p>
+                                      <p className="font-medium">₱{itemPrice.toFixed(2)}</p>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="text-sm text-muted-foreground">Total</p>
+                                      <p className="text-lg font-bold text-primary">₱{totalPrice.toFixed(2)}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })()}
+
                           <Button
-                            onClick={() => {
-                              const selectedItem = menuItems.find((item: any) => item.id === selectedMenuItem);
-                              if (selectedItem) {
-                                setSelectedMenuItemForOptions(selectedItem);
-                                setShowOptionsModal(true);
-                              }
-                            }}
+                            onClick={handleAddItemToOrder}
                             disabled={!selectedMenuItem}
                             className="w-full"
-                            data-testid="button-add-selected-item"
+                            data-testid="button-add-to-order"
                           >
                             <Plus className="mr-2 h-4 w-4" />
-                            Add Selected Item
+                            Add to Order
                           </Button>
                         </div>
                       </CardContent>
                     </Card>
                   )}
 
+                  {/* Order Total */}
+                  {editedOrderItems.length > 0 && (() => {
+                    const orderTotal = editedOrderItems.reduce((sum, item) => {
+                      return sum + (item.price * item.quantity);
+                    }, 0);
+
+                    return (
+                      <Card className="bg-primary/5">
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <p className="text-sm text-muted-foreground">Order Total</p>
+                              <p className="text-xs text-muted-foreground">{editedOrderItems.length} item(s)</p>
+                            </div>
+                            <p className="text-2xl font-bold text-primary">₱{orderTotal.toFixed(2)}</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })()}
 
                   <div>
                     <Label htmlFor="edit-reason">Reason for Changes (will be sent to customer)</Label>
@@ -1617,14 +1764,6 @@ export default function MerchantPortal() {
               )}
             </DialogContent>
           </Dialog>
-
-          {/* Options Selection Modal for Edit Order */}
-          <MenuItemOptionsModal
-            isOpen={showOptionsModal}
-            onClose={() => setShowOptionsModal(false)}
-            menuItem={selectedMenuItemForOptions}
-            onAddToCart={handleAddItemWithOptions}
-          />
         </div>
       </section>
     </div>
