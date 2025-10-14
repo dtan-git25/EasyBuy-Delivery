@@ -7,7 +7,7 @@ interface ExtendedWebSocket extends WebSocket {
 }
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertRestaurantSchema, insertMenuItemSchema, insertCategorySchema, insertOrderSchema, insertChatMessageSchema, insertRiderSchema, insertWalletTransactionSchema, type Order, walletTransactions } from "@shared/schema";
+import { insertRestaurantSchema, insertMenuItemSchema, insertCategorySchema, insertOrderSchema, insertChatMessageSchema, insertRiderSchema, insertWalletTransactionSchema, insertOptionTypeSchema, insertMenuItemOptionValueSchema, type Order, walletTransactions } from "@shared/schema";
 import { z } from "zod";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
@@ -360,6 +360,163 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting category:", error);
       res.status(500).json({ error: "Failed to delete category" });
+    }
+  });
+
+  // Option Type routes (Admin only)
+  app.get("/api/option-types", async (req, res) => {
+    try {
+      const optionTypes = req.query.activeOnly === 'true' 
+        ? await storage.getActiveOptionTypes()
+        : await storage.getOptionTypes();
+      res.json(optionTypes);
+    } catch (error) {
+      console.error("Error fetching option types:", error);
+      res.status(500).json({ error: "Failed to fetch option types" });
+    }
+  });
+
+  app.post("/api/option-types", async (req, res) => {
+    if (!req.isAuthenticated() || (req.user?.role !== 'owner' && req.user?.role !== 'admin')) {
+      return res.status(401).json({ error: "Unauthorized - Admin or Owner access required" });
+    }
+
+    try {
+      const optionTypeData = insertOptionTypeSchema.parse(req.body);
+      const optionType = await storage.createOptionType(optionTypeData);
+      res.status(201).json(optionType);
+    } catch (error) {
+      console.error("Error creating option type:", error);
+      res.status(400).json({ error: "Invalid option type data" });
+    }
+  });
+
+  app.patch("/api/option-types/:id", async (req, res) => {
+    if (!req.isAuthenticated() || (req.user?.role !== 'owner' && req.user?.role !== 'admin')) {
+      return res.status(401).json({ error: "Unauthorized - Admin or Owner access required" });
+    }
+
+    try {
+      const updatedOptionType = await storage.updateOptionType(req.params.id, req.body);
+      if (!updatedOptionType) {
+        return res.status(404).json({ error: "Option type not found" });
+      }
+      res.json(updatedOptionType);
+    } catch (error) {
+      console.error("Error updating option type:", error);
+      res.status(500).json({ error: "Failed to update option type" });
+    }
+  });
+
+  app.delete("/api/option-types/:id", async (req, res) => {
+    if (!req.isAuthenticated() || (req.user?.role !== 'owner' && req.user?.role !== 'admin')) {
+      return res.status(401).json({ error: "Unauthorized - Admin or Owner access required" });
+    }
+
+    try {
+      await storage.deleteOptionType(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting option type:", error);
+      res.status(500).json({ error: "Failed to delete option type" });
+    }
+  });
+
+  // Menu Item Option Values routes (Merchant specific)
+  app.get("/api/menu-items/:menuItemId/options", async (req, res) => {
+    try {
+      const optionValues = await storage.getMenuItemOptionValues(req.params.menuItemId);
+      res.json(optionValues);
+    } catch (error) {
+      console.error("Error fetching menu item option values:", error);
+      res.status(500).json({ error: "Failed to fetch option values" });
+    }
+  });
+
+  app.post("/api/menu-items/:menuItemId/options", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'merchant') {
+      return res.status(401).json({ error: "Unauthorized - Merchant access required" });
+    }
+
+    try {
+      const menuItem = await storage.getMenuItem(req.params.menuItemId);
+      if (!menuItem) {
+        return res.status(404).json({ error: "Menu item not found" });
+      }
+
+      const restaurant = await storage.getRestaurant(menuItem.restaurantId);
+      if (!restaurant || restaurant.ownerId !== req.user.id) {
+        return res.status(403).json({ error: "Forbidden - You can only manage options for your own menu items" });
+      }
+
+      const optionValueData = insertMenuItemOptionValueSchema.parse({
+        ...req.body,
+        menuItemId: req.params.menuItemId
+      });
+      
+      const optionValue = await storage.createMenuItemOptionValue(optionValueData);
+      res.status(201).json(optionValue);
+    } catch (error) {
+      console.error("Error creating option value:", error);
+      res.status(400).json({ error: "Invalid option value data" });
+    }
+  });
+
+  app.patch("/api/menu-items/:menuItemId/options/:id", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'merchant') {
+      return res.status(401).json({ error: "Unauthorized - Merchant access required" });
+    }
+
+    try {
+      const optionValue = await storage.getMenuItemOptionValue(req.params.id);
+      if (!optionValue) {
+        return res.status(404).json({ error: "Option value not found" });
+      }
+
+      const menuItem = await storage.getMenuItem(optionValue.menuItemId);
+      if (!menuItem) {
+        return res.status(404).json({ error: "Menu item not found" });
+      }
+
+      const restaurant = await storage.getRestaurant(menuItem.restaurantId);
+      if (!restaurant || restaurant.ownerId !== req.user.id) {
+        return res.status(403).json({ error: "Forbidden - You can only manage options for your own menu items" });
+      }
+
+      const updatedOptionValue = await storage.updateMenuItemOptionValue(req.params.id, req.body);
+      res.json(updatedOptionValue);
+    } catch (error) {
+      console.error("Error updating option value:", error);
+      res.status(500).json({ error: "Failed to update option value" });
+    }
+  });
+
+  app.delete("/api/menu-items/:menuItemId/options/:id", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'merchant') {
+      return res.status(401).json({ error: "Unauthorized - Merchant access required" });
+    }
+
+    try {
+      const optionValue = await storage.getMenuItemOptionValue(req.params.id);
+      if (!optionValue) {
+        return res.status(404).json({ error: "Option value not found" });
+      }
+
+      const menuItem = await storage.getMenuItem(optionValue.menuItemId);
+      if (!menuItem) {
+        return res.status(404).json({ error: "Menu item not found" });
+      }
+
+      const restaurant = await storage.getRestaurant(menuItem.restaurantId);
+      if (!restaurant || restaurant.ownerId !== req.user.id) {
+        return res.status(403).json({ error: "Forbidden - You can only manage options for your own menu items" });
+      }
+
+      await storage.deleteMenuItemOptionValue(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting option value:", error);
+      res.status(500).json({ error: "Failed to delete option value" });
     }
   });
 
