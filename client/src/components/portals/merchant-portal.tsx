@@ -59,6 +59,7 @@ export default function MerchantPortal() {
   const [availableItemOptions, setAvailableItemOptions] = useState<any[]>([]);
   const [selectedItemOptions, setSelectedItemOptions] = useState<Record<string, string>>({});
   const [newItemQuantity, setNewItemQuantity] = useState(1);
+  const [itemToDelete, setItemToDelete] = useState<{index: number, name: string} | null>(null);
 
   // Fetch merchant's own restaurant (including inactive ones)
   const { data: userRestaurant } = useQuery<any>({
@@ -580,6 +581,28 @@ export default function MerchantPortal() {
       title: "Item Added",
       description: `${selectedItem.name} added to order`,
     });
+  };
+
+  const handleDeleteItem = () => {
+    if (!itemToDelete) return;
+
+    if (editedOrderItems.length === 1) {
+      toast({
+        title: "Cannot Remove Item",
+        description: "Order must have at least one item",
+        variant: "destructive",
+      });
+      setItemToDelete(null);
+      return;
+    }
+
+    const updatedItems = editedOrderItems.filter((_, index) => index !== itemToDelete.index);
+    setEditedOrderItems(updatedItems);
+    toast({
+      title: "Item Removed",
+      description: `${itemToDelete.name} removed from order`,
+    });
+    setItemToDelete(null);
   };
 
   const handleUseCurrentLocation = () => {
@@ -1457,7 +1480,7 @@ export default function MerchantPortal() {
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Edit Order Items</AlertTitle>
                     <AlertDescription>
-                      Add new items or modify quantities. Items cannot be removed - only added or increased. The customer will be notified of any changes.
+                      Add, remove, or modify items in the order. The customer will be notified of any changes. Orders must have at least one item.
                     </AlertDescription>
                   </Alert>
 
@@ -1496,6 +1519,15 @@ export default function MerchantPortal() {
                                   className="w-20"
                                   data-testid={`input-qty-${index}`}
                                 />
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setItemToDelete({ index, name: item.name })}
+                                  className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  data-testid={`button-delete-item-${index}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
                               </div>
                             </div>
                             
@@ -1764,6 +1796,29 @@ export default function MerchantPortal() {
               )}
             </DialogContent>
           </Dialog>
+
+          {/* Delete Item Confirmation Dialog */}
+          <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Remove Item from Order?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to remove "{itemToDelete?.name}" from this order? 
+                  {editedOrderItems.length === 1 && " This is the last item - orders must have at least one item."}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel data-testid="button-cancel-delete-item">Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDeleteItem}
+                  className="bg-destructive hover:bg-destructive/90"
+                  data-testid="button-confirm-delete-item"
+                >
+                  Remove Item
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </section>
     </div>
