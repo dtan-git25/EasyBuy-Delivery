@@ -332,6 +332,13 @@ export default function CustomerPortal() {
         setReplacementScenario('max-limit');
         setShowReplaceCartDialog(true);
         return;
+      } else {
+        // Fallback: handle any other validation failure
+        console.error('Unexpected validation failure reason:', validation.reason);
+        setPendingMenuItem(menuItem);
+        setReplacementScenario('max-limit'); // Default to max-limit scenario
+        setShowReplaceCartDialog(true);
+        return;
       }
     }
     
