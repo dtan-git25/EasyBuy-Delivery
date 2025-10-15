@@ -24,7 +24,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Database Design
 - **Schema**: Relational schema with enums for roles, statuses, and workflows.
-- **Key Entities**: Users, Restaurants, Menu Items, Orders, Riders, Wallets, Chat Messages, System Settings.
+- **Key Entities**: Users, Restaurants, Menu Items, Orders, Riders, Wallets, Chat Messages, System Settings, Saved Addresses.
 - **Relationships**: Complex many-to-many relationships for orders, riders, and restaurants.
 - **Data Integrity**: Foreign key constraints with cascading deletes/set nulls to maintain consistency and prevent orphaned data.
 
@@ -40,9 +40,16 @@ Preferred communication style: Simple, everyday language.
 - Real-time order status tracking and notifications.
 
 ### Location Services
-- GPS integration for current location detection.
+- GPS integration for current location detection with browser Geolocation API.
 - Dynamic delivery fee calculation based on distance.
-- Manual address input with landmark support.
+- **Saved Addresses System**: Customers can save multiple delivery addresses with:
+  - Structured Philippine address format (Lot/House No., Street, Barangay, City/Municipality, Province, Landmark)
+  - Interactive Leaflet.js map with draggable marker for precise location pinning
+  - Latitude/longitude coordinates stored with each address
+  - Label addresses (e.g., "Home", "Office", "Mom's House")
+  - Set default address for quick checkout
+  - Edit, delete, and manage multiple saved addresses
+  - Address dropdown selector in checkout with map visualization
 
 ### Business Logic
 - **Pricing**: Multi-tier model including markup, delivery fees, merchant fees, and convenience fees.
@@ -94,5 +101,6 @@ Preferred communication style: Simple, everyday language.
 - Document management for rider verification.
 
 ### Location & Maps
-- **Google Maps API**: Planned integration.
-- **Geolocation API**: Browser-based location detection.
+- **Leaflet.js**: Open-source map library for interactive maps with draggable markers.
+- **OpenStreetMap**: Map tiles for location visualization.
+- **Geolocation API**: Browser-based location detection for auto-location.
