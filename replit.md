@@ -50,7 +50,7 @@ Preferred communication style: Simple, everyday language.
 - **Order Management**: Complex order states, merchant-specific item management, and comprehensive order editing (add, modify, replace, delete items) with real-time recalculations and audit trails.
 - **Inventory Control**: Real-time availability tracking with alternative item suggestions.
 - **Product Options**: Two-level system where admins define global option types (e.g., Size, Flavor), and merchants define specific values with individual pricing for their menu items.
-- **Multi-Merchant Checkout**: Configurable system allowing admins to enable/disable customers ordering from multiple merchants in a single checkout session, with configurable merchant limits (2-5 merchants per order).
+- **Multi-Merchant Checkout**: Configurable system allowing admins to enable/disable customers ordering from multiple merchants in a single checkout session, with configurable merchant limits (2-5 merchants per order). Features single "Checkout All Carts" button that processes all merchant orders simultaneously with shared delivery details.
 
 ## External Dependencies
 
