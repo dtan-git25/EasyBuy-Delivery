@@ -20,10 +20,12 @@ export interface IStorage {
 
   // Restaurant operations
   getRestaurants(): Promise<Restaurant[]>;
+  getAllRestaurants(): Promise<Restaurant[]>;
   getRestaurant(id: string): Promise<Restaurant | undefined>;
   getRestaurantsByOwner(ownerId: string): Promise<Restaurant[]>;
   createRestaurant(restaurant: InsertRestaurant): Promise<Restaurant>;
   updateRestaurant(id: string, updates: Partial<Restaurant>): Promise<Restaurant | undefined>;
+  deleteRestaurant(id: string): Promise<void>;
 
   // Menu operations
   getMenuItems(restaurantId: string): Promise<MenuItem[]>;
@@ -190,6 +192,11 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(restaurants).where(eq(restaurants.isActive, true));
   }
 
+  async getAllRestaurants(): Promise<Restaurant[]> {
+    // Return all restaurants (including inactive) for admin
+    return await db.select().from(restaurants).orderBy(desc(restaurants.createdAt));
+  }
+
   async getRestaurant(id: string): Promise<Restaurant | undefined> {
     const [restaurant] = await db.select().from(restaurants).where(eq(restaurants.id, id));
     return restaurant || undefined;
@@ -207,6 +214,10 @@ export class DatabaseStorage implements IStorage {
   async updateRestaurant(id: string, updates: Partial<Restaurant>): Promise<Restaurant | undefined> {
     const [restaurant] = await db.update(restaurants).set(updates).where(eq(restaurants.id, id)).returning();
     return restaurant || undefined;
+  }
+
+  async deleteRestaurant(id: string): Promise<void> {
+    await db.delete(restaurants).where(eq(restaurants.id, id));
   }
 
   async getMenuItems(restaurantId: string): Promise<MenuItem[]> {

@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -489,6 +491,341 @@ function CategoryManagement() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function StoreManagementTable() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [selectedRestaurant, setSelectedRestaurant] = useState<any>(null);
+  const [showMarkupModal, setShowMarkupModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [markupValue, setMarkupValue] = useState("");
+
+  // Fetch all restaurants (including inactive)
+  const { data: adminRestaurants = [], isLoading } = useQuery({
+    queryKey: ["/api/admin/restaurants"],
+  });
+
+  // Fetch all users to get owner names
+  const { data: users = [] } = useQuery({
+    queryKey: ["/api/users"],
+  });
+
+  // Update restaurant markup
+  const updateMarkupMutation = useMutation({
+    mutationFn: async ({ id, markup }: { id: string; markup: string }) => {
+      const response = await apiRequest("PATCH", `/api/restaurants/${id}`, { 
+        markup,
+        updatedAt: new Date()
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/restaurants"] });
+      toast({ title: "Markup updated successfully!" });
+      setShowMarkupModal(false);
+      setSelectedRestaurant(null);
+      setMarkupValue("");
+    },
+    onError: () => {
+      toast({ title: "Failed to update markup", variant: "destructive" });
+    },
+  });
+
+  // Toggle restaurant status
+  const toggleStatusMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      const response = await apiRequest("PATCH", `/api/restaurants/${id}`, { 
+        isActive,
+        updatedAt: new Date()
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/restaurants"] });
+      toast({ title: "Restaurant status updated!" });
+    },
+    onError: () => {
+      toast({ title: "Failed to update status", variant: "destructive" });
+    },
+  });
+
+  // Delete restaurant
+  const deleteRestaurantMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/restaurants/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/restaurants"] });
+      toast({ title: "Restaurant deleted successfully!" });
+      setShowDeleteModal(false);
+      setSelectedRestaurant(null);
+    },
+    onError: () => {
+      toast({ title: "Failed to delete restaurant", variant: "destructive" });
+    },
+  });
+
+  const getOwnerName = (ownerId: string) => {
+    const owner = users.find((u: any) => u.id === ownerId);
+    return owner ? `${owner.firstName} ${owner.lastName}` : "Unknown";
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  if (isLoading) {
+    return <div className="text-center py-8">Loading restaurants...</div>;
+  }
+
+  return (
+    <>
+      <div className="rounded-md border">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b bg-muted/50">
+                <th className="px-4 py-3 text-left text-sm font-medium">Restaurant Name</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">Owner/Merchant</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">Markup</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">Location</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">Date Registered</th>
+                <th className="px-4 py-3 text-center text-sm font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {adminRestaurants.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
+                    No restaurants found
+                  </td>
+                </tr>
+              ) : (
+                adminRestaurants.map((restaurant: any) => (
+                  <tr key={restaurant.id} className="border-b hover:bg-muted/30" data-testid={`restaurant-row-${restaurant.id}`}>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center space-x-2">
+                        {restaurant.image && (
+                          <img src={restaurant.image} alt={restaurant.name} className="w-8 h-8 rounded object-cover" />
+                        )}
+                        <div>
+                          <p className="font-medium">{restaurant.name}</p>
+                          <p className="text-xs text-muted-foreground">{restaurant.cuisine}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-sm" data-testid={`owner-${restaurant.id}`}>
+                      {getOwnerName(restaurant.ownerId)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge 
+                        variant={restaurant.isActive ? "default" : "secondary"}
+                        data-testid={`status-${restaurant.id}`}
+                      >
+                        {restaurant.isActive ? "Active" : "Inactive"}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-sm" data-testid={`markup-${restaurant.id}`}>
+                      {restaurant.markup}%
+                    </td>
+                    <td className="px-4 py-3 text-sm max-w-xs truncate">{restaurant.address}</td>
+                    <td className="px-4 py-3 text-sm">{formatDate(restaurant.createdAt)}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-center space-x-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedRestaurant(restaurant);
+                            setMarkupValue(restaurant.markup || "15");
+                            setShowMarkupModal(true);
+                          }}
+                          data-testid={`button-edit-markup-${restaurant.id}`}
+                        >
+                          Edit Markup
+                        </Button>
+                        <Switch
+                          checked={restaurant.isActive}
+                          onCheckedChange={(checked) => toggleStatusMutation.mutate({ id: restaurant.id, isActive: checked })}
+                          data-testid={`switch-status-${restaurant.id}`}
+                        />
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setSelectedRestaurant(restaurant);
+                            setShowViewModal(true);
+                          }}
+                          data-testid={`button-view-${restaurant.id}`}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setSelectedRestaurant(restaurant);
+                            setShowDeleteModal(true);
+                          }}
+                          className="text-destructive hover:text-destructive"
+                          data-testid={`button-delete-${restaurant.id}`}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Set Markup Modal */}
+      <Dialog open={showMarkupModal} onOpenChange={setShowMarkupModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Set Markup Percentage</DialogTitle>
+            <DialogDescription>
+              Update the markup percentage for {selectedRestaurant?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="markup">Markup Percentage (%)</Label>
+              <Input
+                id="markup"
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                value={markupValue}
+                onChange={(e) => setMarkupValue(e.target.value)}
+                placeholder="15"
+                data-testid="input-markup"
+              />
+              <p className="text-xs text-muted-foreground">
+                Enter a percentage (e.g., 15 for 15% markup)
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowMarkupModal(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (selectedRestaurant && markupValue) {
+                  updateMarkupMutation.mutate({ id: selectedRestaurant.id, markup: markupValue });
+                }
+              }}
+              disabled={!markupValue || updateMarkupMutation.isPending}
+              data-testid="button-save-markup"
+            >
+              Save Markup
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <AlertDialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedRestaurant?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove all menu items and order history. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (selectedRestaurant) {
+                  deleteRestaurantMutation.mutate(selectedRestaurant.id);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* View Information Modal */}
+      <Dialog open={showViewModal} onOpenChange={setShowViewModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{selectedRestaurant?.name}</DialogTitle>
+            <DialogDescription>Restaurant Information</DialogDescription>
+          </DialogHeader>
+          {selectedRestaurant && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">Owner</Label>
+                  <p className="font-medium">{getOwnerName(selectedRestaurant.ownerId)}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Cuisine</Label>
+                  <p className="font-medium">{selectedRestaurant.cuisine}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Phone</Label>
+                  <p className="font-medium">{selectedRestaurant.phone}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Email</Label>
+                  <p className="font-medium">{selectedRestaurant.email || 'N/A'}</p>
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-muted-foreground">Address</Label>
+                  <p className="font-medium">{selectedRestaurant.address}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Markup</Label>
+                  <p className="font-medium">{selectedRestaurant.markup}%</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Delivery Fee</Label>
+                  <p className="font-medium">₱{selectedRestaurant.deliveryFee}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Rating</Label>
+                  <p className="font-medium">⭐ {selectedRestaurant.rating || '0'}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Status</Label>
+                  <p className="font-medium">{selectedRestaurant.isActive ? 'Active' : 'Inactive'}</p>
+                </div>
+              </div>
+              {selectedRestaurant.description && (
+                <div>
+                  <Label className="text-muted-foreground">Description</Label>
+                  <p className="font-medium">{selectedRestaurant.description}</p>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowViewModal(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -1056,7 +1393,7 @@ export default function AdminPortal() {
                   </CardContent>
                 </Card>
 
-                {/* Store Management */}
+                {/* Store Management - Enhanced Table View */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center">
@@ -1065,52 +1402,7 @@ export default function AdminPortal() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4 max-h-96 overflow-y-auto">
-                      {restaurants.length === 0 ? (
-                        <p className="text-muted-foreground text-center py-4">No restaurants found</p>
-                      ) : (
-                        restaurants.map((restaurant: any) => (
-                          <div 
-                            key={restaurant.id} 
-                            className="flex items-center justify-between p-3 bg-muted rounded-lg"
-                            data-testid={`restaurant-${restaurant.id}`}
-                          >
-                            <div className="flex items-center space-x-3">
-                              <div className="w-10 h-10 bg-card rounded-lg flex items-center justify-center">
-                                <Store className="h-5 w-5 text-muted-foreground" />
-                              </div>
-                              <div>
-                                <p className="font-medium text-foreground">{restaurant.name}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  {restaurant.isActive ? 'Active' : 'Inactive'} • ⭐ {restaurant.rating || '0'}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Select
-                                value={restaurant.markup || '15'}
-                                onValueChange={(value) => updateRestaurantMarkup(restaurant.id, value)}
-                              >
-                                <SelectTrigger className="w-32">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="10">10% markup</SelectItem>
-                                  <SelectItem value="15">15% markup</SelectItem>
-                                  <SelectItem value="20">20% markup</SelectItem>
-                                  <SelectItem value="25">25% markup</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <Switch
-                                checked={restaurant.isActive}
-                                onCheckedChange={(checked) => toggleRestaurantStatus(restaurant.id, checked)}
-                                data-testid={`switch-${restaurant.id}`}
-                              />
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
+                    <StoreManagementTable />
                   </CardContent>
                 </Card>
 

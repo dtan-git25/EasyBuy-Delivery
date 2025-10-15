@@ -1382,6 +1382,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all restaurants (admin only - includes inactive)
+  app.get("/api/admin/restaurants", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'admin') {
+      return res.status(401).json({ error: "Unauthorized - Admin access required" });
+    }
+
+    try {
+      const restaurants = await storage.getAllRestaurants();
+      res.json(restaurants);
+    } catch (error) {
+      console.error("Error fetching all restaurants:", error);
+      res.status(500).json({ error: "Failed to fetch restaurants" });
+    }
+  });
+
   // Restaurant Management Routes (Admin and Merchant)
   app.patch("/api/restaurants/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
@@ -1416,6 +1431,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating restaurant:", error);
       res.status(500).json({ error: "Failed to update restaurant" });
+    }
+  });
+
+  // Delete restaurant (admin only)
+  app.delete("/api/restaurants/:id", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'admin') {
+      return res.status(401).json({ error: "Unauthorized - Admin access required" });
+    }
+
+    try {
+      await storage.deleteRestaurant(req.params.id);
+      res.json({ message: "Restaurant deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting restaurant:", error);
+      res.status(500).json({ error: "Failed to delete restaurant" });
     }
   });
 

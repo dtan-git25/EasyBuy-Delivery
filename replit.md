@@ -51,6 +51,7 @@ Preferred communication style: Simple, everyday language.
 - **Inventory Control**: Real-time availability tracking with alternative item suggestions.
 - **Product Options**: Two-level system where admins define global option types (e.g., Size, Flavor), and merchants define specific values with individual pricing for their menu items.
 - **Multi-Merchant Checkout**: Configurable system allowing admins to enable/disable customers ordering from multiple merchants in a single checkout session, with configurable merchant limits (2-5 merchants per order). Features single "Checkout All Carts" button that processes all merchant orders simultaneously with shared delivery details.
+- **Store Management (Admin)**: Comprehensive restaurant management system with table view showing all restaurants (active and inactive), owner information, markup percentages, and registration dates. Admins can set individual restaurant markups, toggle active/inactive status, view detailed information, and delete restaurants with cascade delete (automatically removes menu items, orders, and related data).
 
 ## External Dependencies
 
