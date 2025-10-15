@@ -121,6 +121,7 @@ export default function CustomerPortal() {
   // Replace cart dialog state
   const [showReplaceCartDialog, setShowReplaceCartDialog] = useState(false);
   const [pendingMenuItem, setPendingMenuItem] = useState<MenuItem | null>(null);
+  const [replacementScenario, setReplacementScenario] = useState<'single-merchant' | 'max-limit' | null>(null);
   
   const cart = useCart();
   const { toast } = useToast();
@@ -320,18 +321,16 @@ export default function CustomerPortal() {
     
     if (!validation.allowed) {
       if (validation.reason === 'single-merchant-only') {
-        // Show replace cart dialog
+        // Show replace cart dialog for single merchant mode
         setPendingMenuItem(menuItem);
+        setReplacementScenario('single-merchant');
         setShowReplaceCartDialog(true);
         return;
       } else if (validation.reason === 'max-merchants-reached') {
-        // Show error toast
-        const existingRestaurants = Object.values(cart.allCarts).map(c => c.restaurantName).join(', ');
-        toast({
-          title: "Maximum merchants reached",
-          description: `You can only order from ${cart.maxMerchantsPerOrder} merchants at once. Current: ${existingRestaurants}`,
-          variant: "destructive",
-        });
+        // Show replace cart dialog for max limit scenario
+        setPendingMenuItem(menuItem);
+        setReplacementScenario('max-limit');
+        setShowReplaceCartDialog(true);
         return;
       }
     }
@@ -344,21 +343,35 @@ export default function CustomerPortal() {
   const handleConfirmReplaceCart = () => {
     if (!pendingMenuItem || !selectedRestaurant) return;
     
-    // Clear all existing carts
-    cart.clearAllCarts();
+    if (replacementScenario === 'single-merchant') {
+      // Single merchant mode: Clear all existing carts
+      cart.clearAllCarts();
+      toast({
+        title: "Cart replaced",
+        description: `Your previous cart has been cleared. You can now add items from ${selectedRestaurant.name}.`,
+      });
+    } else if (replacementScenario === 'max-limit') {
+      // Multi-merchant max limit: Remove the oldest cart to make room
+      const carts = Object.values(cart.allCarts);
+      if (carts.length > 0) {
+        // Get the first cart (oldest) and remove it
+        const oldestCart = carts[0];
+        cart.clearRestaurantCart(oldestCart.restaurantId);
+        toast({
+          title: "Cart replaced",
+          description: `Items from ${oldestCart.restaurantName} have been removed. You can now add items from ${selectedRestaurant.name}.`,
+        });
+      }
+    }
     
     // Open options modal for the pending item
     setSelectedMenuItemForOptions(pendingMenuItem);
     setShowOptionsModal(true);
     
-    // Close the replace dialog and clear pending item
+    // Close the replace dialog and clear state
     setShowReplaceCartDialog(false);
     setPendingMenuItem(null);
-    
-    toast({
-      title: "Cart replaced",
-      description: `Your previous cart has been cleared. You can now add items from ${selectedRestaurant.name}.`,
-    });
+    setReplacementScenario(null);
   };
 
   const handleAddToCartWithOptions = (quantity: number, selectedOptions: any[], totalPrice: number) => {
@@ -1405,16 +1418,27 @@ export default function CustomerPortal() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Replace cart items?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {!cart.isMultiMerchantAllowed && (
-                <>
-                  Multi-merchant checkout is currently disabled. You can only order from one merchant at a time.
-                  <br /><br />
-                  Your current cart contains items from {Object.values(cart.allCarts).map(c => c.restaurantName).join(', ')}.
-                  <br /><br />
-                  Do you want to clear your current cart and start a new order from {selectedRestaurant?.name}?
-                </>
-              )}
+            <AlertDialogDescription className="text-sm">
+              {replacementScenario === 'single-merchant' && (() => {
+                const allCartsArray = Object.values(cart.allCarts);
+                const currentRestaurants = allCartsArray.map((c: any) => c.restaurantName).join(', ');
+                return (
+                  <>
+                    You have items from <strong>{currentRestaurants}</strong> in your cart. Adding items from <strong>{selectedRestaurant?.name}</strong> will replace your current cart. Continue?
+                  </>
+                );
+              })()}
+              {replacementScenario === 'max-limit' && (() => {
+                const allCartsArray = Object.values(cart.allCarts);
+                const oldestCart = allCartsArray[0] as any;
+                const restaurantNames = allCartsArray.map((c: any) => c.restaurantName).join(' and ');
+                
+                return (
+                  <>
+                    You've reached the maximum of <strong>{cart.maxMerchantsPerOrder} restaurants</strong> per order. You currently have items from <strong>{restaurantNames}</strong>. Adding from <strong>{selectedRestaurant?.name}</strong> will remove items from <strong>{oldestCart?.restaurantName}</strong>. Continue?
+                  </>
+                );
+              })()}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1422,17 +1446,18 @@ export default function CustomerPortal() {
               onClick={() => {
                 setShowReplaceCartDialog(false);
                 setPendingMenuItem(null);
+                setReplacementScenario(null);
               }}
               data-testid="button-cancel-replace-cart"
             >
-              Keep Current Cart
+              Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmReplaceCart}
               className="bg-destructive hover:bg-destructive/90"
               data-testid="button-confirm-replace-cart"
             >
-              Replace Cart
+              Replace
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
