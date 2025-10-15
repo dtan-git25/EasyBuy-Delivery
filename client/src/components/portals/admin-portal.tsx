@@ -503,14 +503,9 @@ function StoreManagementTable() {
   const [showViewModal, setShowViewModal] = useState(false);
   const [markupValue, setMarkupValue] = useState("");
 
-  // Fetch all restaurants (including inactive)
+  // Fetch all restaurants (including inactive) with owner information
   const { data: adminRestaurants = [], isLoading } = useQuery({
     queryKey: ["/api/admin/restaurants"],
-  });
-
-  // Fetch all users to get owner names
-  const { data: users = [] } = useQuery({
-    queryKey: ["/api/users"],
   });
 
   // Update restaurant markup
@@ -568,9 +563,18 @@ function StoreManagementTable() {
     },
   });
 
-  const getOwnerName = (ownerId: string) => {
-    const owner = users.find((u: any) => u.id === ownerId);
-    return owner ? `${owner.firstName} ${owner.lastName}` : "Unknown";
+  const getOwnerName = (restaurant: any) => {
+    if (!restaurant.ownerFirstName && !restaurant.ownerLastName) {
+      return "Owner not set";
+    }
+    
+    const parts = [
+      restaurant.ownerFirstName,
+      restaurant.ownerMiddleName,
+      restaurant.ownerLastName
+    ].filter(Boolean);
+    
+    return parts.join(' ') || "Owner not set";
   };
 
   const formatDate = (dateString: string) => {
@@ -623,7 +627,7 @@ function StoreManagementTable() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm" data-testid={`owner-${restaurant.id}`}>
-                      {getOwnerName(restaurant.ownerId)}
+                      {getOwnerName(restaurant)}
                     </td>
                     <td className="px-4 py-3">
                       <Badge 
@@ -775,7 +779,7 @@ function StoreManagementTable() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-muted-foreground">Owner</Label>
-                  <p className="font-medium">{getOwnerName(selectedRestaurant.ownerId)}</p>
+                  <p className="font-medium">{getOwnerName(selectedRestaurant)}</p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Cuisine</Label>

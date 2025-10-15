@@ -1,4 +1,4 @@
-import { users, restaurants, menuItems, categories, riders, wallets, orders, chatMessages, systemSettings, walletTransactions, orderStatusHistory, riderLocationHistory, optionTypes, menuItemOptionValues, type User, type InsertUser, type Restaurant, type InsertRestaurant, type MenuItem, type InsertMenuItem, type Category, type InsertCategory, type Rider, type InsertRider, type Order, type InsertOrder, type ChatMessage, type InsertChatMessage, type Wallet, type SystemSettings, type WalletTransaction, type InsertWalletTransaction, type OrderStatusHistory, type InsertOrderStatusHistory, type RiderLocationHistory, type InsertRiderLocationHistory, type OptionType, type InsertOptionType, type MenuItemOptionValue, type InsertMenuItemOptionValue } from "@shared/schema";
+import { users, restaurants, menuItems, categories, riders, wallets, orders, chatMessages, systemSettings, walletTransactions, orderStatusHistory, riderLocationHistory, optionTypes, menuItemOptionValues, type User, type InsertUser, type Restaurant, type RestaurantWithOwner, type InsertRestaurant, type MenuItem, type InsertMenuItem, type Category, type InsertCategory, type Rider, type InsertRider, type Order, type InsertOrder, type ChatMessage, type InsertChatMessage, type Wallet, type SystemSettings, type WalletTransaction, type InsertWalletTransaction, type OrderStatusHistory, type InsertOrderStatusHistory, type RiderLocationHistory, type InsertRiderLocationHistory, type OptionType, type InsertOptionType, type MenuItemOptionValue, type InsertMenuItemOptionValue } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc } from "drizzle-orm";
 import session from "express-session";
@@ -20,7 +20,7 @@ export interface IStorage {
 
   // Restaurant operations
   getRestaurants(): Promise<Restaurant[]>;
-  getAllRestaurants(): Promise<Restaurant[]>;
+  getAllRestaurants(): Promise<RestaurantWithOwner[]>;
   getRestaurant(id: string): Promise<Restaurant | undefined>;
   getRestaurantsByOwner(ownerId: string): Promise<Restaurant[]>;
   createRestaurant(restaurant: InsertRestaurant): Promise<Restaurant>;
@@ -192,9 +192,34 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(restaurants).where(eq(restaurants.isActive, true));
   }
 
-  async getAllRestaurants(): Promise<Restaurant[]> {
-    // Return all restaurants (including inactive) for admin
-    return await db.select().from(restaurants).orderBy(desc(restaurants.createdAt));
+  async getAllRestaurants(): Promise<RestaurantWithOwner[]> {
+    // Return all restaurants (including inactive) for admin with owner information
+    const result = await db
+      .select({
+        id: restaurants.id,
+        name: restaurants.name,
+        ownerId: restaurants.ownerId,
+        ownerFirstName: users.firstName,
+        ownerMiddleName: users.middleName,
+        ownerLastName: users.lastName,
+        cuisine: restaurants.cuisine,
+        address: restaurants.address,
+        phone: restaurants.phone,
+        email: restaurants.email,
+        image: restaurants.image,
+        rating: restaurants.rating,
+        deliveryFee: restaurants.deliveryFee,
+        markup: restaurants.markup,
+        isActive: restaurants.isActive,
+        description: restaurants.description,
+        createdAt: restaurants.createdAt,
+        updatedAt: restaurants.updatedAt,
+      })
+      .from(restaurants)
+      .leftJoin(users, eq(restaurants.ownerId, users.id))
+      .orderBy(desc(restaurants.createdAt));
+    
+    return result;
   }
 
   async getRestaurant(id: string): Promise<Restaurant | undefined> {

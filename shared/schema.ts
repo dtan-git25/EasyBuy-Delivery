@@ -539,6 +539,12 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Restaurant = typeof restaurants.$inferSelect;
 export type InsertRestaurant = z.infer<typeof insertRestaurantSchema>;
+// Restaurant with owner information (for admin views)
+export type RestaurantWithOwner = Restaurant & {
+  ownerFirstName: string | null;
+  ownerMiddleName: string | null;
+  ownerLastName: string | null;
+};
 export type MenuItem = typeof menuItems.$inferSelect;
 export type InsertMenuItem = z.infer<typeof insertMenuItemSchema>;
 export type Category = typeof categories.$inferSelect;
