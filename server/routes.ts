@@ -1130,6 +1130,123 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Saved address routes
+  app.get("/api/saved-addresses", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const addresses = await storage.getSavedAddresses(req.user.id);
+      res.json(addresses);
+    } catch (error) {
+      console.error("Error fetching saved addresses:", error);
+      res.status(500).json({ error: "Failed to fetch saved addresses" });
+    }
+  });
+
+  app.get("/api/saved-addresses/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const address = await storage.getSavedAddress(req.params.id);
+      if (!address) {
+        return res.status(404).json({ error: "Address not found" });
+      }
+      // Ensure the address belongs to the current user
+      if (address.userId !== req.user.id) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      res.json(address);
+    } catch (error) {
+      console.error("Error fetching saved address:", error);
+      res.status(500).json({ error: "Failed to fetch saved address" });
+    }
+  });
+
+  app.post("/api/saved-addresses", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const addressData = { ...req.body, userId: req.user.id };
+      const newAddress = await storage.createSavedAddress(addressData);
+      res.status(201).json(newAddress);
+    } catch (error) {
+      console.error("Error creating saved address:", error);
+      res.status(500).json({ error: "Failed to create saved address" });
+    }
+  });
+
+  app.put("/api/saved-addresses/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const address = await storage.getSavedAddress(req.params.id);
+      if (!address) {
+        return res.status(404).json({ error: "Address not found" });
+      }
+      // Ensure the address belongs to the current user
+      if (address.userId !== req.user.id) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const updatedAddress = await storage.updateSavedAddress(req.params.id, req.body);
+      res.json(updatedAddress);
+    } catch (error) {
+      console.error("Error updating saved address:", error);
+      res.status(500).json({ error: "Failed to update saved address" });
+    }
+  });
+
+  app.delete("/api/saved-addresses/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const address = await storage.getSavedAddress(req.params.id);
+      if (!address) {
+        return res.status(404).json({ error: "Address not found" });
+      }
+      // Ensure the address belongs to the current user
+      if (address.userId !== req.user.id) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      await storage.deleteSavedAddress(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting saved address:", error);
+      res.status(500).json({ error: "Failed to delete saved address" });
+    }
+  });
+
+  app.patch("/api/saved-addresses/:id/set-default", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const address = await storage.getSavedAddress(req.params.id);
+      if (!address) {
+        return res.status(404).json({ error: "Address not found" });
+      }
+      // Ensure the address belongs to the current user
+      if (address.userId !== req.user.id) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const updatedAddress = await storage.setDefaultAddress(req.user.id, req.params.id);
+      res.json(updatedAddress);
+    } catch (error) {
+      console.error("Error setting default address:", error);
+      res.status(500).json({ error: "Failed to set default address" });
+    }
+  });
+
   // Chat routes
   app.get("/api/orders/:id/chat", async (req, res) => {
     if (!req.isAuthenticated()) {
