@@ -298,6 +298,24 @@ export const riderLocationHistory = pgTable("rider_location_history", {
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
+// Saved addresses table - Customer delivery addresses
+export const savedAddresses = pgTable("saved_addresses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  label: text("label"), // e.g., "Home", "Office", "Mom's House"
+  lotHouseNo: text("lot_house_no").notNull(),
+  street: text("street").notNull(),
+  barangay: text("barangay").notNull(),
+  cityMunicipality: text("city_municipality").notNull(),
+  province: text("province").notNull(),
+  landmark: text("landmark"),
+  latitude: decimal("latitude", { precision: 10, scale: 8 }).notNull(),
+  longitude: decimal("longitude", { precision: 11, scale: 8 }).notNull(),
+  isDefault: boolean("is_default").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // System settings table
 export const systemSettings = pgTable("system_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -317,6 +335,11 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   rider: one(riders, { fields: [users.id], references: [riders.userId] }),
   wallet: one(wallets, { fields: [users.id], references: [wallets.userId] }),
   sentMessages: many(chatMessages),
+  savedAddresses: many(savedAddresses),
+}));
+
+export const savedAddressesRelations = relations(savedAddresses, ({ one }) => ({
+  user: one(users, { fields: [savedAddresses.userId], references: [users.id] }),
 }));
 
 export const restaurantsRelations = relations(restaurants, ({ one, many }) => ({
@@ -434,6 +457,12 @@ export const insertOrderStatusHistorySchema = createInsertSchema(orderStatusHist
 export const insertRiderLocationHistorySchema = createInsertSchema(riderLocationHistory).omit({
   id: true,
   timestamp: true,
+});
+
+export const insertSavedAddressSchema = createInsertSchema(savedAddresses).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 // Role-specific Registration Schemas - Philippine Standards
@@ -572,4 +601,6 @@ export type OrderStatusHistory = typeof orderStatusHistory.$inferSelect;
 export type InsertOrderStatusHistory = z.infer<typeof insertOrderStatusHistorySchema>;
 export type RiderLocationHistory = typeof riderLocationHistory.$inferSelect;
 export type InsertRiderLocationHistory = z.infer<typeof insertRiderLocationHistorySchema>;
+export type SavedAddress = typeof savedAddresses.$inferSelect;
+export type InsertSavedAddress = z.infer<typeof insertSavedAddressSchema>;
 export type SystemSettings = typeof systemSettings.$inferSelect;

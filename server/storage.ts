@@ -204,6 +204,8 @@ export class DatabaseStorage implements IStorage {
         ownerLastName: users.lastName,
         cuisine: restaurants.cuisine,
         address: restaurants.address,
+        latitude: restaurants.latitude,
+        longitude: restaurants.longitude,
         phone: restaurants.phone,
         email: restaurants.email,
         image: restaurants.image,
