@@ -16,6 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useWebSocket } from "@/lib/websocket";
 import { useAuth } from "@/hooks/use-auth";
 import { MenuItemOptionsModal } from "@/components/MenuItemOptionsModal";
+import { AddressSelector } from "@/components/address-selector";
+import type { SavedAddress } from "@shared/schema";
 
 interface Restaurant {
   id: string;
@@ -105,7 +107,7 @@ export default function CustomerPortal() {
   const [showCart, setShowCart] = useState(false);
   const [showAllCarts, setShowAllCarts] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
-  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [selectedAddress, setSelectedAddress] = useState<SavedAddress | null>(null);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [specialInstructions, setSpecialInstructions] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
@@ -433,7 +435,7 @@ export default function CustomerPortal() {
       return;
     }
 
-    if (!deliveryAddress.trim() || !phoneNumber.trim()) {
+    if (!selectedAddress || !phoneNumber.trim()) {
       toast({
         title: "Missing information",
         description: "Please fill in your delivery address and phone number.",
@@ -459,6 +461,14 @@ export default function CustomerPortal() {
         const markupAmount = (subtotal * restaurantCart.markup) / 100;
         const total = subtotal + markupAmount + restaurantCart.deliveryFee;
 
+        const deliveryAddress = [
+          selectedAddress.lotHouseNo,
+          selectedAddress.street,
+          selectedAddress.barangay,
+          selectedAddress.cityMunicipality,
+          selectedAddress.province
+        ].filter(Boolean).join(", ");
+
         return {
           restaurantId: restaurantCart.restaurantId,
           items: restaurantCart.items.map(item => ({
@@ -472,6 +482,8 @@ export default function CustomerPortal() {
           deliveryFee: restaurantCart.deliveryFee.toFixed(2),
           total: total.toFixed(2),
           deliveryAddress,
+          deliveryLatitude: selectedAddress.latitude,
+          deliveryLongitude: selectedAddress.longitude,
           phoneNumber,
           specialInstructions,
           paymentMethod,
@@ -824,15 +836,11 @@ export default function CustomerPortal() {
               <DialogTitle>Checkout</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Delivery Address *</label>
-                <Input
-                  value={deliveryAddress}
-                  onChange={(e) => setDeliveryAddress(e.target.value)}
-                  placeholder="Enter your delivery address"
-                  data-testid="input-delivery-address"
-                />
-              </div>
+              <AddressSelector
+                value={selectedAddress}
+                onChange={setSelectedAddress}
+                disabled={placeOrderMutation.isPending}
+              />
               
               <div>
                 <label className="block text-sm font-medium mb-2">Phone Number *</label>
@@ -1321,15 +1329,11 @@ export default function CustomerPortal() {
               <DialogTitle>Checkout</DialogTitle>
             </DialogHeader>
             <div className="space-y-6">
-              <div>
-                <label className="text-sm font-medium mb-2 block">Delivery Address</label>
-                <Input
-                  value={deliveryAddress}
-                  onChange={(e) => setDeliveryAddress(e.target.value)}
-                  placeholder="Enter your delivery address"
-                  data-testid="input-delivery-address"
-                />
-              </div>
+              <AddressSelector
+                value={selectedAddress}
+                onChange={setSelectedAddress}
+                disabled={placeOrderMutation.isPending}
+              />
 
               <div>
                 <label className="text-sm font-medium mb-2 block">Phone Number</label>
