@@ -504,27 +504,6 @@ export default function CustomerPortal() {
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold">Menu</h2>
-            {(() => {
-              const restaurantCart = cart.allCarts[selectedRestaurant.id];
-              const itemCount = restaurantCart?.items.reduce((sum, item) => sum + item.quantity, 0) || 0;
-              
-              if (itemCount > 0) {
-                return (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      cart.switchCart(selectedRestaurant.id);
-                      setShowCart(true);
-                    }}
-                    data-testid="button-view-cart-menu"
-                  >
-                    <ShoppingCart className="mr-2 h-4 w-4" />
-                    Cart ({itemCount})
-                  </Button>
-                );
-              }
-              return null;
-            })()}
           </div>
           
           {menuItems.length === 0 ? (
@@ -1070,23 +1049,6 @@ export default function CustomerPortal() {
                         </div>
                         <span className="text-green-600 font-medium">₱{restaurant.deliveryFee} delivery</span>
                       </div>
-                      
-                      {itemCount > 0 && (
-                        <Button
-                          size="sm"
-                          variant="default"
-                          className="w-full mt-3"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            cart.switchCart(restaurant.id);
-                            setShowCart(true);
-                          }}
-                          data-testid={`button-view-cart-${restaurant.id}`}
-                        >
-                          <ShoppingCart className="mr-2 h-4 w-4" />
-                          View Cart ({itemCount})
-                        </Button>
-                      )}
                     </CardContent>
                   </Card>
                 );
