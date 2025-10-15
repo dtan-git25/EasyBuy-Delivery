@@ -1,4 +1,4 @@
-import { users, restaurants, menuItems, categories, riders, wallets, orders, chatMessages, systemSettings, walletTransactions, orderStatusHistory, riderLocationHistory, optionTypes, menuItemOptionValues, type User, type InsertUser, type Restaurant, type RestaurantWithOwner, type InsertRestaurant, type MenuItem, type InsertMenuItem, type Category, type InsertCategory, type Rider, type InsertRider, type Order, type InsertOrder, type ChatMessage, type InsertChatMessage, type Wallet, type SystemSettings, type WalletTransaction, type InsertWalletTransaction, type OrderStatusHistory, type InsertOrderStatusHistory, type RiderLocationHistory, type InsertRiderLocationHistory, type OptionType, type InsertOptionType, type MenuItemOptionValue, type InsertMenuItemOptionValue } from "@shared/schema";
+import { users, restaurants, menuItems, categories, riders, wallets, orders, chatMessages, systemSettings, walletTransactions, orderStatusHistory, riderLocationHistory, optionTypes, menuItemOptionValues, savedAddresses, type User, type InsertUser, type Restaurant, type RestaurantWithOwner, type InsertRestaurant, type MenuItem, type InsertMenuItem, type Category, type InsertCategory, type Rider, type InsertRider, type Order, type InsertOrder, type ChatMessage, type InsertChatMessage, type Wallet, type SystemSettings, type WalletTransaction, type InsertWalletTransaction, type OrderStatusHistory, type InsertOrderStatusHistory, type RiderLocationHistory, type InsertRiderLocationHistory, type OptionType, type InsertOptionType, type MenuItemOptionValue, type InsertMenuItemOptionValue, type SavedAddress, type InsertSavedAddress } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc } from "drizzle-orm";
 import session from "express-session";
@@ -69,6 +69,14 @@ export interface IStorage {
   getWallet(userId: string): Promise<Wallet | undefined>;
   createWallet(userId: string): Promise<Wallet>;
   updateWalletBalance(userId: string, amount: number): Promise<Wallet | undefined>;
+
+  // Saved address operations
+  getSavedAddresses(userId: string): Promise<SavedAddress[]>;
+  getSavedAddress(id: string): Promise<SavedAddress | undefined>;
+  createSavedAddress(address: InsertSavedAddress): Promise<SavedAddress>;
+  updateSavedAddress(id: string, updates: Partial<SavedAddress>): Promise<SavedAddress | undefined>;
+  deleteSavedAddress(id: string): Promise<void>;
+  setDefaultAddress(userId: string, addressId: string): Promise<SavedAddress | undefined>;
 
   // Order operations
   getOrders(): Promise<Order[]>;
@@ -424,6 +432,54 @@ export class DatabaseStorage implements IStorage {
       .where(eq(wallets.userId, userId))
       .returning();
     return wallet || undefined;
+  }
+
+  // Saved address operations
+  async getSavedAddresses(userId: string): Promise<SavedAddress[]> {
+    return await db
+      .select()
+      .from(savedAddresses)
+      .where(eq(savedAddresses.userId, userId))
+      .orderBy(desc(savedAddresses.isDefault), desc(savedAddresses.createdAt));
+  }
+
+  async getSavedAddress(id: string): Promise<SavedAddress | undefined> {
+    const [address] = await db.select().from(savedAddresses).where(eq(savedAddresses.id, id));
+    return address || undefined;
+  }
+
+  async createSavedAddress(address: InsertSavedAddress): Promise<SavedAddress> {
+    const [newAddress] = await db.insert(savedAddresses).values(address).returning();
+    return newAddress;
+  }
+
+  async updateSavedAddress(id: string, updates: Partial<SavedAddress>): Promise<SavedAddress | undefined> {
+    const [address] = await db
+      .update(savedAddresses)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(savedAddresses.id, id))
+      .returning();
+    return address || undefined;
+  }
+
+  async deleteSavedAddress(id: string): Promise<void> {
+    await db.delete(savedAddresses).where(eq(savedAddresses.id, id));
+  }
+
+  async setDefaultAddress(userId: string, addressId: string): Promise<SavedAddress | undefined> {
+    // First, unset all default addresses for this user
+    await db
+      .update(savedAddresses)
+      .set({ isDefault: false })
+      .where(eq(savedAddresses.userId, userId));
+    
+    // Then, set the specified address as default
+    const [address] = await db
+      .update(savedAddresses)
+      .set({ isDefault: true, updatedAt: new Date() })
+      .where(and(eq(savedAddresses.id, addressId), eq(savedAddresses.userId, userId)))
+      .returning();
+    return address || undefined;
   }
 
   async getOrders(): Promise<Order[]> {
