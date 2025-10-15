@@ -486,7 +486,12 @@ export default function CustomerPortal() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setSelectedRestaurant(null)}
+              onClick={() => {
+                setSelectedRestaurant(null);
+                setShowReplaceCartDialog(false);
+                setPendingMenuItem(null);
+                setReplacementScenario(null);
+              }}
               className="text-white hover:bg-white/20"
               data-testid="button-back-to-restaurants"
             >
@@ -1031,7 +1036,12 @@ export default function CustomerPortal() {
                   <Card 
                     key={restaurant.id} 
                     className="cursor-pointer transition-transform hover:scale-105 hover:shadow-lg relative"
-                    onClick={() => setSelectedRestaurant(restaurant)}
+                    onClick={() => {
+                      setSelectedRestaurant(restaurant);
+                      setShowReplaceCartDialog(false);
+                      setPendingMenuItem(null);
+                      setReplacementScenario(null);
+                    }}
                     data-testid={`restaurant-${restaurant.id}`}
                   >
                     <div className="w-full h-48 bg-muted rounded-t-lg overflow-hidden">
@@ -1419,26 +1429,16 @@ export default function CustomerPortal() {
           <AlertDialogHeader>
             <AlertDialogTitle>Replace cart items?</AlertDialogTitle>
             <AlertDialogDescription className="text-sm">
-              {replacementScenario === 'single-merchant' && (() => {
-                const allCartsArray = Object.values(cart.allCarts);
-                const currentRestaurants = allCartsArray.map((c: any) => c.restaurantName).join(', ');
-                return (
-                  <>
-                    You have items from <strong>{currentRestaurants}</strong> in your cart. Adding items from <strong>{selectedRestaurant?.name}</strong> will replace your current cart. Continue?
-                  </>
-                );
-              })()}
-              {replacementScenario === 'max-limit' && (() => {
-                const allCartsArray = Object.values(cart.allCarts);
-                const oldestCart = allCartsArray[0] as any;
-                const restaurantNames = allCartsArray.map((c: any) => c.restaurantName).join(' and ');
-                
-                return (
-                  <>
-                    You've reached the maximum of <strong>{cart.maxMerchantsPerOrder} restaurants</strong> per order. You currently have items from <strong>{restaurantNames}</strong>. Adding from <strong>{selectedRestaurant?.name}</strong> will remove items from <strong>{oldestCart?.restaurantName}</strong>. Continue?
-                  </>
-                );
-              })()}
+              {replacementScenario === 'single-merchant' && (
+                <div>
+                  You have items from <strong>{Object.values(cart.allCarts).map((c: any) => c.restaurantName).join(', ')}</strong> in your cart. Adding items from <strong>{selectedRestaurant?.name}</strong> will replace your current cart. Continue?
+                </div>
+              )}
+              {replacementScenario === 'max-limit' && (
+                <div>
+                  You've reached the maximum of <strong>{cart.maxMerchantsPerOrder} restaurants</strong> per order. You currently have items from <strong>{Object.values(cart.allCarts).map((c: any) => c.restaurantName).join(' and ')}</strong>. Adding from <strong>{selectedRestaurant?.name}</strong> will remove items from <strong>{Object.values(cart.allCarts)[0]?.restaurantName}</strong>. Continue?
+                </div>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
