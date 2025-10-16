@@ -176,52 +176,62 @@ export function AddressSelector({ value, onChange, disabled }: AddressSelectorPr
 
   useEffect(() => {
     if (isModalOpen && mapContainerRef.current && !mapRef.current) {
-      // Initialize map
-      const map = L.map(mapContainerRef.current).setView([mapLocation.lat, mapLocation.lng], 13);
-      
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      }).addTo(map);
+      // Add a small delay to ensure the dialog is fully rendered
+      const timeoutId = setTimeout(() => {
+        if (!mapContainerRef.current) return;
 
-      // Add marker
-      const marker = L.marker([mapLocation.lat, mapLocation.lng], {
-        draggable: true,
-      }).addTo(map);
+        // Initialize map
+        const map = L.map(mapContainerRef.current).setView([mapLocation.lat, mapLocation.lng], 13);
+        
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        }).addTo(map);
 
-      marker.on("dragend", () => {
-        const position = marker.getLatLng();
-        setMapLocation({ lat: position.lat, lng: position.lng });
-        form.setValue("latitude", position.lat.toString());
-        form.setValue("longitude", position.lng.toString());
-      });
+        // Force map to recalculate size after initialization
+        setTimeout(() => map.invalidateSize(), 100);
 
-      map.on("click", (e) => {
-        const { lat, lng } = e.latlng;
-        marker.setLatLng([lat, lng]);
-        setMapLocation({ lat, lng });
-        form.setValue("latitude", lat.toString());
-        form.setValue("longitude", lng.toString());
-      });
+        // Add marker
+        const marker = L.marker([mapLocation.lat, mapLocation.lng], {
+          draggable: true,
+        }).addTo(map);
 
-      mapRef.current = map;
-      markerRef.current = marker;
+        marker.on("dragend", () => {
+          const position = marker.getLatLng();
+          setMapLocation({ lat: position.lat, lng: position.lng });
+          form.setValue("latitude", position.lat.toString());
+          form.setValue("longitude", position.lng.toString());
+        });
 
-      // Request user's location
-      if (navigator.geolocation && !editingAddress) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const { latitude, longitude } = position.coords;
-            map.setView([latitude, longitude], 15);
-            marker.setLatLng([latitude, longitude]);
-            setMapLocation({ lat: latitude, lng: longitude });
-            form.setValue("latitude", latitude.toString());
-            form.setValue("longitude", longitude.toString());
-          },
-          (error) => {
-            console.error("Error getting location:", error);
-          }
-        );
-      }
+        map.on("click", (e) => {
+          const { lat, lng } = e.latlng;
+          marker.setLatLng([lat, lng]);
+          setMapLocation({ lat, lng });
+          form.setValue("latitude", lat.toString());
+          form.setValue("longitude", lng.toString());
+        });
+
+        mapRef.current = map;
+        markerRef.current = marker;
+
+        // Request user's location
+        if (navigator.geolocation && !editingAddress) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const { latitude, longitude } = position.coords;
+              map.setView([latitude, longitude], 15);
+              marker.setLatLng([latitude, longitude]);
+              setMapLocation({ lat: latitude, lng: longitude });
+              form.setValue("latitude", latitude.toString());
+              form.setValue("longitude", longitude.toString());
+            },
+            (error) => {
+              console.error("Error getting location:", error);
+            }
+          );
+        }
+      }, 100);
+
+      return () => clearTimeout(timeoutId);
     }
 
     return () => {
