@@ -18,6 +18,8 @@ import MerchantPortal from "@/components/portals/merchant-portal";
 import AdminPortal from "@/components/portals/admin-portal";
 import ChatWidget from "@/components/chat/chat-widget";
 import { cn } from "@/lib/utils";
+import { AddressSelector } from "@/components/address-selector";
+import type { SavedAddress } from "@shared/schema";
 
 type Portal = 'customer' | 'rider' | 'merchant' | 'admin' | 'owner';
 
@@ -27,7 +29,7 @@ export default function Dashboard() {
   const [showAllCarts, setShowAllCarts] = useState(false);
   const [showCart, setShowCart] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
-  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [selectedAddress, setSelectedAddress] = useState<SavedAddress | null>(null);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [specialInstructions, setSpecialInstructions] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
@@ -44,7 +46,7 @@ export default function Dashboard() {
     onSuccess: () => {
       cart.clearAllCarts();
       setShowCheckout(false);
-      setDeliveryAddress("");
+      setSelectedAddress(null);
       setPhoneNumber("");
       setSpecialInstructions("");
       setPaymentMethod("cash");
@@ -75,7 +77,7 @@ export default function Dashboard() {
       return;
     }
 
-    if (!deliveryAddress || !phoneNumber) {
+    if (!selectedAddress || !phoneNumber) {
       toast({
         title: "Missing information",
         description: "Please provide delivery address and phone number.",
@@ -83,6 +85,14 @@ export default function Dashboard() {
       });
       return;
     }
+
+    const deliveryAddress = [
+      selectedAddress.lotHouseNo,
+      selectedAddress.street,
+      selectedAddress.barangay,
+      selectedAddress.cityMunicipality,
+      selectedAddress.province,
+    ].filter(Boolean).join(", ");
 
     try {
       for (const restaurantCart of allCarts) {
@@ -104,6 +114,8 @@ export default function Dashboard() {
           deliveryFee: deliveryFee.toFixed(2),
           total: total.toFixed(2),
           deliveryAddress,
+          deliveryLatitude: selectedAddress.latitude,
+          deliveryLongitude: selectedAddress.longitude,
           phoneNumber,
           specialInstructions,
           paymentMethod,
@@ -115,7 +127,7 @@ export default function Dashboard() {
 
       cart.clearAllCarts();
       setShowCheckout(false);
-      setDeliveryAddress("");
+      setSelectedAddress(null);
       setPhoneNumber("");
       setSpecialInstructions("");
       setPaymentMethod("cash");
@@ -569,15 +581,11 @@ export default function Dashboard() {
               <DialogTitle>Checkout</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Delivery Address *</label>
-                <Input
-                  value={deliveryAddress}
-                  onChange={(e) => setDeliveryAddress(e.target.value)}
-                  placeholder="Enter your delivery address"
-                  data-testid="input-delivery-address"
-                />
-              </div>
+              <AddressSelector
+                value={selectedAddress}
+                onChange={setSelectedAddress}
+                disabled={createOrderMutation.isPending}
+              />
               
               <div>
                 <label className="block text-sm font-medium mb-2">Phone Number *</label>
