@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,8 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { MapPin, Plus, Edit, Trash2, Star, Navigation, CheckCircle } from "lucide-react";
+import { MapPin, Plus, Edit, Trash2, Star, Navigation, Search } from "lucide-react";
 import type { SavedAddress } from "@shared/schema";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
 const addressSchema = z.object({
   label: z.string().optional(),
@@ -36,9 +38,11 @@ interface AddressSelectorProps {
 export function AddressSelector({ value, onChange, disabled }: AddressSelectorProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<SavedAddress | null>(null);
-  const [locationShared, setLocationShared] = useState(false);
-  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [isSearchingAddress, setIsSearchingAddress] = useState(false);
   const { toast } = useToast();
+  const mapRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
 
   const { data: addresses = [], isLoading } = useQuery<SavedAddress[]>({
     queryKey: ["/api/saved-addresses"],
@@ -54,8 +58,8 @@ export function AddressSelector({ value, onChange, disabled }: AddressSelectorPr
       cityMunicipality: "",
       province: "",
       landmark: "",
-      latitude: "14.5995",
-      longitude: "120.9842",
+      latitude: "12.8797",
+      longitude: "121.7740",
     },
   });
 
@@ -152,44 +156,104 @@ export function AddressSelector({ value, onChange, disabled }: AddressSelectorPr
     },
   });
 
-  const handleShareLocation = () => {
-    if (!navigator.geolocation) {
+  // Initialize map when modal opens
+  useEffect(() => {
+    if (isModalOpen && mapContainerRef.current && !mapRef.current) {
+      // Get initial coordinates from form or use Philippines default
+      const lat = parseFloat(form.watch("latitude") || "12.8797");
+      const lng = parseFloat(form.watch("longitude") || "121.7740");
+      
+      // Create map instance
+      const map = L.map(mapContainerRef.current).setView([lat, lng], 6);
+      
+      // Add OpenStreetMap tiles
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      }).addTo(map);
+      
+      // Create draggable marker
+      const marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+      
+      // Update coordinates when marker is dragged
+      marker.on("dragend", () => {
+        const position = marker.getLatLng();
+        form.setValue("latitude", position.lat.toFixed(6));
+        form.setValue("longitude", position.lng.toFixed(6));
+      });
+      
+      mapRef.current = map;
+      markerRef.current = marker;
+      
+      // Fix layout after render
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 100);
+    }
+    
+    // Always cleanup map when component unmounts or modal closes
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+        markerRef.current = null;
+      }
+    };
+  }, [isModalOpen, form]);
+
+  // Search address on map using geocoding
+  const handleSearchAddressOnMap = async () => {
+    const address = `${form.watch("lotHouseNo")} ${form.watch("street")}, ${form.watch("barangay")}, ${form.watch("cityMunicipality")}, ${form.watch("province")}`;
+    
+    if (!address.trim()) {
       toast({
-        title: "Location Not Supported",
-        description: "Your browser doesn't support location services",
+        title: "No Address",
+        description: "Please fill in the address fields first",
         variant: "destructive",
       });
       return;
     }
 
-    setIsGettingLocation(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        form.setValue("latitude", latitude.toString());
-        form.setValue("longitude", longitude.toString());
-        setLocationShared(true);
-        setIsGettingLocation(false);
+    setIsSearchingAddress(true);
+    try {
+      const response = await fetch(`/api/geocode?address=${encodeURIComponent(address)}`);
+      const data = await response.json();
+      
+      if (data.coordinates) {
+        const { latitude, longitude } = data.coordinates;
+        form.setValue("latitude", latitude);
+        form.setValue("longitude", longitude);
+        
+        // Update map view and marker position
+        if (mapRef.current && markerRef.current) {
+          mapRef.current.setView([parseFloat(latitude), parseFloat(longitude)], 15);
+          markerRef.current.setLatLng([parseFloat(latitude), parseFloat(longitude)]);
+        }
+        
         toast({
-          title: "Location Captured",
-          description: "Your precise location has been saved",
+          title: "Address Found",
+          description: "Map centered to your address. Drag the pin to adjust.",
         });
-      },
-      (error) => {
-        setIsGettingLocation(false);
+      } else {
         toast({
-          title: "Location Error",
-          description: "Unable to get your location. Your address will be geocoded instead.",
+          title: "Address Not Found",
+          description: "Could not find location. Please drag the pin manually.",
           variant: "destructive",
         });
       }
-    );
+    } catch (error) {
+      toast({
+        title: "Search Error",
+        description: "Failed to search address. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSearchingAddress(false);
+    }
   };
 
   const handleOpenModal = (address?: SavedAddress) => {
     if (address) {
       setEditingAddress(address);
-      setLocationShared(!!address.latitude && !!address.longitude);
       form.reset({
         label: address.label || "",
         lotHouseNo: address.lotHouseNo,
@@ -198,12 +262,11 @@ export function AddressSelector({ value, onChange, disabled }: AddressSelectorPr
         cityMunicipality: address.cityMunicipality,
         province: address.province,
         landmark: address.landmark || "",
-        latitude: address.latitude,
-        longitude: address.longitude,
+        latitude: address.latitude || "12.8797",
+        longitude: address.longitude || "121.7740",
       });
     } else {
       setEditingAddress(null);
-      setLocationShared(false);
       form.reset({
         label: "",
         lotHouseNo: "",
@@ -212,8 +275,8 @@ export function AddressSelector({ value, onChange, disabled }: AddressSelectorPr
         cityMunicipality: "",
         province: "",
         landmark: "",
-        latitude: "",
-        longitude: "",
+        latitude: "12.8797",
+        longitude: "121.7740",
       });
     }
     setIsModalOpen(true);
@@ -423,51 +486,42 @@ export function AddressSelector({ value, onChange, disabled }: AddressSelectorPr
 
             <div className="space-y-3">
               <Label className="flex items-center gap-2">
-                <Navigation className="h-4 w-4" />
-                Share Your Location (Optional)
+                <MapPin className="h-4 w-4" />
+                Pin Your Location on Map
               </Label>
               <p className="text-sm text-muted-foreground">
-                Share your precise location for accurate delivery fees, or skip this and we'll estimate based on your address.
+                Drag the pin to your exact location for accurate delivery fees. Or search your address to auto-center the map.
               </p>
               
-              {!locationShared ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleShareLocation}
-                  disabled={isGettingLocation}
-                  data-testid="button-share-location"
-                  className="w-full"
-                >
-                  <Navigation className="h-4 w-4 mr-2" />
-                  {isGettingLocation ? "Getting Location..." : "Share My Location"}
-                </Button>
-              ) : (
-                <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-md">
-                  <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-green-900 dark:text-green-100">
-                      Location Captured
-                    </p>
-                    <p className="text-xs text-green-700 dark:text-green-300">
-                      Coordinates: {form.watch("latitude")}, {form.watch("longitude")}
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setLocationShared(false);
-                      form.setValue("latitude", "");
-                      form.setValue("longitude", "");
-                    }}
-                    data-testid="button-clear-location"
-                  >
-                    Clear
-                  </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleSearchAddressOnMap}
+                disabled={isSearchingAddress}
+                data-testid="button-search-address-map"
+                className="w-full mb-3"
+              >
+                <Search className="h-4 w-4 mr-2" />
+                {isSearchingAddress ? "Searching..." : "Search Address on Map"}
+              </Button>
+              
+              {/* Leaflet Map Container */}
+              <div 
+                ref={mapContainerRef} 
+                className="h-64 w-full rounded-lg border border-border overflow-hidden"
+                data-testid="map-container"
+              />
+              
+              {/* Display current coordinates */}
+              <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                <div className="flex-1 text-sm">
+                  <span className="font-medium">Current Pin Location: </span>
+                  <span className="text-muted-foreground">
+                    Lat: {form.watch("latitude")}, Lng: {form.watch("longitude")}
+                  </span>
                 </div>
-              )}
+              </div>
             </div>
 
             <div className="flex justify-end gap-2">
