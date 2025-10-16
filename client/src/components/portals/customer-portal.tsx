@@ -85,20 +85,6 @@ interface OrderStatusHistory {
   };
 }
 
-interface RiderLocationHistory {
-  id: string;
-  riderId: string;
-  orderId?: string;
-  latitude: string;
-  longitude: string;
-  accuracy?: string;
-  heading?: string;
-  speed?: string;
-  batteryLevel?: number;
-  isOnline: boolean;
-  timestamp: string;
-}
-
 export default function CustomerPortal() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("distance");
@@ -182,18 +168,6 @@ export default function CustomerPortal() {
     },
   });
 
-  const { data: riderLocation } = useQuery<RiderLocationHistory>({
-    queryKey: ["/api/rider", selectedOrderForTracking, "location"],
-    enabled: !!selectedOrderForTracking && !!orders.find(o => o.id === selectedOrderForTracking)?.riderId,
-    queryFn: async () => {
-      const order = orders.find(o => o.id === selectedOrderForTracking);
-      if (!order?.riderId) return null;
-      const response = await fetch(`/api/rider/${order.riderId}/location/latest`);
-      return response.json();
-    },
-    refetchInterval: 30000, // Refresh every 30 seconds for live tracking
-  });
-
   // Create order mutation for all carts
   const createOrderMutation = useMutation({
     mutationFn: async (ordersData: any[]) => {
@@ -265,16 +239,6 @@ export default function CustomerPortal() {
                   title: `New message from ${senderName}`,
                   description: order ? `Order #${order.orderNumber}: ${data.message?.message || ''}` : data.message?.message || '',
                 });
-              }
-              break;
-
-            case 'rider_location_update':
-              // Update rider location for active tracking
-              if (selectedOrderForTracking) {
-                const order = orders.find(o => o.id === selectedOrderForTracking);
-                if (order?.riderId === data.riderId) {
-                  queryClient.invalidateQueries({ queryKey: ["/api/rider", selectedOrderForTracking, "location"] });
-                }
               }
               break;
           }
@@ -1196,30 +1160,6 @@ export default function CustomerPortal() {
                                 </div>
                               </div>
                             ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Live Rider Tracking */}
-                      {selectedOrderForTracking === order.id && order.riderId && riderLocation && (
-                        <div className="mt-6 border-t pt-4">
-                          <h4 className="font-medium mb-4">Live Rider Tracking</h4>
-                          <div className="bg-muted rounded-lg p-4">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm font-medium">Rider Location</span>
-                              <Badge variant="outline" className="text-green-600">
-                                <div className="w-2 h-2 bg-green-600 rounded-full mr-2" />
-                                Live
-                              </Badge>
-                            </div>
-                            <div className="text-sm text-muted-foreground space-y-1">
-                              <p>Lat: {parseFloat(riderLocation.latitude).toFixed(6)}</p>
-                              <p>Lng: {parseFloat(riderLocation.longitude).toFixed(6)}</p>
-                              {riderLocation.speed && (
-                                <p>Speed: {parseFloat(riderLocation.speed).toFixed(1)} km/h</p>
-                              )}
-                              <p>Last updated: {new Date(riderLocation.timestamp).toLocaleString()}</p>
-                            </div>
                           </div>
                         </div>
                       )}
