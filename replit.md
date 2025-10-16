@@ -40,16 +40,18 @@ Preferred communication style: Simple, everyday language.
 - Real-time order status tracking and notifications.
 
 ### Location Services
-- GPS integration for current location detection with browser Geolocation API.
-- Dynamic delivery fee calculation based on distance.
+- **Browser Geolocation API**: Optional "Share Location" button for customers to provide precise coordinates for accurate delivery fee calculation.
+- **Geocoding Fallback**: OpenStreetMap Nominatim API automatically geocodes text addresses when precise coordinates aren't shared.
+- **Distance-Based Delivery Fees**: Haversine formula calculates distance between restaurant and delivery location, applying configurable base fee + per-km rate from system settings.
 - **Saved Addresses System**: Customers can save multiple delivery addresses with:
   - Structured Philippine address format (Lot/House No., Street, Barangay, City/Municipality, Province, Landmark)
-  - Interactive Leaflet.js map with draggable marker for precise location pinning
-  - Latitude/longitude coordinates stored with each address
+  - Optional location sharing for precise coordinates (latitude/longitude)
+  - Automatic geocoding for addresses without coordinates
   - Label addresses (e.g., "Home", "Office", "Mom's House")
   - Set default address for quick checkout
   - Edit, delete, and manage multiple saved addresses
-  - Address dropdown selector in checkout with map visualization
+  - Address dropdown selector in checkout
+- **Rider Delivery View**: Enhanced rider portal displays delivery addresses with "View on Map" button when coordinates are available, opening OpenStreetMap for navigation.
 
 ### Business Logic
 - **Pricing**: Multi-tier model including markup, delivery fees, merchant fees, and convenience fees.
@@ -101,6 +103,6 @@ Preferred communication style: Simple, everyday language.
 - Document management for rider verification.
 
 ### Location & Maps
-- **Leaflet.js**: Open-source map library for interactive maps with draggable markers.
-- **OpenStreetMap**: Map tiles for location visualization.
-- **Geolocation API**: Browser-based location detection for auto-location.
+- **OpenStreetMap**: Map provider for location visualization and rider navigation.
+- **Nominatim API**: Free geocoding service (OpenStreetMap) for converting addresses to coordinates.
+- **Geolocation API**: Browser-based location detection for optional precise coordinate sharing.
