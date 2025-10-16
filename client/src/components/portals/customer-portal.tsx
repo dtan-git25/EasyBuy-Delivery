@@ -835,7 +835,7 @@ export default function CustomerPortal() {
               <AddressSelector
                 value={selectedAddress}
                 onChange={setSelectedAddress}
-                disabled={placeOrderMutation.isPending}
+                disabled={createOrderMutation.isPending}
               />
               
               <div>
@@ -1328,7 +1328,7 @@ export default function CustomerPortal() {
               <AddressSelector
                 value={selectedAddress}
                 onChange={setSelectedAddress}
-                disabled={placeOrderMutation.isPending}
+                disabled={createOrderMutation.isPending}
               />
 
               <div>
