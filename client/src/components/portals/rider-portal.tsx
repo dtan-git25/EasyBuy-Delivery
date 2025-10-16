@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bike, Wallet, Clock, Star, MapPin, Phone, User, Upload, FileText, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { Bike, Wallet, Clock, Star, MapPin, Phone, User, Upload, FileText, CheckCircle, XCircle, AlertCircle, Map } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useWebSocket } from "@/lib/websocket";
@@ -673,9 +673,26 @@ export default function RiderPortal() {
                               <User className="mr-2 h-4 w-4" />
                               {order.customer.name}
                             </div>
-                            <div className="flex items-center">
-                              <MapPin className="mr-2 h-4 w-4" />
-                              {order.customer.address}
+                            <div className="flex items-start">
+                              <MapPin className="mr-2 h-4 w-4 mt-0.5 flex-shrink-0" />
+                              <div className="flex-1">
+                                <div>{order.customer.address}</div>
+                                {(order as any).deliveryLatitude && (order as any).deliveryLongitude && (
+                                  <Button
+                                    variant="link"
+                                    size="sm"
+                                    className="h-auto p-0 text-xs text-primary hover:underline mt-1"
+                                    onClick={() => window.open(
+                                      `https://www.openstreetmap.org/?mlat=${(order as any).deliveryLatitude}&mlon=${(order as any).deliveryLongitude}#map=17/${(order as any).deliveryLatitude}/${(order as any).deliveryLongitude}`,
+                                      '_blank'
+                                    )}
+                                    data-testid={`button-view-map-${order.id}`}
+                                  >
+                                    <Map className="h-3 w-3 mr-1" />
+                                    View on Map
+                                  </Button>
+                                )}
+                              </div>
                             </div>
                             <div className="flex items-center">
                               <Phone className="mr-2 h-4 w-4" />
@@ -739,30 +756,67 @@ export default function RiderPortal() {
                             {order.status.replace('_', ' ').toUpperCase()}
                           </Badge>
                         </div>
-                        <div className="flex space-x-2">
-                          {order.status === 'accepted' && (
-                            <Button 
-                              size="sm"
-                              onClick={() => updateOrderStatus(order.id, 'picked_up')}
-                              data-testid={`button-pickup-${order.id}`}
-                            >
-                              Picked Up
-                            </Button>
-                          )}
-                          {order.status === 'picked_up' && (
-                            <Button 
-                              size="sm"
-                              onClick={() => updateOrderStatus(order.id, 'delivered')}
-                              data-testid={`button-delivered-${order.id}`}
-                            >
-                              Delivered
-                            </Button>
-                          )}
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-foreground">₱{order.total}</p>
                         </div>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        Total: ₱{order.total}
-                      </p>
+
+                      <div className="grid md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <h5 className="font-medium text-foreground mb-2">Delivery Address</h5>
+                          <div className="space-y-1 text-sm text-muted-foreground">
+                            <div className="flex items-start">
+                              <MapPin className="mr-2 h-4 w-4 mt-0.5 flex-shrink-0" />
+                              <div className="flex-1">
+                                <div>{order.deliveryAddress}</div>
+                                {order.deliveryLatitude && order.deliveryLongitude && (
+                                  <Button
+                                    variant="link"
+                                    size="sm"
+                                    className="h-auto p-0 text-xs text-primary hover:underline mt-1"
+                                    onClick={() => window.open(
+                                      `https://www.openstreetmap.org/?mlat=${order.deliveryLatitude}&mlon=${order.deliveryLongitude}#map=17/${order.deliveryLatitude}/${order.deliveryLongitude}`,
+                                      '_blank'
+                                    )}
+                                    data-testid={`button-view-map-active-${order.id}`}
+                                  >
+                                    <Map className="h-3 w-3 mr-1" />
+                                    View on Map
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center">
+                              <Phone className="mr-2 h-4 w-4" />
+                              {order.phoneNumber}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div>
+                          <h5 className="font-medium text-foreground mb-2">Actions</h5>
+                          <div className="flex flex-col space-y-2">
+                            {order.status === 'accepted' && (
+                              <Button 
+                                size="sm"
+                                onClick={() => updateOrderStatus(order.id, 'picked_up')}
+                                data-testid={`button-pickup-${order.id}`}
+                              >
+                                Mark as Picked Up
+                              </Button>
+                            )}
+                            {order.status === 'picked_up' && (
+                              <Button 
+                                size="sm"
+                                onClick={() => updateOrderStatus(order.id, 'delivered')}
+                                data-testid={`button-delivered-${order.id}`}
+                              >
+                                Mark as Delivered
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
                 ))

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,18 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { MapPin, Plus, Edit, Trash2, Star } from "lucide-react";
+import { MapPin, Plus, Edit, Trash2, Star, Navigation, CheckCircle } from "lucide-react";
 import type { SavedAddress } from "@shared/schema";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-
-// Fix Leaflet default marker icon issue
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
 
 const addressSchema = z.object({
   label: z.string().optional(),
@@ -31,8 +21,8 @@ const addressSchema = z.object({
   cityMunicipality: z.string().min(1, "City/Municipality is required"),
   province: z.string().min(1, "Province is required"),
   landmark: z.string().optional(),
-  latitude: z.string(),
-  longitude: z.string(),
+  latitude: z.string().optional(),
+  longitude: z.string().optional(),
 });
 
 type AddressFormData = z.infer<typeof addressSchema>;
@@ -46,10 +36,8 @@ interface AddressSelectorProps {
 export function AddressSelector({ value, onChange, disabled }: AddressSelectorProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<SavedAddress | null>(null);
-  const [mapLocation, setMapLocation] = useState<{ lat: number; lng: number }>({ lat: 14.5995, lng: 120.9842 }); // Manila
-  const mapRef = useRef<L.Map | null>(null);
-  const markerRef = useRef<L.Marker | null>(null);
-  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const [locationShared, setLocationShared] = useState(false);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
   const { toast } = useToast();
 
   const { data: addresses = [], isLoading } = useQuery<SavedAddress[]>({
@@ -164,81 +152,44 @@ export function AddressSelector({ value, onChange, disabled }: AddressSelectorPr
     },
   });
 
-  useEffect(() => {
-    if (isModalOpen && mapContainerRef.current && !mapRef.current) {
-      // Add a small delay to ensure the dialog is fully rendered
-      const timeoutId = setTimeout(() => {
-        if (!mapContainerRef.current) return;
-
-        // Initialize map
-        const map = L.map(mapContainerRef.current).setView([mapLocation.lat, mapLocation.lng], 13);
-        
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        }).addTo(map);
-
-        // Force map to recalculate size after initialization
-        setTimeout(() => map.invalidateSize(), 100);
-
-        // Add marker
-        const marker = L.marker([mapLocation.lat, mapLocation.lng], {
-          draggable: true,
-        }).addTo(map);
-
-        marker.on("dragend", () => {
-          const position = marker.getLatLng();
-          setMapLocation({ lat: position.lat, lng: position.lng });
-          form.setValue("latitude", position.lat.toString());
-          form.setValue("longitude", position.lng.toString());
-        });
-
-        map.on("click", (e) => {
-          const { lat, lng } = e.latlng;
-          marker.setLatLng([lat, lng]);
-          setMapLocation({ lat, lng });
-          form.setValue("latitude", lat.toString());
-          form.setValue("longitude", lng.toString());
-        });
-
-        mapRef.current = map;
-        markerRef.current = marker;
-
-        // Request user's location
-        if (navigator.geolocation && !editingAddress) {
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              const { latitude, longitude } = position.coords;
-              map.setView([latitude, longitude], 15);
-              marker.setLatLng([latitude, longitude]);
-              setMapLocation({ lat: latitude, lng: longitude });
-              form.setValue("latitude", latitude.toString());
-              form.setValue("longitude", longitude.toString());
-            },
-            (error) => {
-              console.error("Error getting location:", error);
-            }
-          );
-        }
-      }, 100);
-
-      return () => clearTimeout(timeoutId);
+  const handleShareLocation = () => {
+    if (!navigator.geolocation) {
+      toast({
+        title: "Location Not Supported",
+        description: "Your browser doesn't support location services",
+        variant: "destructive",
+      });
+      return;
     }
 
-    return () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-        markerRef.current = null;
+    setIsGettingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        form.setValue("latitude", latitude.toString());
+        form.setValue("longitude", longitude.toString());
+        setLocationShared(true);
+        setIsGettingLocation(false);
+        toast({
+          title: "Location Captured",
+          description: "Your precise location has been saved",
+        });
+      },
+      (error) => {
+        setIsGettingLocation(false);
+        toast({
+          title: "Location Error",
+          description: "Unable to get your location. Your address will be geocoded instead.",
+          variant: "destructive",
+        });
       }
-    };
-  }, [isModalOpen]);
+    );
+  };
 
   const handleOpenModal = (address?: SavedAddress) => {
     if (address) {
       setEditingAddress(address);
-      const lat = parseFloat(address.latitude);
-      const lng = parseFloat(address.longitude);
-      setMapLocation({ lat, lng });
+      setLocationShared(!!address.latitude && !!address.longitude);
       form.reset({
         label: address.label || "",
         lotHouseNo: address.lotHouseNo,
@@ -252,6 +203,7 @@ export function AddressSelector({ value, onChange, disabled }: AddressSelectorPr
       });
     } else {
       setEditingAddress(null);
+      setLocationShared(false);
       form.reset({
         label: "",
         lotHouseNo: "",
@@ -260,10 +212,9 @@ export function AddressSelector({ value, onChange, disabled }: AddressSelectorPr
         cityMunicipality: "",
         province: "",
         landmark: "",
-        latitude: "14.5995",
-        longitude: "120.9842",
+        latitude: "",
+        longitude: "",
       });
-      setMapLocation({ lat: 14.5995, lng: 120.9842 });
     }
     setIsModalOpen(true);
   };
@@ -470,19 +421,53 @@ export function AddressSelector({ value, onChange, disabled }: AddressSelectorPr
               </div>
             </div>
 
-            <div>
+            <div className="space-y-3">
               <Label className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                Pin Your Location on Map
+                <Navigation className="h-4 w-4" />
+                Share Your Location (Optional)
               </Label>
-              <p className="text-sm text-muted-foreground mb-2">
-                Click on the map or drag the marker to set your precise location
+              <p className="text-sm text-muted-foreground">
+                Share your precise location for accurate delivery fees, or skip this and we'll estimate based on your address.
               </p>
-              <div
-                ref={mapContainerRef}
-                className="h-[300px] w-full rounded-md border"
-                data-testid="map-container"
-              />
+              
+              {!locationShared ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleShareLocation}
+                  disabled={isGettingLocation}
+                  data-testid="button-share-location"
+                  className="w-full"
+                >
+                  <Navigation className="h-4 w-4 mr-2" />
+                  {isGettingLocation ? "Getting Location..." : "Share My Location"}
+                </Button>
+              ) : (
+                <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-md">
+                  <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-green-900 dark:text-green-100">
+                      Location Captured
+                    </p>
+                    <p className="text-xs text-green-700 dark:text-green-300">
+                      Coordinates: {form.watch("latitude")}, {form.watch("longitude")}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setLocationShared(false);
+                      form.setValue("latitude", "");
+                      form.setValue("longitude", "");
+                    }}
+                    data-testid="button-clear-location"
+                  >
+                    Clear
+                  </Button>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end gap-2">

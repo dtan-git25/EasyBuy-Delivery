@@ -14,6 +14,7 @@ import { eq, desc } from "drizzle-orm";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { geocodeAddress, calculateDistance } from "./geocoding";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -741,13 +742,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate order number
       const orderNumber = `EBD-${Date.now()}`;
       
-      const orderData = insertOrderSchema.parse({
+      let orderData = {
         ...req.body,
         customerId: req.user.id,
         orderNumber
-      });
+      };
+
+      // Calculate delivery fee based on distance
+      const restaurant = await storage.getRestaurant(orderData.restaurantId);
+      if (!restaurant) {
+        return res.status(404).json({ error: "Restaurant not found" });
+      }
+
+      // Get system settings for delivery fee calculation
+      const settings = await storage.getSystemSettings();
+      const baseDeliveryFee = parseFloat(settings.baseDeliveryFee as string);
+      const perKmRate = parseFloat(settings.perKmRate as string);
+
+      // Try to calculate distance if coordinates are available
+      let calculatedDeliveryFee = baseDeliveryFee;
       
-      const order = await storage.createOrder(orderData);
+      if (restaurant.latitude && restaurant.longitude && 
+          orderData.deliveryLatitude && orderData.deliveryLongitude) {
+        // Both restaurant and delivery location have coordinates
+        const distance = calculateDistance(
+          parseFloat(restaurant.latitude),
+          parseFloat(restaurant.longitude),
+          parseFloat(orderData.deliveryLatitude),
+          parseFloat(orderData.deliveryLongitude)
+        );
+        
+        calculatedDeliveryFee = baseDeliveryFee + (distance * perKmRate);
+      } else if (restaurant.latitude && restaurant.longitude && !orderData.deliveryLatitude) {
+        // Restaurant has coordinates but delivery address doesn't, try geocoding
+        const deliveryAddressParts = orderData.deliveryAddress.split(', ');
+        if (deliveryAddressParts.length >= 5) {
+          const geocoded = await geocodeAddress({
+            lotHouseNo: deliveryAddressParts[0] || '',
+            street: deliveryAddressParts[1] || '',
+            barangay: deliveryAddressParts[2] || '',
+            cityMunicipality: deliveryAddressParts[3] || '',
+            province: deliveryAddressParts[4] || ''
+          });
+          
+          if (geocoded) {
+            orderData.deliveryLatitude = geocoded.latitude.toString();
+            orderData.deliveryLongitude = geocoded.longitude.toString();
+            
+            const distance = calculateDistance(
+              parseFloat(restaurant.latitude),
+              parseFloat(restaurant.longitude),
+              geocoded.latitude,
+              geocoded.longitude
+            );
+            
+            calculatedDeliveryFee = baseDeliveryFee + (distance * perKmRate);
+          }
+        }
+      }
+
+      // Set the calculated delivery fee
+      orderData.deliveryFee = calculatedDeliveryFee.toFixed(2);
+      
+      // Recalculate total with the new delivery fee
+      const subtotal = parseFloat(orderData.subtotal);
+      const markup = parseFloat(orderData.markup);
+      const merchantFee = parseFloat(orderData.merchantFee || '0');
+      const convenienceFee = parseFloat(orderData.convenienceFee || '0');
+      orderData.total = (subtotal + markup + calculatedDeliveryFee + merchantFee + convenienceFee).toFixed(2);
+      
+      const parsedOrderData = insertOrderSchema.parse(orderData);
+      const order = await storage.createOrder(parsedOrderData);
       
       // Broadcast new order to connected riders via WebSocket
       if (wss) {
@@ -1182,7 +1247,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const addressData = { ...req.body, userId: req.user.id };
+      let addressData = { ...req.body, userId: req.user.id };
+      
+      if (!addressData.latitude || !addressData.longitude) {
+        const geocoded = await geocodeAddress({
+          lotHouseNo: addressData.lotHouseNo,
+          street: addressData.street,
+          barangay: addressData.barangay,
+          cityMunicipality: addressData.cityMunicipality,
+          province: addressData.province,
+        });
+        
+        if (geocoded) {
+          addressData.latitude = geocoded.latitude.toString();
+          addressData.longitude = geocoded.longitude.toString();
+        }
+      }
+      
       const newAddress = await storage.createSavedAddress(addressData);
       res.status(201).json(newAddress);
     } catch (error) {
@@ -1205,7 +1286,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (address.userId !== req.user.id) {
         return res.status(403).json({ error: "Forbidden" });
       }
-      const updatedAddress = await storage.updateSavedAddress(req.params.id, req.body);
+      
+      let updateData = { ...req.body };
+      
+      if (!updateData.latitude || !updateData.longitude) {
+        const geocoded = await geocodeAddress({
+          lotHouseNo: updateData.lotHouseNo || address.lotHouseNo,
+          street: updateData.street || address.street,
+          barangay: updateData.barangay || address.barangay,
+          cityMunicipality: updateData.cityMunicipality || address.cityMunicipality,
+          province: updateData.province || address.province,
+        });
+        
+        if (geocoded) {
+          updateData.latitude = geocoded.latitude.toString();
+          updateData.longitude = geocoded.longitude.toString();
+        }
+      }
+      
+      const updatedAddress = await storage.updateSavedAddress(req.params.id, updateData);
       res.json(updatedAddress);
     } catch (error) {
       console.error("Error updating saved address:", error);
