@@ -73,11 +73,8 @@ export function AddressSelector({ value, onChange, disabled }: AddressSelectorPr
 
   const createAddressMutation = useMutation({
     mutationFn: async (data: AddressFormData) => {
-      const response = await apiRequest<SavedAddress>("/api/saved-addresses", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      return response;
+      const response = await apiRequest("POST", "/api/saved-addresses", data);
+      return response.json();
     },
     onSuccess: (newAddress: SavedAddress) => {
       queryClient.invalidateQueries({ queryKey: ["/api/saved-addresses"] });
@@ -100,11 +97,8 @@ export function AddressSelector({ value, onChange, disabled }: AddressSelectorPr
 
   const updateAddressMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: AddressFormData }) => {
-      const response = await apiRequest<SavedAddress>(`/api/saved-addresses/${id}`, {
-        method: "PUT",
-        body: JSON.stringify(data),
-      });
-      return response;
+      const response = await apiRequest("PUT", `/api/saved-addresses/${id}`, data);
+      return response.json();
     },
     onSuccess: (updatedAddress: SavedAddress) => {
       queryClient.invalidateQueries({ queryKey: ["/api/saved-addresses"] });
@@ -128,9 +122,7 @@ export function AddressSelector({ value, onChange, disabled }: AddressSelectorPr
 
   const deleteAddressMutation = useMutation({
     mutationFn: async (id: string) => {
-      await apiRequest(`/api/saved-addresses/${id}`, {
-        method: "DELETE",
-      });
+      await apiRequest("DELETE", `/api/saved-addresses/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/saved-addresses"] });
@@ -153,10 +145,8 @@ export function AddressSelector({ value, onChange, disabled }: AddressSelectorPr
 
   const setDefaultMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await apiRequest<SavedAddress>(`/api/saved-addresses/${id}/set-default`, {
-        method: "PATCH",
-      });
-      return response;
+      const response = await apiRequest("PATCH", `/api/saved-addresses/${id}/set-default`);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/saved-addresses"] });
