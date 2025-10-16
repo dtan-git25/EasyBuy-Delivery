@@ -161,12 +161,8 @@ export default function CustomerPortal() {
 
   // Fetch menu items for selected restaurant
   const { data: menuItems = [] } = useQuery<MenuItem[]>({
-    queryKey: ["/api/menu-items", selectedRestaurant?.id],
-    enabled: !!selectedRestaurant,
-    queryFn: async () => {
-      const response = await fetch(`/api/menu-items?restaurantId=${selectedRestaurant!.id}`);
-      return response.json();
-    }
+    queryKey: ["/api/restaurants", selectedRestaurant?.id, "menu-items"],
+    enabled: !!selectedRestaurant?.id,
   });
 
   // Enhanced tracking queries

@@ -188,6 +188,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/restaurants/:id/menu-items", async (req, res) => {
+    try {
+      const menuItems = await storage.getMenuItems(req.params.id);
+      res.json(menuItems);
+    } catch (error) {
+      console.error("Error fetching menu items:", error);
+      res.status(500).json({ error: "Failed to fetch menu items" });
+    }
+  });
+
   app.post("/api/restaurants/:id/menu", async (req, res) => {
     if (!req.isAuthenticated() || req.user?.role !== 'merchant') {
       return res.status(401).json({ error: "Unauthorized" });
