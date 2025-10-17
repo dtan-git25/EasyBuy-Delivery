@@ -1186,23 +1186,21 @@ export default function AdminPortal() {
 
           {/* Admin Navigation Tabs */}
           <Tabs defaultValue="dashboard" className="w-full">
-            <TabsList className={`grid w-full ${isOwner ? 'grid-cols-8' : 'grid-cols-7'}`}>
+            <TabsList className={`grid w-full ${isOwner ? 'grid-cols-6' : 'grid-cols-5'}`}>
               <TabsTrigger value="dashboard" data-testid="tab-dashboard">Dashboard</TabsTrigger>
               <TabsTrigger value="approvals" data-testid="tab-approvals">
-                Pending Approvals
-                {merchantsForApproval.length > 0 && (
-                  <Badge className="ml-2" variant="destructive">{merchantsForApproval.length}</Badge>
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Approvals
+                {(merchantsForApproval.length > 0 || ridersForApproval.length > 0) && (
+                  <Badge className="ml-2" variant="destructive">
+                    {merchantsForApproval.length + ridersForApproval.length}
+                  </Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="documents" data-testid="tab-documents">
-                <FileText className="w-4 h-4 mr-2" />
-                Document Review
-                {ridersForApproval.length > 0 && (
-                  <Badge className="ml-2" variant="destructive">{ridersForApproval.length}</Badge>
-                )}
+              <TabsTrigger value="menu-settings" data-testid="tab-menu-settings">
+                <Utensils className="w-4 h-4 mr-2" />
+                Menu Settings
               </TabsTrigger>
-              <TabsTrigger value="categories" data-testid="tab-categories">Categories</TabsTrigger>
-              <TabsTrigger value="option-types" data-testid="tab-option-types">Option Types</TabsTrigger>
               <TabsTrigger value="settings" data-testid="tab-settings">Settings</TabsTrigger>
               <TabsTrigger value="reports" data-testid="tab-reports">Reports</TabsTrigger>
               {isOwner && (
@@ -1352,6 +1350,199 @@ export default function AdminPortal() {
                       ))}
                     </div>
                   )}
+                </div>
+
+                {/* Rider Document Review Section */}
+                <div className="mt-8">
+                  <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center">
+                    <FileText className="mr-2 h-5 w-5" />
+                    Rider Document Reviews
+                    {ridersForApproval.length > 0 && (
+                      <Badge className="ml-2" variant="destructive">{ridersForApproval.length}</Badge>
+                    )}
+                  </h3>
+                  {ridersForApproval.length === 0 ? (
+                    <Card>
+                      <CardContent className="p-6 text-center">
+                        <p className="text-muted-foreground">No rider documents pending review</p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="space-y-6">
+                      {ridersForApproval.map((rider: any) => (
+                        <Card key={rider.id} className="border-l-4 border-l-yellow-500">
+                          <CardHeader>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-4">
+                                <Avatar>
+                                  <AvatarImage src={rider.user?.profileImage} />
+                                  <AvatarFallback>
+                                    {rider.user?.firstName?.[0]}{rider.user?.lastName?.[0]}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <h4 className="font-semibold">
+                                    {rider.user?.firstName} {rider.user?.lastName}
+                                  </h4>
+                                  <p className="text-sm text-muted-foreground">
+                                    {rider.user?.email}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Submitted: {new Date(rider.documentsSubmittedAt).toLocaleDateString()}
+                                  </p>
+                                </div>
+                              </div>
+                              <Badge variant="secondary">
+                                <Clock className="w-3 h-3 mr-1" />
+                                Pending Review
+                              </Badge>
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            {/* Rider Details */}
+                            <div className="grid md:grid-cols-2 gap-4 mb-6">
+                              <div>
+                                <Label className="text-muted-foreground text-xs">Driver's License</Label>
+                                <p className="font-medium">{rider.driversLicenseNo}</p>
+                              </div>
+                              <div>
+                                <Label className="text-muted-foreground text-xs">License Validity</Label>
+                                <p className="font-medium">{new Date(rider.licenseValidityDate).toLocaleDateString()}</p>
+                              </div>
+                              <div>
+                                <Label className="text-muted-foreground text-xs">Phone</Label>
+                                <p className="font-medium">{rider.user?.phone}</p>
+                              </div>
+                              <div>
+                                <Label className="text-muted-foreground text-xs">Status</Label>
+                                <Badge variant="outline">{rider.documentsApproved ? 'Approved' : 'Pending'}</Badge>
+                              </div>
+                            </div>
+
+                            {/* Document Status */}
+                            <div className="mb-6">
+                              <Label className="text-muted-foreground text-xs mb-2 block">Uploaded Documents</Label>
+                              <div className="space-y-2">
+                                <div className="flex items-center">
+                                  {rider.orcrDocument ? (
+                                    <Check className="w-4 h-4 text-green-500 mr-2" />
+                                  ) : (
+                                    <X className="w-4 h-4 text-red-500 mr-2" />
+                                  )}
+                                  <span className="text-sm">OR/CR Document</span>
+                                </div>
+                                <div className="flex items-center">
+                                  {rider.motorImage ? (
+                                    <Check className="w-4 h-4 text-green-500 mr-2" />
+                                  ) : (
+                                    <X className="w-4 h-4 text-red-500 mr-2" />
+                                  )}
+                                  <span className="text-sm">Motor Image</span>
+                                </div>
+                                <div className="flex items-center">
+                                  {rider.idDocument ? (
+                                    <Check className="w-4 h-4 text-green-500 mr-2" />
+                                  ) : (
+                                    <X className="w-4 h-4 text-red-500 mr-2" />
+                                  )}
+                                  <span className="text-sm">Valid ID</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Document Download Links */}
+                            <div className="flex flex-wrap gap-2 mb-6">
+                              {rider.orcrDocument && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => window.open(`/api/admin/rider-document/${rider.id}/orcr`, '_blank')}
+                                  data-testid={`download-orcr-${rider.id}`}
+                                >
+                                  <Eye className="w-4 h-4 mr-2" />
+                                  View OR/CR
+                                </Button>
+                              )}
+                              {rider.motorImage && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => window.open(`/api/admin/rider-document/${rider.id}/motor`, '_blank')}
+                                  data-testid={`download-motor-${rider.id}`}
+                                >
+                                  <Eye className="w-4 h-4 mr-2" />
+                                  View Motor
+                                </Button>
+                              )}
+                              {rider.idDocument && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => window.open(`/api/admin/rider-document/${rider.id}/id`, '_blank')}
+                                  data-testid={`download-id-${rider.id}`}
+                                >
+                                  <Eye className="w-4 h-4 mr-2" />
+                                  View ID
+                                </Button>
+                              )}
+                            </div>
+
+                            {/* Approval Actions */}
+                            <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t">
+                              <Button
+                                onClick={() => reviewRiderDocumentsMutation.mutate({ 
+                                  riderId: rider.id, 
+                                  approved: true 
+                                })}
+                                disabled={reviewRiderDocumentsMutation.isPending}
+                                className="bg-green-600 hover:bg-green-700"
+                                data-testid={`approve-rider-${rider.id}`}
+                              >
+                                <Check className="w-4 h-4 mr-2" />
+                                Approve Rider
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                onClick={() => {
+                                  const reason = prompt("Please provide a reason for rejection:");
+                                  if (reason) {
+                                    reviewRiderDocumentsMutation.mutate({ 
+                                      riderId: rider.id, 
+                                      approved: false, 
+                                      reason 
+                                    });
+                                  }
+                                }}
+                                disabled={reviewRiderDocumentsMutation.isPending}
+                                data-testid={`reject-rider-${rider.id}`}
+                              >
+                                <X className="w-4 h-4 mr-2" />
+                                Reject Documents
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="menu-settings" className="space-y-6">
+              <div className="space-y-6">
+                {/* Categories Section */}
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground mb-4">Categories Management</h3>
+                  <CategoryManagement />
+                </div>
+
+                <Separator className="my-8" />
+
+                {/* Option Types Section */}
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground mb-4">Option Types Management</h3>
+                  <OptionTypeManagement />
                 </div>
               </div>
             </TabsContent>
@@ -1550,185 +1741,6 @@ export default function AdminPortal() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="documents" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <FileText className="mr-2 h-5 w-5 text-primary" />
-                    Rider Document Review
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {ridersForApproval.length === 0 ? (
-                    <div className="text-center py-8">
-                      <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold text-foreground mb-2">No Documents Pending Review</h3>
-                      <p className="text-muted-foreground">
-                        All rider documents have been reviewed. New submissions will appear here.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-6">
-                      {ridersForApproval.map((rider: any) => (
-                        <Card key={rider.id} className="border-l-4 border-l-yellow-500">
-                          <CardHeader>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center space-x-4">
-                                <Avatar>
-                                  <AvatarImage src={rider.user?.profileImage} />
-                                  <AvatarFallback>
-                                    {rider.user?.firstName?.[0]}{rider.user?.lastName?.[0]}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <h4 className="font-semibold">
-                                    {rider.user?.firstName} {rider.user?.lastName}
-                                  </h4>
-                                  <p className="text-sm text-muted-foreground">
-                                    {rider.user?.email}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    Submitted: {new Date(rider.documentsSubmittedAt).toLocaleDateString()}
-                                  </p>
-                                </div>
-                              </div>
-                              <Badge variant="secondary">
-                                <Clock className="w-3 h-3 mr-1" />
-                                Pending Review
-                              </Badge>
-                            </div>
-                          </CardHeader>
-                          <CardContent>
-                            {/* Rider Details */}
-                            <div className="grid md:grid-cols-2 gap-4 mb-6">
-                              <div>
-                                <h5 className="font-medium mb-2">Vehicle Information</h5>
-                                <div className="space-y-1 text-sm">
-                                  <p><span className="font-medium">Type:</span> {rider.vehicleType}</p>
-                                  <p><span className="font-medium">Model:</span> {rider.vehicleModel}</p>
-                                  <p><span className="font-medium">Plate:</span> {rider.plateNumber}</p>
-                                  <p><span className="font-medium">License:</span> {rider.licenseNumber}</p>
-                                </div>
-                              </div>
-                              <div>
-                                <h5 className="font-medium mb-2">Documents Status</h5>
-                                <div className="space-y-2">
-                                  <div className="flex items-center">
-                                    {rider.orcrDocument ? (
-                                      <Check className="w-4 h-4 text-green-500 mr-2" />
-                                    ) : (
-                                      <X className="w-4 h-4 text-red-500 mr-2" />
-                                    )}
-                                    <span className="text-sm">OR/CR Document</span>
-                                  </div>
-                                  <div className="flex items-center">
-                                    {rider.motorImage ? (
-                                      <Check className="w-4 h-4 text-green-500 mr-2" />
-                                    ) : (
-                                      <X className="w-4 h-4 text-red-500 mr-2" />
-                                    )}
-                                    <span className="text-sm">Motor Image</span>
-                                  </div>
-                                  <div className="flex items-center">
-                                    {rider.idDocument ? (
-                                      <Check className="w-4 h-4 text-green-500 mr-2" />
-                                    ) : (
-                                      <X className="w-4 h-4 text-red-500 mr-2" />
-                                    )}
-                                    <span className="text-sm">Valid ID</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Document Download Links */}
-                            <div className="flex flex-wrap gap-2 mb-6">
-                              {rider.orcrDocument && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => window.open(`/api/admin/rider-document/${rider.id}/orcr`, '_blank')}
-                                  data-testid={`download-orcr-${rider.id}`}
-                                >
-                                  <Eye className="w-4 h-4 mr-2" />
-                                  View OR/CR
-                                </Button>
-                              )}
-                              {rider.motorImage && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => window.open(`/api/admin/rider-document/${rider.id}/motor`, '_blank')}
-                                  data-testid={`download-motor-${rider.id}`}
-                                >
-                                  <Eye className="w-4 h-4 mr-2" />
-                                  View Motor
-                                </Button>
-                              )}
-                              {rider.idDocument && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => window.open(`/api/admin/rider-document/${rider.id}/id`, '_blank')}
-                                  data-testid={`download-id-${rider.id}`}
-                                >
-                                  <Eye className="w-4 h-4 mr-2" />
-                                  View ID
-                                </Button>
-                              )}
-                            </div>
-
-                            {/* Approval Actions */}
-                            <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t">
-                              <Button
-                                onClick={() => reviewRiderDocumentsMutation.mutate({ 
-                                  riderId: rider.id, 
-                                  approved: true 
-                                })}
-                                disabled={reviewRiderDocumentsMutation.isPending}
-                                className="bg-green-600 hover:bg-green-700"
-                                data-testid={`approve-rider-${rider.id}`}
-                              >
-                                <Check className="w-4 h-4 mr-2" />
-                                Approve Rider
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                onClick={() => {
-                                  const reason = prompt("Please provide a reason for rejection:");
-                                  if (reason) {
-                                    reviewRiderDocumentsMutation.mutate({ 
-                                      riderId: rider.id, 
-                                      approved: false, 
-                                      reason 
-                                    });
-                                  }
-                                }}
-                                disabled={reviewRiderDocumentsMutation.isPending}
-                                data-testid={`reject-rider-${rider.id}`}
-                              >
-                                <X className="w-4 h-4 mr-2" />
-                                Reject Documents
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Categories Management Tab */}
-            <TabsContent value="categories" className="space-y-6">
-              <CategoryManagement />
-            </TabsContent>
-
-            {/* Option Types Management Tab */}
-            <TabsContent value="option-types" className="space-y-6">
-              <OptionTypeManagement />
-            </TabsContent>
 
             {/* Owner-only User Management Tab */}
             {isOwner && (
