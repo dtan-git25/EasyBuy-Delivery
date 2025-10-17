@@ -67,6 +67,12 @@ export default function MerchantPortal() {
   const [newItemQuantity, setNewItemQuantity] = useState(1);
   const [itemToDelete, setItemToDelete] = useState<{index: number, name: string} | null>(null);
   
+  // Merchant profile edit state
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editedStoreName, setEditedStoreName] = useState("");
+  const [editedStoreContact, setEditedStoreContact] = useState("");
+  const [editedEmail, setEditedEmail] = useState("");
+  
   // Track approval notification dismissal using localStorage
   const [isApprovalNotificationDismissed, setIsApprovalNotificationDismissed] = useState(() => {
     if (typeof window !== 'undefined' && user?.id) {
@@ -588,6 +594,38 @@ export default function MerchantPortal() {
     },
   });
 
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: { storeName?: string; storeContact?: string; email?: string }) => {
+      const response = await apiRequest("PATCH", "/api/merchant/profile", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      setIsEditingProfile(false);
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/merchant/my-restaurant"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error updating profile",
+        description: "There was an error updating your profile. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Initialize profile edit form when entering edit mode
+  useEffect(() => {
+    if (isEditingProfile && userRestaurant && user) {
+      setEditedStoreName(userRestaurant.name || "");
+      setEditedStoreContact(userRestaurant.contactNumber || "");
+      setEditedEmail(user.email || "");
+    }
+  }, [isEditingProfile, userRestaurant, user]);
+
   const { data: menuItems = [] } = useQuery({
     queryKey: ["/api/menu-items", userRestaurant?.id],
     queryFn: async () => {
@@ -1028,7 +1066,7 @@ export default function MerchantPortal() {
       <section className="bg-background py-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Tabs defaultValue="orders" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="orders" data-testid="tab-orders">
                 Active Orders
                 {activeOrders.length > 0 && (
@@ -1040,6 +1078,7 @@ export default function MerchantPortal() {
               </TabsTrigger>
               <TabsTrigger value="history" data-testid="tab-history">Order History</TabsTrigger>
               <TabsTrigger value="analytics" data-testid="tab-analytics">Analytics</TabsTrigger>
+              <TabsTrigger value="profile" data-testid="tab-profile">My Account</TabsTrigger>
             </TabsList>
 
             {/* Active Orders */}
@@ -1756,6 +1795,173 @@ export default function MerchantPortal() {
                   </CardContent>
                 </Card>
               </div>
+            </TabsContent>
+
+            {/* My Account Tab */}
+            <TabsContent value="profile" className="space-y-4">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold">My Account</h2>
+                    {!isEditingProfile ? (
+                      <Button onClick={() => setIsEditingProfile(true)} data-testid="button-edit-profile">
+                        Edit Profile
+                      </Button>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setIsEditingProfile(false)}
+                          data-testid="button-cancel-edit-profile"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            updateProfileMutation.mutate({
+                              storeName: editedStoreName,
+                              storeContact: editedStoreContact,
+                              email: editedEmail
+                            });
+                          }}
+                          disabled={updateProfileMutation.isPending}
+                          data-testid="button-save-profile"
+                        >
+                          {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-6">
+                    {/* Restaurant Information */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Restaurant Information</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm text-muted-foreground">Store Name</label>
+                          {isEditingProfile ? (
+                            <Input
+                              value={editedStoreName}
+                              onChange={(e) => setEditedStoreName(e.target.value)}
+                              placeholder="Enter store name"
+                              data-testid="input-edit-store-name"
+                            />
+                          ) : (
+                            <p className="text-base font-medium" data-testid="text-store-name">
+                              {userRestaurant?.name || "-"}
+                            </p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="text-sm text-muted-foreground">Store Contact No.</label>
+                          {isEditingProfile ? (
+                            <Input
+                              type="tel"
+                              value={editedStoreContact}
+                              onChange={(e) => setEditedStoreContact(e.target.value)}
+                              placeholder="09XXXXXXXXX"
+                              data-testid="input-edit-store-contact"
+                            />
+                          ) : (
+                            <p className="text-base font-medium" data-testid="text-store-contact">
+                              {userRestaurant?.contactNumber || "-"}
+                            </p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="text-sm text-muted-foreground">Store Address</label>
+                          <p className="text-base font-medium" data-testid="text-store-address">
+                            {userRestaurant?.address || "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-sm text-muted-foreground">Account Status</label>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={user?.approvalStatus === 'approved' ? 'default' : 'secondary'} data-testid="badge-approval-status">
+                              {user?.approvalStatus === 'approved' ? 'Active' : user?.approvalStatus || 'Pending'}
+                            </Badge>
+                            {userRestaurant?.isActive && (
+                              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200" data-testid="badge-restaurant-status">
+                                Open
+                              </Badge>
+                            )}
+                            {userRestaurant && !userRestaurant.isActive && (
+                              <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200" data-testid="badge-restaurant-status">
+                                Closed
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Owner Information */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Owner Information</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm text-muted-foreground">Owner Name</label>
+                          <p className="text-base font-medium" data-testid="text-owner-name">
+                            {user?.firstName} {user?.middleName} {user?.lastName}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-sm text-muted-foreground">Email</label>
+                          {isEditingProfile ? (
+                            <Input
+                              type="email"
+                              value={editedEmail}
+                              onChange={(e) => setEditedEmail(e.target.value)}
+                              placeholder="Enter your email"
+                              data-testid="input-edit-email"
+                            />
+                          ) : (
+                            <p className="text-base font-medium" data-testid="text-email">
+                              {user?.email || "-"}
+                            </p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="text-sm text-muted-foreground">Account Created</label>
+                          <p className="text-base font-medium" data-testid="text-created-date">
+                            {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "-"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Business Summary */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Business Summary</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Card className="p-4">
+                          <p className="text-sm text-muted-foreground">Total Orders</p>
+                          <p className="text-2xl font-bold" data-testid="text-total-orders">
+                            {orders.length}
+                          </p>
+                        </Card>
+                        <Card className="p-4">
+                          <p className="text-sm text-muted-foreground">Menu Items</p>
+                          <p className="text-2xl font-bold" data-testid="text-total-menu-items">
+                            {menuItems.length}
+                          </p>
+                        </Card>
+                        <Card className="p-4">
+                          <p className="text-sm text-muted-foreground">Total Revenue</p>
+                          <p className="text-2xl font-bold" data-testid="text-total-revenue">
+                            ₱{orders.reduce((sum: number, order: Order) => sum + parseFloat(order.total || '0'), 0).toFixed(0)}
+                          </p>
+                        </Card>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
 

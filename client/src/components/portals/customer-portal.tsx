@@ -1377,12 +1377,12 @@ export default function CustomerPortal() {
                                   )}
                                 </div>
                                 <p className="text-sm text-muted-foreground">
-                                  {address.houseNumber && `${address.houseNumber}, `}
+                                  {address.lotHouseNo && `${address.lotHouseNo}, `}
                                   {address.street && `${address.street}, `}
                                   {address.barangay}
                                 </p>
                                 <p className="text-sm text-muted-foreground">
-                                  {address.city}, {address.province}
+                                  {address.cityMunicipality}, {address.province}
                                 </p>
                                 {address.landmark && (
                                   <p className="text-sm text-muted-foreground">
