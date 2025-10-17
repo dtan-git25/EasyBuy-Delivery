@@ -515,26 +515,45 @@ export default function CustomerPortal() {
                   <div className="space-y-4">
                     {items.map((item) => (
                       <Card key={item.id} className="p-4" data-testid={`menu-item-${item.id}`}>
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-foreground">{item.name}</h4>
-                            {item.description && (
-                              <p className="text-sm text-muted-foreground mb-2">{item.description}</p>
-                            )}
-                            <div className="flex items-center justify-between mt-2">
-                              <span className="text-lg font-bold text-green-600">₱{Number(item.price).toFixed(2)}</span>
-                              <div className="flex items-center space-x-2">
-                                {!item.isAvailable ? (
-                                  <Badge variant="destructive">Unavailable</Badge>
-                                ) : (
-                                  <Button
-                                    onClick={() => openOptionsModal(item)}
-                                    data-testid={`button-add-to-cart-${item.id}`}
-                                  >
-                                    <ShoppingCart className="mr-2 h-4 w-4" />
-                                    Add to Cart
-                                  </Button>
-                                )}
+                        <div className="flex gap-4">
+                          {/* Menu Item Image */}
+                          {item.image ? (
+                            <div className="flex-shrink-0">
+                              <img 
+                                src={item.image} 
+                                alt={item.name}
+                                className="w-24 h-24 object-cover rounded-md"
+                                data-testid={`img-menu-item-${item.id}`}
+                              />
+                            </div>
+                          ) : (
+                            <div className="flex-shrink-0 w-24 h-24 bg-muted rounded-md flex items-center justify-center">
+                              <ShoppingCart className="h-8 w-8 text-muted-foreground" />
+                            </div>
+                          )}
+                          
+                          {/* Menu Item Details */}
+                          <div className="flex-1 flex justify-between items-start">
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-foreground">{item.name}</h4>
+                              {item.description && (
+                                <p className="text-sm text-muted-foreground mb-2">{item.description}</p>
+                              )}
+                              <div className="flex items-center justify-between mt-2">
+                                <span className="text-lg font-bold text-green-600">₱{Number(item.price).toFixed(2)}</span>
+                                <div className="flex items-center space-x-2">
+                                  {!item.isAvailable ? (
+                                    <Badge variant="destructive">Unavailable</Badge>
+                                  ) : (
+                                    <Button
+                                      onClick={() => openOptionsModal(item)}
+                                      data-testid={`button-add-to-cart-${item.id}`}
+                                    >
+                                      <ShoppingCart className="mr-2 h-4 w-4" />
+                                      Add to Cart
+                                    </Button>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>

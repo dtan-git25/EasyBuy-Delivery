@@ -53,8 +53,11 @@ export default function MerchantPortal() {
     name: '',
     description: '',
     price: '',
-    category: ''
+    category: '',
+    image: ''
   });
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
   const [optionValues, setOptionValues] = useState<Array<{optionTypeId: number, value: string, price: string}>>([]);
   const [availableItemOptions, setAvailableItemOptions] = useState<any[]>([]);
   const [selectedItemOptions, setSelectedItemOptions] = useState<Record<string, string>>({});
@@ -210,6 +213,70 @@ export default function MerchantPortal() {
     },
   });
 
+  // Image upload handler
+  const handleImageUpload = async (file: File): Promise<string | null> => {
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const response = await fetch('/api/menu-items/upload-image', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload image');
+      }
+      
+      const data = await response.json();
+      return data.imageUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Image upload failed",
+        description: "Failed to upload image. Please try again.",
+        variant: "destructive",
+      });
+      return null;
+    }
+  };
+
+  // Handle image file selection
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Please select an image smaller than 5MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          title: "Invalid file type",
+          description: "Please select a JPEG, PNG, or WebP image.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setSelectedImage(file);
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const createMenuItemMutation = useMutation({
     mutationFn: async (menuItemData: any) => {
       const response = await apiRequest("POST", "/api/menu-items", menuItemData);
@@ -233,7 +300,9 @@ export default function MerchantPortal() {
       
       queryClient.invalidateQueries({ queryKey: ["/api/menu-items"] });
       setIsAddMenuItemOpen(false);
-      setMenuItemForm({ name: '', description: '', price: '', category: '' });
+      setMenuItemForm({ name: '', description: '', price: '', category: '', image: '' });
+      setSelectedImage(null);
+      setImagePreview('');
       setOptionValues([]);
       toast({
         title: "Menu item created",
@@ -283,7 +352,9 @@ export default function MerchantPortal() {
       queryClient.invalidateQueries({ queryKey: ["/api/menu-items"] });
       setIsEditMenuItemOpen(false);
       setEditingItem(null);
-      setMenuItemForm({ name: '', description: '', price: '', category: '' });
+      setMenuItemForm({ name: '', description: '', price: '', category: '', image: '' });
+      setSelectedImage(null);
+      setImagePreview('');
       setOptionValues([]);
       toast({
         title: "Menu item updated",
@@ -438,7 +509,7 @@ export default function MerchantPortal() {
     updateOrderMutation.mutate({ orderId, status: 'ready' });
   };
 
-  const handleSubmitMenuItem = () => {
+  const handleSubmitMenuItem = async () => {
     // Prevent non-approved merchants from creating menu items
     if (user?.approvalStatus !== 'approved') {
       console.error('Menu item creation is disabled for non-approved merchants');
@@ -450,12 +521,23 @@ export default function MerchantPortal() {
       return;
     }
 
+    let imageUrl = menuItemForm.image;
+    
+    // Upload image if selected
+    if (selectedImage) {
+      const uploadedImageUrl = await handleImageUpload(selectedImage);
+      if (uploadedImageUrl) {
+        imageUrl = uploadedImageUrl;
+      }
+    }
+
     createMenuItemMutation.mutate({
       name: menuItemForm.name.trim(),
       description: menuItemForm.description.trim(),
       price: menuItemForm.price.trim(),
       category: menuItemForm.category.trim() || 'Other',
-      restaurantId: userRestaurant?.id
+      restaurantId: userRestaurant?.id,
+      image: imageUrl
     });
   };
 
@@ -465,8 +547,17 @@ export default function MerchantPortal() {
       name: item.name,
       description: item.description || '',
       price: item.price,
-      category: item.category || ''
+      category: item.category || '',
+      image: item.image || ''
     });
+    
+    // Load existing image preview
+    if (item.image) {
+      setImagePreview(item.image);
+    } else {
+      setImagePreview('');
+    }
+    setSelectedImage(null);
     
     // Load existing option values
     const response = await fetch(`/api/menu-items/${item.id}/options`);
@@ -484,7 +575,7 @@ export default function MerchantPortal() {
     setIsEditMenuItemOpen(true);
   };
 
-  const handleSubmitEditMenuItem = () => {
+  const handleSubmitEditMenuItem = async () => {
     if (!editingItem) return;
     
     if (!menuItemForm.name.trim() || !menuItemForm.price.trim()) {
@@ -496,6 +587,16 @@ export default function MerchantPortal() {
       return;
     }
 
+    let imageUrl = menuItemForm.image;
+    
+    // Upload new image if selected
+    if (selectedImage) {
+      const uploadedImageUrl = await handleImageUpload(selectedImage);
+      if (uploadedImageUrl) {
+        imageUrl = uploadedImageUrl;
+      }
+    }
+
     updateMenuItemMutation.mutate({
       id: editingItem.id,
       data: {
@@ -503,6 +604,7 @@ export default function MerchantPortal() {
         description: menuItemForm.description.trim(),
         price: menuItemForm.price.trim(),
         category: menuItemForm.category.trim() || 'Other',
+        image: imageUrl
       }
     });
   };
@@ -1008,6 +1110,32 @@ export default function MerchantPortal() {
                         </div>
                       </div>
 
+                      {/* Image Upload */}
+                      <div>
+                        <Label htmlFor="item-image">Menu Item Image (Optional)</Label>
+                        <Input 
+                          id="item-image" 
+                          data-testid="input-item-image"
+                          type="file"
+                          accept="image/jpeg,image/jpg,image/png,image/webp"
+                          onChange={handleImageSelect}
+                          className="cursor-pointer"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Max 5MB. Formats: JPEG, PNG, WebP
+                        </p>
+                        {imagePreview && (
+                          <div className="mt-3">
+                            <img 
+                              src={imagePreview} 
+                              alt="Preview" 
+                              className="w-full h-40 object-cover rounded-md border"
+                              data-testid="img-item-preview"
+                            />
+                          </div>
+                        )}
+                      </div>
+
                       {/* Product Options Section */}
                       {activeOptionTypes.length > 0 && (
                         <div className="space-y-3">
@@ -1147,6 +1275,35 @@ export default function MerchantPortal() {
                           </SelectContent>
                         </Select>
                       </div>
+                    </div>
+
+                    {/* Image Upload */}
+                    <div>
+                      <Label htmlFor="edit-item-image">Menu Item Image</Label>
+                      <Input 
+                        id="edit-item-image" 
+                        data-testid="input-edit-item-image"
+                        type="file"
+                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                        onChange={handleImageSelect}
+                        className="cursor-pointer"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Max 5MB. Formats: JPEG, PNG, WebP. Upload a new image to replace current.
+                      </p>
+                      {imagePreview && (
+                        <div className="mt-3">
+                          <p className="text-sm font-medium mb-2">
+                            {selectedImage ? 'New Image Preview:' : 'Current Image:'}
+                          </p>
+                          <img 
+                            src={imagePreview} 
+                            alt="Preview" 
+                            className="w-full h-40 object-cover rounded-md border"
+                            data-testid="img-edit-item-preview"
+                          />
+                        </div>
+                      )}
                     </div>
 
                     {/* Product Options Section */}

@@ -19,16 +19,21 @@ import { geocodeAddress, calculateDistance } from "./geocoding";
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
-  // Ensure uploads directory exists on startup
+  // Ensure uploads directories exist on startup
   const uploadsBaseDir = path.join(process.cwd(), 'uploads', 'riders');
+  const menuItemsUploadDir = path.join(process.cwd(), 'uploads', 'menu-items');
+  const restaurantsUploadDir = path.join(process.cwd(), 'uploads', 'restaurants');
+  
   try {
     await fs.promises.mkdir(uploadsBaseDir, { recursive: true });
-    console.log('Created uploads directory:', uploadsBaseDir);
+    await fs.promises.mkdir(menuItemsUploadDir, { recursive: true });
+    await fs.promises.mkdir(restaurantsUploadDir, { recursive: true });
+    console.log('Created uploads directories');
   } catch (error) {
     console.error('Failed to create uploads directory:', error);
   }
 
-  // Configure multer for file uploads using local storage
+  // Configure multer for rider document uploads using local storage
   const upload = multer({
     storage: multer.diskStorage({
       destination: async (req, file, cb) => {
@@ -73,6 +78,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Configure multer for menu item images
+  const menuItemImageUpload = multer({
+    storage: multer.diskStorage({
+      destination: async (req, file, cb) => {
+        try {
+          const menuItemsDir = path.join(process.cwd(), 'uploads', 'menu-items');
+          await fs.promises.mkdir(menuItemsDir, { recursive: true });
+          cb(null, menuItemsDir);
+        } catch (error) {
+          console.error('Error creating menu items upload directory:', error);
+          cb(error as Error);
+        }
+      },
+      filename: (req, file, cb) => {
+        const fileExtension = path.extname(file.originalname);
+        const fileName = `menu_${Date.now()}${fileExtension}`;
+        cb(null, fileName);
+      }
+    }),
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB limit
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = /jpeg|jpg|png|webp/;
+      const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+      const mimetype = allowedTypes.test(file.mimetype);
+      
+      if (mimetype && extname) {
+        return cb(null, true);
+      } else {
+        cb(new Error('Only JPEG, PNG, and WebP images are allowed'));
+      }
+    }
+  });
+
+  // Configure multer for restaurant photos
+  const restaurantPhotoUpload = multer({
+    storage: multer.diskStorage({
+      destination: async (req, file, cb) => {
+        try {
+          const restaurantsDir = path.join(process.cwd(), 'uploads', 'restaurants');
+          await fs.promises.mkdir(restaurantsDir, { recursive: true });
+          cb(null, restaurantsDir);
+        } catch (error) {
+          console.error('Error creating restaurants upload directory:', error);
+          cb(error as Error);
+        }
+      },
+      filename: (req, file, cb) => {
+        const fileExtension = path.extname(file.originalname);
+        const fileName = `restaurant_${Date.now()}${fileExtension}`;
+        cb(null, fileName);
+      }
+    }),
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB limit
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = /jpeg|jpg|png/;
+      const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+      const mimetype = allowedTypes.test(file.mimetype);
+      
+      if (mimetype && extname) {
+        return cb(null, true);
+      } else {
+        cb(new Error('Only JPEG and PNG images are allowed'));
+      }
+    }
+  });
+
   // Serve uploaded files (requires authentication and authorization)
   app.get("/uploads/:folder/:userId/:filename", async (req, res) => {
     if (!req.isAuthenticated()) {
@@ -82,8 +157,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { folder, userId, filename } = req.params;
       
-      // Whitelist folder to prevent access to other directories
-      if (folder !== 'riders') {
+      // Whitelist folders to prevent access to other directories
+      const allowedFolders = ['riders', 'menu-items', 'restaurants'];
+      if (!allowedFolders.includes(folder)) {
         return res.status(400).json({ error: "Invalid folder" });
       }
       
@@ -129,6 +205,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error serving file:", error);
       res.status(500).json({ error: "Failed to serve file" });
+    }
+  });
+
+  // Serve menu-items and restaurants images (publicly accessible)
+  app.get("/uploads/:folder/:filename", async (req, res) => {
+    try {
+      const { folder, filename } = req.params;
+      
+      // Only allow menu-items and restaurants folders for public access
+      if (folder !== 'menu-items' && folder !== 'restaurants') {
+        return res.status(400).json({ error: "Invalid folder" });
+      }
+      
+      // Prevent path traversal attacks
+      if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+        return res.status(400).json({ error: "Invalid filename" });
+      }
+      
+      const uploadsBase = path.join(process.cwd(), 'uploads');
+      const filePath = path.join(uploadsBase, folder, filename);
+      const normalizedPath = path.resolve(filePath);
+      
+      // Ensure the resolved path is within the uploads directory
+      if (!normalizedPath.startsWith(uploadsBase)) {
+        return res.status(400).json({ error: "Invalid path" });
+      }
+      
+      // Check if file exists
+      if (!fs.existsSync(normalizedPath)) {
+        return res.status(404).json({ error: "File not found" });
+      }
+      
+      // Send file
+      res.sendFile(normalizedPath);
+    } catch (error) {
+      console.error("Error serving image:", error);
+      res.status(500).json({ error: "Failed to serve image" });
     }
   });
 
@@ -215,6 +328,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating menu item:", error);
       res.status(400).json({ error: "Invalid menu item data" });
+    }
+  });
+
+  // Image upload endpoints
+  app.post("/api/menu-items/upload-image", menuItemImageUpload.single('image'), async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'merchant') {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+
+      const imageUrl = `/uploads/menu-items/${req.file.filename}`;
+      res.json({ imageUrl });
+    } catch (error) {
+      console.error("Error uploading menu item image:", error);
+      res.status(500).json({ error: "Failed to upload image" });
+    }
+  });
+
+  app.post("/api/restaurants/upload-image", restaurantPhotoUpload.single('image'), async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'merchant') {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+
+      const imageUrl = `/uploads/restaurants/${req.file.filename}`;
+      res.json({ imageUrl });
+    } catch (error) {
+      console.error("Error uploading restaurant image:", error);
+      res.status(500).json({ error: "Failed to upload image" });
     }
   });
 
