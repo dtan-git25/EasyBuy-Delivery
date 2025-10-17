@@ -92,7 +92,6 @@ export default function CustomerPortal() {
   const [sortBy, setSortBy] = useState("distance");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
-  const [showCart, setShowCart] = useState(false);
   const [showAllCarts, setShowAllCarts] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<SavedAddress | null>(null);
@@ -613,120 +612,6 @@ export default function CustomerPortal() {
           )}
         </div>
 
-        {/* Cart Modal - Restaurant Specific */}
-        <Dialog open={showCart} onOpenChange={setShowCart}>
-          <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{selectedRestaurant.name} - Cart</DialogTitle>
-              <p className="text-sm text-muted-foreground">
-                Items from this restaurant only.
-              </p>
-            </DialogHeader>
-            <div className="space-y-4">
-              {cart.items.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">Your cart is empty</p>
-              ) : (
-                <>
-                  <div className="space-y-3">
-                    {cart.items.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div className="flex-1">
-                          <h4 className="font-medium">{item.name}</h4>
-                          {item.variants && Object.keys(item.variants).length > 0 && (
-                            <p className="text-xs text-muted-foreground">
-                              {Object.entries(item.variants).map(([key, value]) => `${key}: ${value}`).join(', ')}
-                            </p>
-                          )}
-                          <p className="text-sm text-muted-foreground">₱{Number(item.price).toFixed(2)} each</p>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => cart.updateQuantity(item.id, item.quantity - 1)}
-                            data-testid={`button-decrease-${item.id}`}
-                          >
-                            <Minus className="h-4 w-4" />
-                          </Button>
-                          <span className="w-8 text-center">{item.quantity}</span>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => cart.updateQuantity(item.id, item.quantity + 1)}
-                            data-testid={`button-increase-${item.id}`}
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => cart.removeItem(item.id)}
-                            data-testid={`button-remove-${item.id}`}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>Subtotal:</span>
-                      <span>₱{cart.getSubtotal().toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Markup ({cart.markup}%):</span>
-                      <span>₱{cart.getMarkupAmount().toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Delivery Fee:</span>
-                      <span>₱{cart.getDeliveryFee().toFixed(2)}</span>
-                    </div>
-                    <Separator />
-                    <div className="flex justify-between font-semibold text-lg">
-                      <span>Total:</span>
-                      <span>₱{cart.getTotal().toFixed(2)}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex space-x-2 pt-4">
-                    <Button
-                      variant="outline"
-                      onClick={() => cart.clearCart()}
-                      className="flex-1"
-                      data-testid="button-clear-cart"
-                    >
-                      Clear Cart
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        if (cart.items.length === 0) {
-                          toast({
-                            title: "Cart is empty",
-                            description: "Add items to proceed to checkout.",
-                            variant: "destructive",
-                          });
-                          return;
-                        }
-                        setShowCart(false);
-                        setShowCheckout(true);
-                      }}
-                      className="flex-1"
-                      data-testid="button-checkout"
-                      disabled={cart.items.length === 0}
-                    >
-                      Checkout
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
-
         {/* View All Carts Modal */}
         <Dialog open={showAllCarts} onOpenChange={setShowAllCarts}>
           <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
@@ -985,13 +870,13 @@ export default function CustomerPortal() {
                 variant="ghost"
                 size="icon"
                 className="relative"
-                onClick={() => setShowCart(true)}
+                onClick={() => setShowAllCarts(true)}
                 data-testid="button-header-cart"
               >
                 <ShoppingCart className="h-5 w-5" />
-                {cart.getItemCount() > 0 && (
+                {cart.getAllCartsItemCount() > 0 && (
                   <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
-                    {cart.getItemCount()}
+                    {cart.getAllCartsItemCount()}
                   </Badge>
                 )}
               </Button>
@@ -1511,92 +1396,7 @@ export default function CustomerPortal() {
         )}
       </div>
 
-      {/* Dialogs and Modals remain the same */}
-      {showCart && (
-        <Dialog open={showCart} onOpenChange={setShowCart}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Your Order</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              {cart.items.map((item) => (
-                <div key={`${item.menuItemId}-${item.name}`} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex-1">
-                    <h4 className="font-medium">{item.name}</h4>
-                    {item.variants && Object.keys(item.variants).length > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        {Object.entries(item.variants).map(([key, value]) => `${key}: ${value}`).join(', ')}
-                      </p>
-                    )}
-                    <p className="text-sm text-muted-foreground">₱{Number(item.price).toFixed(2)} each</p>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => cart.updateQuantity(item.id, item.quantity - 1)}
-                        data-testid={`button-decrease-${item.menuItemId}`}
-                      >
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <span className="w-8 text-center">{item.quantity}</span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => cart.updateQuantity(item.id, item.quantity + 1)}
-                        data-testid={`button-increase-${item.menuItemId}`}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => cart.removeItem(item.id)}
-                      data-testid={`button-remove-${item.menuItemId}`}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-
-              <Separator />
-
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Subtotal:</span>
-                  <span>₱{cart.getSubtotal().toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Markup:</span>
-                  <span>₱{cart.getMarkupAmount().toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Delivery Fee:</span>
-                  <span>₱{cart.getDeliveryFee().toFixed(2)}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between text-lg font-semibold">
-                  <span>Total:</span>
-                  <span>₱{cart.getTotal().toFixed(2)}</span>
-                </div>
-              </div>
-
-              <div className="flex space-x-2">
-                <Button variant="outline" onClick={() => setShowCart(false)} className="flex-1">
-                  Continue Shopping
-                </Button>
-                <Button onClick={() => { setShowCart(false); setShowCheckout(true); }} className="flex-1" data-testid="button-proceed-checkout">
-                  Proceed to Checkout
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-
+      {/* Checkout Dialog */}
       {showCheckout && (
         <Dialog open={showCheckout} onOpenChange={setShowCheckout}>
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
