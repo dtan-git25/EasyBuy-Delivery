@@ -461,37 +461,39 @@ export default function CustomerPortal() {
         {/* Restaurant Header */}
         <div className="relative h-64 bg-cover bg-center" style={{backgroundImage: `url(${selectedRestaurant.image})`}}>
           <div className="absolute inset-0 bg-black/50" />
-          <div className="absolute top-4 left-4 flex gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setSelectedRestaurant(null);
-                setShowReplaceCartDialog(false);
-                setPendingMenuItem(null);
-                setReplacementScenario(null);
-              }}
-              className="text-white hover:bg-white/20"
-              data-testid="button-back-to-restaurants"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Restaurants
-            </Button>
-          </div>
-          <div className="absolute bottom-4 left-4 text-white">
-            <h1 className="text-3xl font-bold">{selectedRestaurant.name}</h1>
-            <p className="text-lg opacity-90">{selectedRestaurant.cuisine}</p>
-            <div className="flex items-center mt-2 space-x-4">
-              <div className="flex items-center">
-                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                <span>{selectedRestaurant.rating}</span>
-              </div>
-              <div className="flex items-center">
-                <Clock className="h-4 w-4 mr-1" />
-                <span>25-35 min</span>
-              </div>
-              <div className="flex items-center">
-                <span>₱{selectedRestaurant.deliveryFee} delivery</span>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full relative">
+            <div className="absolute top-4 left-4 sm:left-6 lg:left-8 flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSelectedRestaurant(null);
+                  setShowReplaceCartDialog(false);
+                  setPendingMenuItem(null);
+                  setReplacementScenario(null);
+                }}
+                className="text-white hover:bg-white/20"
+                data-testid="button-back-to-restaurants"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Restaurants
+              </Button>
+            </div>
+            <div className="absolute bottom-4 left-4 sm:left-6 lg:left-8 text-white">
+              <h1 className="text-3xl font-bold">{selectedRestaurant.name}</h1>
+              <p className="text-lg opacity-90">{selectedRestaurant.cuisine}</p>
+              <div className="flex items-center mt-2 space-x-4">
+                <div className="flex items-center">
+                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
+                  <span>{selectedRestaurant.rating}</span>
+                </div>
+                <div className="flex items-center">
+                  <Clock className="h-4 w-4 mr-1" />
+                  <span>25-35 min</span>
+                </div>
+                <div className="flex items-center">
+                  <span>₱{selectedRestaurant.deliveryFee} delivery</span>
+                </div>
               </div>
             </div>
           </div>
