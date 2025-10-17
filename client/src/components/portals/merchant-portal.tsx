@@ -1153,11 +1153,11 @@ export default function MerchantPortal() {
                             </div>
                             <div className="flex items-center text-muted-foreground">
                               <Phone className="mr-2 h-4 w-4" />
-                              {order.customer?.phone || order.phoneNumber || 'No phone'}
+                              {order.customer?.phone || 'No phone'}
                             </div>
                             <div className="flex items-center text-muted-foreground">
                               <MapPin className="mr-2 h-4 w-4" />
-                              {order.customer?.address || order.deliveryAddress || 'No address'}
+                              {order.customer?.address || 'No address'}
                             </div>
                             {order.rider && (
                               <div className="flex items-center text-muted-foreground">
@@ -1726,10 +1726,10 @@ export default function MerchantPortal() {
                           <span className="font-medium">Customer:</span> {order.customer?.name || 'Unknown'}
                         </p>
                         <p className="text-sm">
-                          <span className="font-medium">Address:</span> {order.customer?.address || order.deliveryAddress || 'N/A'}
+                          <span className="font-medium">Address:</span> {order.customer?.address || 'N/A'}
                         </p>
                         <p className="text-sm">
-                          <span className="font-medium">Phone:</span> {order.customer?.phone || order.phoneNumber || 'N/A'}
+                          <span className="font-medium">Phone:</span> {order.customer?.phone || 'N/A'}
                         </p>
                       </div>
 

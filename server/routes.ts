@@ -1667,8 +1667,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Update restaurant details if provided
-      const restaurant = await storage.getRestaurantByOwnerId(req.user.id);
-      if (restaurant) {
+      const restaurants = await storage.getRestaurantsByOwner(req.user.id);
+      if (restaurants && restaurants.length > 0) {
+        const restaurant = restaurants[0]; // Merchant has one restaurant
         const restaurantUpdateData: { name?: string; contactNumber?: string } = {};
         if (storeName !== undefined) restaurantUpdateData.name = storeName;
         if (storeContact !== undefined) restaurantUpdateData.contactNumber = storeContact;
