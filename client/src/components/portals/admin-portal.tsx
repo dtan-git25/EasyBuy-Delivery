@@ -16,7 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ShoppingCart, DollarSign, Bike, Store, Download, Eye, Check, X, Clock, Users, TrendingUp, FileText, AlertCircle, Crown, UserPlus } from "lucide-react";
+import { ShoppingCart, DollarSign, Bike, Store, Download, Eye, Check, X, Clock, Users, TrendingUp, FileText, AlertCircle, Crown, UserPlus, Trash2, Mail, Phone, MapPin, Calendar } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -597,18 +597,15 @@ function StoreManagementTable() {
             <thead>
               <tr className="border-b bg-muted/50">
                 <th className="px-4 py-3 text-left text-sm font-medium">Restaurant Name</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Owner/Merchant</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Markup</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Location</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Date Registered</th>
                 <th className="px-4 py-3 text-center text-sm font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
               {adminRestaurants.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
                     No restaurants found
                   </td>
                 </tr>
@@ -626,9 +623,6 @@ function StoreManagementTable() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm" data-testid={`owner-${restaurant.id}`}>
-                      {getOwnerName(restaurant)}
-                    </td>
                     <td className="px-4 py-3">
                       <Badge 
                         variant={restaurant.isActive ? "default" : "secondary"}
@@ -640,10 +634,20 @@ function StoreManagementTable() {
                     <td className="px-4 py-3 text-sm" data-testid={`markup-${restaurant.id}`}>
                       {restaurant.markup}%
                     </td>
-                    <td className="px-4 py-3 text-sm max-w-xs truncate">{restaurant.address}</td>
-                    <td className="px-4 py-3 text-sm">{formatDate(restaurant.createdAt)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center space-x-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setSelectedRestaurant(restaurant);
+                            setShowViewModal(true);
+                          }}
+                          data-testid={`button-view-${restaurant.id}`}
+                          title="View Details"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
                         <Button
                           size="sm"
                           variant="outline"
@@ -656,22 +660,6 @@ function StoreManagementTable() {
                         >
                           Edit Markup
                         </Button>
-                        <Switch
-                          checked={restaurant.isActive}
-                          onCheckedChange={(checked) => toggleStatusMutation.mutate({ id: restaurant.id, isActive: checked })}
-                          data-testid={`switch-status-${restaurant.id}`}
-                        />
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setSelectedRestaurant(restaurant);
-                            setShowViewModal(true);
-                          }}
-                          data-testid={`button-view-${restaurant.id}`}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
                         <Button
                           size="sm"
                           variant="ghost"
@@ -681,8 +669,9 @@ function StoreManagementTable() {
                           }}
                           className="text-destructive hover:text-destructive"
                           data-testid={`button-delete-${restaurant.id}`}
+                          title="Delete Restaurant"
                         >
-                          <X className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </td>
@@ -767,63 +756,126 @@ function StoreManagementTable() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* View Information Modal */}
+      {/* View Store Information Modal */}
       <Dialog open={showViewModal} onOpenChange={setShowViewModal}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{selectedRestaurant?.name}</DialogTitle>
-            <DialogDescription>Restaurant Information</DialogDescription>
+            <DialogTitle className="text-2xl flex items-center gap-2">
+              <Store className="h-6 w-6 text-primary" />
+              {selectedRestaurant?.name}
+            </DialogTitle>
+            <DialogDescription>Complete Store Information</DialogDescription>
           </DialogHeader>
           {selectedRestaurant && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-muted-foreground">Owner</Label>
-                  <p className="font-medium">{getOwnerName(selectedRestaurant)}</p>
+            <div className="space-y-6">
+              {/* Restaurant Image */}
+              {selectedRestaurant.image && (
+                <div className="flex justify-center">
+                  <img 
+                    src={selectedRestaurant.image} 
+                    alt={selectedRestaurant.name} 
+                    className="w-full max-w-md h-48 object-cover rounded-lg border"
+                  />
                 </div>
-                <div>
-                  <Label className="text-muted-foreground">Cuisine</Label>
-                  <p className="font-medium">{selectedRestaurant.cuisine}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Phone</Label>
-                  <p className="font-medium">{selectedRestaurant.phone}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Email</Label>
-                  <p className="font-medium">{selectedRestaurant.email || 'N/A'}</p>
-                </div>
-                <div className="col-span-2">
-                  <Label className="text-muted-foreground">Address</Label>
-                  <p className="font-medium">{selectedRestaurant.address}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Markup</Label>
-                  <p className="font-medium">{selectedRestaurant.markup}%</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Delivery Fee</Label>
-                  <p className="font-medium">₱{selectedRestaurant.deliveryFee}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Rating</Label>
-                  <p className="font-medium">⭐ {selectedRestaurant.rating || '0'}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Status</Label>
-                  <p className="font-medium">{selectedRestaurant.isActive ? 'Active' : 'Inactive'}</p>
+              )}
+
+              {/* Status Badge */}
+              <div className="flex items-center gap-2">
+                <Label className="text-muted-foreground">Status:</Label>
+                <Badge 
+                  variant={selectedRestaurant.isActive ? "default" : "secondary"}
+                  className="text-sm"
+                >
+                  {selectedRestaurant.isActive ? "Active" : "Inactive"}
+                </Badge>
+              </div>
+
+              {/* Owner Information Section */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg border-b pb-2">Owner Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-start gap-2">
+                    <Users className="h-4 w-4 text-muted-foreground mt-1" />
+                    <div>
+                      <Label className="text-muted-foreground text-xs">Owner/Merchant Name</Label>
+                      <p className="font-medium">{getOwnerName(selectedRestaurant)}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Mail className="h-4 w-4 text-muted-foreground mt-1" />
+                    <div>
+                      <Label className="text-muted-foreground text-xs">Owner Email</Label>
+                      <p className="font-medium">{selectedRestaurant.email || 'Not provided'}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
+
+              {/* Store Contact Information */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg border-b pb-2">Store Contact Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-start gap-2">
+                    <Phone className="h-4 w-4 text-muted-foreground mt-1" />
+                    <div>
+                      <Label className="text-muted-foreground text-xs">Store Contact Number</Label>
+                      <p className="font-medium">{selectedRestaurant.phone}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <Store className="h-4 w-4 text-muted-foreground mt-1" />
+                    <div>
+                      <Label className="text-muted-foreground text-xs">Cuisine Type</Label>
+                      <p className="font-medium">{selectedRestaurant.cuisine}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 md:col-span-2">
+                    <MapPin className="h-4 w-4 text-muted-foreground mt-1" />
+                    <div>
+                      <Label className="text-muted-foreground text-xs">Store Address</Label>
+                      <p className="font-medium">{selectedRestaurant.address}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Business Information */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg border-b pb-2">Business Details</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Markup Percentage</Label>
+                    <p className="font-medium text-lg">{selectedRestaurant.markup}%</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Delivery Fee</Label>
+                    <p className="font-medium text-lg">₱{selectedRestaurant.deliveryFee}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Rating</Label>
+                    <p className="font-medium text-lg">⭐ {selectedRestaurant.rating || '0.0'}</p>
+                  </div>
+                  <div className="flex items-start gap-2 md:col-span-3">
+                    <Calendar className="h-4 w-4 text-muted-foreground mt-1" />
+                    <div>
+                      <Label className="text-muted-foreground text-xs">Date Registered</Label>
+                      <p className="font-medium">{formatDate(selectedRestaurant.createdAt)}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Description */}
               {selectedRestaurant.description && (
-                <div>
-                  <Label className="text-muted-foreground">Description</Label>
-                  <p className="font-medium">{selectedRestaurant.description}</p>
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg border-b pb-2">Description</h3>
+                  <p className="text-sm text-muted-foreground">{selectedRestaurant.description}</p>
                 </div>
               )}
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowViewModal(false)}>
+            <Button variant="outline" onClick={() => setShowViewModal(false)} data-testid="button-close-view-modal">
               Close
             </Button>
           </DialogFooter>
