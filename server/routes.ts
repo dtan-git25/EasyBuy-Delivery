@@ -1631,6 +1631,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Customer profile update (customers only)
+  app.patch("/api/customer/profile", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'customer') {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const { email, phone } = req.body;
+      const updateData: { email?: string; phone?: string } = {};
+      
+      if (email !== undefined) updateData.email = email;
+      if (phone !== undefined) updateData.phone = phone;
+      
+      const user = await storage.updateUser(req.user.id, updateData);
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating customer profile:", error);
+      res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
+
   // User management routes (admin only)
   app.get("/api/users", async (req, res) => {
     if (!req.isAuthenticated() || req.user?.role !== 'admin') {
