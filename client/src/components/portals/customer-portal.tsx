@@ -10,7 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Clock, Star, Search, Filter, Navigation, ArrowLeft, ShoppingCart, Plus, Minus, X, Package, User, Phone, CheckCircle, AlertCircle } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { MapPin, Clock, Star, Search, Filter, Navigation, ArrowLeft, ShoppingCart, Plus, Minus, X, Package, User, Phone, CheckCircle, AlertCircle, Bell, Bike } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useWebSocket } from "@/lib/websocket";
@@ -961,6 +963,96 @@ export default function CustomerPortal() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="bg-background border-b sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <div className="flex items-center gap-2">
+              <div className="bg-primary text-primary-foreground p-2 rounded-lg">
+                <Bike className="h-6 w-6" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold">Easy Buy Delivery</h1>
+                <p className="text-xs text-muted-foreground">Pabilir Padala Delivery Services</p>
+              </div>
+            </div>
+
+            {/* Right Side: Cart, Notifications, Profile */}
+            <div className="flex items-center gap-4">
+              {/* Cart Icon */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative"
+                onClick={() => setShowCart(true)}
+                data-testid="button-header-cart"
+              >
+                <ShoppingCart className="h-5 w-5" />
+                {cart.getItemCount() > 0 && (
+                  <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
+                    {cart.getItemCount()}
+                  </Badge>
+                )}
+              </Button>
+
+              {/* Notifications Icon */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative"
+                data-testid="button-header-notifications"
+              >
+                <Bell className="h-5 w-5" />
+                {orders.filter(o => o.status === 'ready' || o.status === 'picked_up').length > 0 && (
+                  <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
+                    {orders.filter(o => o.status === 'ready' || o.status === 'picked_up').length}
+                  </Badge>
+                )}
+              </Button>
+
+              {/* Profile Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center gap-2" data-testid="button-profile-dropdown">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="bg-primary text-primary-foreground">
+                        {user?.firstName?.[0]}{user?.lastName?.[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="text-left hidden md:block">
+                      <p className="text-sm font-medium">{user?.firstName} {user?.lastName}</p>
+                      <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
+                    </div>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>
+                    <div>
+                      <p className="font-medium">{user?.firstName} {user?.lastName}</p>
+                      <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setActiveTab("profile")} data-testid="menu-item-my-account">
+                    <User className="mr-2 h-4 w-4" />
+                    My Account
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActiveTab("orders")} data-testid="menu-item-my-orders">
+                    <Package className="mr-2 h-4 w-4" />
+                    My Orders
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => window.location.href = "/logout"} data-testid="menu-item-sign-out">
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </div>
+      </header>
+
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-primary to-secondary text-primary-foreground py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1014,26 +1106,11 @@ export default function CustomerPortal() {
         </div>
       </section>
 
-      {/* Main Content with Tabs */}
+      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-8">
-            <TabsTrigger value="restaurants" data-testid="tab-restaurants">
-              <ShoppingCart className="mr-2 h-4 w-4" />
-              Restaurants
-            </TabsTrigger>
-            <TabsTrigger value="orders" data-testid="tab-orders">
-              <Package className="mr-2 h-4 w-4" />
-              My Orders
-            </TabsTrigger>
-            <TabsTrigger value="profile" data-testid="tab-profile">
-              <User className="mr-2 h-4 w-4" />
-              My Account
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Restaurants Tab */}
-          <TabsContent value="restaurants" className="space-y-6">
+        {/* Restaurants View */}
+        {activeTab === "restaurants" && (
+          <div className="space-y-6">
       {/* Restaurant Grid */}
       <section className="py-8 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1122,10 +1199,12 @@ export default function CustomerPortal() {
           )}
         </div>
       </section>
-          </TabsContent>
+          </div>
+        )}
 
-          {/* My Orders Tab */}
-          <TabsContent value="orders" className="space-y-6">
+        {/* My Orders View */}
+        {activeTab === "orders" && (
+          <div className="space-y-6">
             <div className="grid gap-6">
               {orders.length === 0 ? (
                 <Card className="text-center py-12">
@@ -1235,10 +1314,12 @@ export default function CustomerPortal() {
                 ))
               )}
             </div>
-          </TabsContent>
+          </div>
+        )}
 
-          {/* My Account Tab */}
-          <TabsContent value="profile" className="space-y-6">
+        {/* My Account View */}
+        {activeTab === "profile" && (
+          <div className="space-y-6">
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-6">
@@ -1377,12 +1458,12 @@ export default function CustomerPortal() {
                                   )}
                                 </div>
                                 <p className="text-sm text-muted-foreground">
-                                  {address.houseNumber && `${address.houseNumber}, `}
+                                  {address.lotHouseNo && `${address.lotHouseNo}, `}
                                   {address.street && `${address.street}, `}
                                   {address.barangay}
                                 </p>
                                 <p className="text-sm text-muted-foreground">
-                                  {address.city}, {address.province}
+                                  {address.cityMunicipality}, {address.province}
                                 </p>
                                 {address.landmark && (
                                   <p className="text-sm text-muted-foreground">
@@ -1426,8 +1507,8 @@ export default function CustomerPortal() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          </div>
+        )}
       </div>
 
       {/* Dialogs and Modals remain the same */}
