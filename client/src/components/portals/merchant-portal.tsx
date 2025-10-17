@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Store, MapPin, Star, Clock, User, Phone, MessageCircle, Edit, Plus, AlertCircle, CheckCircle, XCircle, Power, Trash2, Camera } from "lucide-react";
+import { Store, MapPin, Star, Clock, User, Phone, MessageCircle, Edit, Plus, AlertCircle, CheckCircle, XCircle, Power, Trash2, Camera, Utensils } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -1541,7 +1541,24 @@ export default function MerchantPortal() {
                   {menuItems.map((item: any) => (
                     <Card key={item.id} data-testid={`card-menu-item-${item.id}`}>
                       <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          {/* Menu Item Image */}
+                          <div className="flex-shrink-0">
+                            {item.image ? (
+                              <img 
+                                src={item.image} 
+                                alt={item.name}
+                                className="w-20 h-20 object-cover rounded-lg"
+                                data-testid={`img-merchant-menu-item-${item.id}`}
+                              />
+                            ) : (
+                              <div className="w-20 h-20 bg-muted rounded-lg flex items-center justify-center">
+                                <Utensils className="h-8 w-8 text-muted-foreground" />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Menu Item Details */}
                           <div className="flex-1">
                             <h4 className="font-semibold text-foreground" data-testid={`text-item-name-${item.id}`}>
                               {item.name}
@@ -1568,7 +1585,9 @@ export default function MerchantPortal() {
                               </Badge>
                             </div>
                           </div>
-                          <div className="flex gap-2">
+
+                          {/* Action Buttons */}
+                          <div className="flex gap-2 flex-shrink-0">
                             <Button 
                               variant="outline" 
                               size="sm" 
