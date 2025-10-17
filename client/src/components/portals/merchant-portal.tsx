@@ -622,7 +622,7 @@ export default function MerchantPortal() {
   useEffect(() => {
     if (isEditingProfile && userRestaurant && user) {
       setEditedStoreName(userRestaurant.name || "");
-      setEditedStoreContact(userRestaurant.contactNumber || "");
+      setEditedStoreContact(userRestaurant.phone || "");
       setEditedEmail(user.email || "");
     }
   }, [isEditingProfile, userRestaurant, user]);
@@ -1866,7 +1866,7 @@ export default function MerchantPortal() {
                             />
                           ) : (
                             <p className="text-base font-medium" data-testid="text-store-contact">
-                              {userRestaurant?.contactNumber || "-"}
+                              {userRestaurant?.phone || "-"}
                             </p>
                           )}
                         </div>

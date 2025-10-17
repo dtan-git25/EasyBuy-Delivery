@@ -1670,9 +1670,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const restaurants = await storage.getRestaurantsByOwner(req.user.id);
       if (restaurants && restaurants.length > 0) {
         const restaurant = restaurants[0]; // Merchant has one restaurant
-        const restaurantUpdateData: { name?: string; contactNumber?: string } = {};
+        const restaurantUpdateData: { name?: string; phone?: string } = {};
         if (storeName !== undefined) restaurantUpdateData.name = storeName;
-        if (storeContact !== undefined) restaurantUpdateData.contactNumber = storeContact;
+        if (storeContact !== undefined) restaurantUpdateData.phone = storeContact;
         
         if (Object.keys(restaurantUpdateData).length > 0) {
           await storage.updateRestaurant(restaurant.id, restaurantUpdateData);
@@ -1680,7 +1680,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Return updated user
-      const updatedUser = await storage.getUserById(req.user.id);
+      const updatedUser = await storage.getUser(req.user.id);
       res.json(updatedUser);
     } catch (error) {
       console.error("Error updating merchant profile:", error);
