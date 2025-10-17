@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Store, MapPin, Star, Clock, User, Phone, MessageCircle, Edit, Plus, AlertCircle, CheckCircle, XCircle, Power, Trash2 } from "lucide-react";
+import { Store, MapPin, Star, Clock, User, Phone, MessageCircle, Edit, Plus, AlertCircle, CheckCircle, XCircle, Power, Trash2, Camera } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -58,6 +58,9 @@ export default function MerchantPortal() {
   });
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
+  const [selectedRestaurantImage, setSelectedRestaurantImage] = useState<File | null>(null);
+  const [restaurantImagePreview, setRestaurantImagePreview] = useState<string>('');
+  const [isRestaurantPhotoDialogOpen, setIsRestaurantPhotoDialogOpen] = useState(false);
   const [optionValues, setOptionValues] = useState<Array<{optionTypeId: number, value: string, price: string}>>([]);
   const [availableItemOptions, setAvailableItemOptions] = useState<any[]>([]);
   const [selectedItemOptions, setSelectedItemOptions] = useState<Record<string, string>>({});
@@ -274,6 +277,97 @@ export default function MerchantPortal() {
         setImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  // Handle restaurant photo selection
+  const handleRestaurantPhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Please select an image smaller than 5MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          title: "Invalid file type",
+          description: "Please select a JPEG or PNG image.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setSelectedRestaurantImage(file);
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setRestaurantImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Upload restaurant photo
+  const handleUploadRestaurantPhoto = async () => {
+    if (!selectedRestaurantImage || !userRestaurant) {
+      toast({
+        title: "No image selected",
+        description: "Please select an image first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Upload image
+      const formData = new FormData();
+      formData.append('image', selectedRestaurantImage);
+      
+      const uploadResponse = await fetch('/api/restaurants/upload-image', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      });
+      
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload image');
+      }
+      
+      const { imageUrl } = await uploadResponse.json();
+      
+      // Update restaurant with new image
+      const response = await apiRequest("PATCH", `/api/restaurants/${userRestaurant.id}`, {
+        image: imageUrl
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update restaurant photo');
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/merchant/my-restaurant"] });
+      setIsRestaurantPhotoDialogOpen(false);
+      setSelectedRestaurantImage(null);
+      setRestaurantImagePreview('');
+      
+      toast({
+        title: "Photo updated",
+        description: "Your restaurant photo has been updated successfully.",
+      });
+    } catch (error) {
+      console.error('Error uploading restaurant photo:', error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload restaurant photo. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -729,8 +823,32 @@ export default function MerchantPortal() {
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
             {/* Store Info */}
             <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-muted rounded-xl flex items-center justify-center">
-                <Store className="text-muted-foreground" size={32} />
+              <div className="relative group">
+                {userRestaurant?.image ? (
+                  <img 
+                    src={userRestaurant.image} 
+                    alt={userRestaurant.name}
+                    className="w-16 h-16 object-cover rounded-xl"
+                    data-testid="img-restaurant-photo"
+                  />
+                ) : (
+                  <div className="w-16 h-16 bg-muted rounded-xl flex items-center justify-center">
+                    <Store className="text-muted-foreground" size={32} />
+                  </div>
+                )}
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                  onClick={() => {
+                    setRestaurantImagePreview(userRestaurant?.image || '');
+                    setIsRestaurantPhotoDialogOpen(true);
+                  }}
+                  data-testid="button-change-restaurant-photo"
+                >
+                  <Camera className="h-4 w-4 mr-1" />
+                  Change
+                </Button>
               </div>
               <div>
                 <h3 className="text-xl font-bold text-foreground">
@@ -1976,6 +2094,66 @@ export default function MerchantPortal() {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+
+          {/* Restaurant Photo Upload Dialog */}
+          <Dialog open={isRestaurantPhotoDialogOpen} onOpenChange={setIsRestaurantPhotoDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Update Restaurant Photo</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="restaurant-photo">Restaurant Photo</Label>
+                  <Input 
+                    id="restaurant-photo" 
+                    data-testid="input-restaurant-photo"
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png"
+                    onChange={handleRestaurantPhotoSelect}
+                    className="cursor-pointer"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Max 5MB. Formats: JPEG, PNG. This photo will be displayed on the customer app.
+                  </p>
+                  {restaurantImagePreview && (
+                    <div className="mt-3">
+                      <p className="text-sm font-medium mb-2">
+                        {selectedRestaurantImage ? 'New Photo Preview:' : 'Current Photo:'}
+                      </p>
+                      <img 
+                        src={restaurantImagePreview} 
+                        alt="Restaurant preview" 
+                        className="w-full h-48 object-cover rounded-md border"
+                        data-testid="img-restaurant-preview"
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className="flex space-x-2">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => {
+                      setIsRestaurantPhotoDialogOpen(false);
+                      setSelectedRestaurantImage(null);
+                      setRestaurantImagePreview('');
+                    }}
+                    data-testid="button-cancel-restaurant-photo"
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    className="flex-1"
+                    onClick={handleUploadRestaurantPhoto}
+                    disabled={!selectedRestaurantImage}
+                    data-testid="button-upload-restaurant-photo"
+                  >
+                    Upload Photo
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </section>
     </div>
