@@ -1652,6 +1652,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Merchant profile update (merchants only)
+  app.patch("/api/merchant/profile", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'merchant') {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const { storeName, storeContact, email } = req.body;
+      
+      // Update user email if provided
+      if (email !== undefined) {
+        await storage.updateUser(req.user.id, { email });
+      }
+      
+      // Update restaurant details if provided
+      const restaurant = await storage.getRestaurantByOwnerId(req.user.id);
+      if (restaurant) {
+        const restaurantUpdateData: { name?: string; contactNumber?: string } = {};
+        if (storeName !== undefined) restaurantUpdateData.name = storeName;
+        if (storeContact !== undefined) restaurantUpdateData.contactNumber = storeContact;
+        
+        if (Object.keys(restaurantUpdateData).length > 0) {
+          await storage.updateRestaurant(restaurant.id, restaurantUpdateData);
+        }
+      }
+      
+      // Return updated user
+      const updatedUser = await storage.getUserById(req.user.id);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating merchant profile:", error);
+      res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
+
   // User management routes (admin only)
   app.get("/api/users", async (req, res) => {
     if (!req.isAuthenticated() || req.user?.role !== 'admin') {
