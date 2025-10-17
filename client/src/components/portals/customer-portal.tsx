@@ -10,9 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { MapPin, Clock, Star, Search, Filter, Navigation, ArrowLeft, ShoppingCart, Plus, Minus, X, Package, User, Phone, CheckCircle, AlertCircle, Bell, Bike } from "lucide-react";
+import { MapPin, Clock, Star, Search, Filter, Navigation, ArrowLeft, ShoppingCart, Plus, Minus, X, Package, User, Phone, CheckCircle, AlertCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useWebSocket } from "@/lib/websocket";
@@ -92,6 +90,7 @@ export default function CustomerPortal() {
   const [sortBy, setSortBy] = useState("distance");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
+  const [showCart, setShowCart] = useState(false);
   const [showAllCarts, setShowAllCarts] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<SavedAddress | null>(null);
@@ -612,6 +611,120 @@ export default function CustomerPortal() {
           )}
         </div>
 
+        {/* Cart Modal - Restaurant Specific */}
+        <Dialog open={showCart} onOpenChange={setShowCart}>
+          <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{selectedRestaurant.name} - Cart</DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                Items from this restaurant only.
+              </p>
+            </DialogHeader>
+            <div className="space-y-4">
+              {cart.items.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">Your cart is empty</p>
+              ) : (
+                <>
+                  <div className="space-y-3">
+                    {cart.items.map((item) => (
+                      <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex-1">
+                          <h4 className="font-medium">{item.name}</h4>
+                          {item.variants && Object.keys(item.variants).length > 0 && (
+                            <p className="text-xs text-muted-foreground">
+                              {Object.entries(item.variants).map(([key, value]) => `${key}: ${value}`).join(', ')}
+                            </p>
+                          )}
+                          <p className="text-sm text-muted-foreground">₱{Number(item.price).toFixed(2)} each</p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => cart.updateQuantity(item.id, item.quantity - 1)}
+                            data-testid={`button-decrease-${item.id}`}
+                          >
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                          <span className="w-8 text-center">{item.quantity}</span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => cart.updateQuantity(item.id, item.quantity + 1)}
+                            data-testid={`button-increase-${item.id}`}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => cart.removeItem(item.id)}
+                            data-testid={`button-remove-${item.id}`}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Subtotal:</span>
+                      <span>₱{cart.getSubtotal().toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Markup ({cart.markup}%):</span>
+                      <span>₱{cart.getMarkupAmount().toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Delivery Fee:</span>
+                      <span>₱{cart.getDeliveryFee().toFixed(2)}</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between font-semibold text-lg">
+                      <span>Total:</span>
+                      <span>₱{cart.getTotal().toFixed(2)}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex space-x-2 pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => cart.clearCart()}
+                      className="flex-1"
+                      data-testid="button-clear-cart"
+                    >
+                      Clear Cart
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        if (cart.items.length === 0) {
+                          toast({
+                            title: "Cart is empty",
+                            description: "Add items to proceed to checkout.",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        setShowCart(false);
+                        setShowCheckout(true);
+                      }}
+                      className="flex-1"
+                      data-testid="button-checkout"
+                      disabled={cart.items.length === 0}
+                    >
+                      Checkout
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* View All Carts Modal */}
         <Dialog open={showAllCarts} onOpenChange={setShowAllCarts}>
           <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
@@ -848,96 +961,6 @@ export default function CustomerPortal() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-background border-b sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <div className="flex items-center gap-2">
-              <div className="bg-primary text-primary-foreground p-2 rounded-lg">
-                <Bike className="h-6 w-6" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold">Easy Buy Delivery</h1>
-                <p className="text-xs text-muted-foreground">Pabilir Padala Delivery Services</p>
-              </div>
-            </div>
-
-            {/* Right Side: Cart, Notifications, Profile */}
-            <div className="flex items-center gap-4">
-              {/* Cart Icon */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative"
-                onClick={() => setShowAllCarts(true)}
-                data-testid="button-header-cart"
-              >
-                <ShoppingCart className="h-5 w-5" />
-                {cart.getAllCartsItemCount() > 0 && (
-                  <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
-                    {cart.getAllCartsItemCount()}
-                  </Badge>
-                )}
-              </Button>
-
-              {/* Notifications Icon */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative"
-                data-testid="button-header-notifications"
-              >
-                <Bell className="h-5 w-5" />
-                {orders.filter(o => o.status === 'ready' || o.status === 'picked_up').length > 0 && (
-                  <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
-                    {orders.filter(o => o.status === 'ready' || o.status === 'picked_up').length}
-                  </Badge>
-                )}
-              </Button>
-
-              {/* Profile Dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-2" data-testid="button-profile-dropdown">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-primary text-primary-foreground">
-                        {user?.firstName?.[0]}{user?.lastName?.[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="text-left hidden md:block">
-                      <p className="text-sm font-medium">{user?.firstName} {user?.lastName}</p>
-                      <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
-                    </div>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>
-                    <div>
-                      <p className="font-medium">{user?.firstName} {user?.lastName}</p>
-                      <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setActiveTab("profile")} data-testid="menu-item-my-account">
-                    <User className="mr-2 h-4 w-4" />
-                    My Account
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setActiveTab("orders")} data-testid="menu-item-my-orders">
-                    <Package className="mr-2 h-4 w-4" />
-                    My Orders
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => window.location.href = "/logout"} data-testid="menu-item-sign-out">
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        </div>
-      </header>
-
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-primary to-secondary text-primary-foreground py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -991,11 +1014,26 @@ export default function CustomerPortal() {
         </div>
       </section>
 
-      {/* Main Content */}
+      {/* Main Content with Tabs */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Restaurants View */}
-        {activeTab === "restaurants" && (
-          <div className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mb-8">
+            <TabsTrigger value="restaurants" data-testid="tab-restaurants">
+              <ShoppingCart className="mr-2 h-4 w-4" />
+              Restaurants
+            </TabsTrigger>
+            <TabsTrigger value="orders" data-testid="tab-orders">
+              <Package className="mr-2 h-4 w-4" />
+              My Orders
+            </TabsTrigger>
+            <TabsTrigger value="profile" data-testid="tab-profile">
+              <User className="mr-2 h-4 w-4" />
+              My Account
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Restaurants Tab */}
+          <TabsContent value="restaurants" className="space-y-6">
       {/* Restaurant Grid */}
       <section className="py-8 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1084,12 +1122,10 @@ export default function CustomerPortal() {
           )}
         </div>
       </section>
-          </div>
-        )}
+          </TabsContent>
 
-        {/* My Orders View */}
-        {activeTab === "orders" && (
-          <div className="space-y-6">
+          {/* My Orders Tab */}
+          <TabsContent value="orders" className="space-y-6">
             <div className="grid gap-6">
               {orders.length === 0 ? (
                 <Card className="text-center py-12">
@@ -1199,12 +1235,10 @@ export default function CustomerPortal() {
                 ))
               )}
             </div>
-          </div>
-        )}
+          </TabsContent>
 
-        {/* My Account View */}
-        {activeTab === "profile" && (
-          <div className="space-y-6">
+          {/* My Account Tab */}
+          <TabsContent value="profile" className="space-y-6">
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-6">
@@ -1343,12 +1377,12 @@ export default function CustomerPortal() {
                                   )}
                                 </div>
                                 <p className="text-sm text-muted-foreground">
-                                  {address.lotHouseNo && `${address.lotHouseNo}, `}
+                                  {address.houseNumber && `${address.houseNumber}, `}
                                   {address.street && `${address.street}, `}
                                   {address.barangay}
                                 </p>
                                 <p className="text-sm text-muted-foreground">
-                                  {address.cityMunicipality}, {address.province}
+                                  {address.city}, {address.province}
                                 </p>
                                 {address.landmark && (
                                   <p className="text-sm text-muted-foreground">
@@ -1392,11 +1426,96 @@ export default function CustomerPortal() {
                 </div>
               </CardContent>
             </Card>
-          </div>
-        )}
+          </TabsContent>
+        </Tabs>
       </div>
 
-      {/* Checkout Dialog */}
+      {/* Dialogs and Modals remain the same */}
+      {showCart && (
+        <Dialog open={showCart} onOpenChange={setShowCart}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Your Order</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {cart.items.map((item) => (
+                <div key={`${item.menuItemId}-${item.name}`} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <h4 className="font-medium">{item.name}</h4>
+                    {item.variants && Object.keys(item.variants).length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {Object.entries(item.variants).map(([key, value]) => `${key}: ${value}`).join(', ')}
+                      </p>
+                    )}
+                    <p className="text-sm text-muted-foreground">₱{Number(item.price).toFixed(2)} each</p>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => cart.updateQuantity(item.id, item.quantity - 1)}
+                        data-testid={`button-decrease-${item.menuItemId}`}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <span className="w-8 text-center">{item.quantity}</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => cart.updateQuantity(item.id, item.quantity + 1)}
+                        data-testid={`button-increase-${item.menuItemId}`}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => cart.removeItem(item.id)}
+                      data-testid={`button-remove-${item.menuItemId}`}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+
+              <Separator />
+
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Subtotal:</span>
+                  <span>₱{cart.getSubtotal().toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Markup:</span>
+                  <span>₱{cart.getMarkupAmount().toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Delivery Fee:</span>
+                  <span>₱{cart.getDeliveryFee().toFixed(2)}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between text-lg font-semibold">
+                  <span>Total:</span>
+                  <span>₱{cart.getTotal().toFixed(2)}</span>
+                </div>
+              </div>
+
+              <div className="flex space-x-2">
+                <Button variant="outline" onClick={() => setShowCart(false)} className="flex-1">
+                  Continue Shopping
+                </Button>
+                <Button onClick={() => { setShowCart(false); setShowCheckout(true); }} className="flex-1" data-testid="button-proceed-checkout">
+                  Proceed to Checkout
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
       {showCheckout && (
         <Dialog open={showCheckout} onOpenChange={setShowCheckout}>
           <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
