@@ -98,9 +98,16 @@ Preferred communication style: Simple, everyday language.
 - **Socket.io**: Planned upgrade.
 
 ### File Handling & Media
-- Custom file upload components.
-- Image processing for profiles, restaurants, menus.
-- Document management for rider verification.
+- **Photo Upload System**: Merchants can upload restaurant photos and menu item images with:
+  - File validation (JPEG, PNG, WebP support, 5MB max)
+  - Real-time preview before upload
+  - Secure server-side validation with multer
+  - Organized storage in /uploads/menu-items and /uploads/restaurants folders
+  - Path traversal prevention and authentication-protected endpoints
+- **Restaurant Photos**: Merchants can upload/update restaurant photos via hover-to-change interface in profile header
+- **Menu Item Images**: Image upload integrated in Add/Edit menu item forms with preview functionality
+- **Customer Display**: Menu items and restaurants display images with graceful fallback icons when images are missing
+- **Document Management**: Rider verification documents (planned/in development)
 
 ### Location & Maps
 - **OpenStreetMap**: Map provider for location visualization and rider navigation.
