@@ -15,6 +15,19 @@ Preferred communication style: Simple, everyday language.
 - **Routing**: Wouter
 - **Form Handling**: React Hook Form with Zod validation
 
+### Customer Portal UI
+- **Navigation**: Profile dropdown-based navigation system with sticky header
+  - Header Components: Logo, cart icon with item count badge, notifications icon with badge, profile dropdown
+  - Profile Dropdown: Shows user avatar, name, and role with menu items for "My Account", "My Orders", and "Sign Out"
+  - View Switching: Navigation happens through dropdown menu items that set activeTab state
+  - Views: Restaurants (default), My Orders, My Account (profile)
+- **Profile Management**: Complete customer profile page with:
+  - Read-only personal information (name, age, gender, account creation date)
+  - Editable contact information (email, phone) with edit/save/cancel functionality
+  - Saved addresses display with Philippine address format
+  - Order statistics (total, completed, active orders)
+  - Backend API: PATCH /api/customer/profile for updating email/phone
+
 ### Backend
 - **Runtime**: Node.js with Express.js
 - **Database**: PostgreSQL with Drizzle ORM
