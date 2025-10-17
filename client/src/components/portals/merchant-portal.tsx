@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Store, MapPin, Star, Clock, User, Phone, MessageCircle, Edit, Plus, AlertCircle, CheckCircle, XCircle, Power, Trash2, Camera, Utensils } from "lucide-react";
+import { Store, MapPin, Star, Clock, User, Phone, MessageCircle, Edit, Plus, AlertCircle, CheckCircle, XCircle, Power, Trash2, Camera, Utensils, X } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -66,6 +66,23 @@ export default function MerchantPortal() {
   const [selectedItemOptions, setSelectedItemOptions] = useState<Record<string, string>>({});
   const [newItemQuantity, setNewItemQuantity] = useState(1);
   const [itemToDelete, setItemToDelete] = useState<{index: number, name: string} | null>(null);
+  
+  // Track approval notification dismissal using localStorage
+  const [isApprovalNotificationDismissed, setIsApprovalNotificationDismissed] = useState(() => {
+    if (typeof window !== 'undefined' && user?.id) {
+      const dismissed = localStorage.getItem(`approval-notification-dismissed-${user.id}`);
+      return dismissed === 'true';
+    }
+    return false;
+  });
+
+  // Handle dismissing approval notification
+  const handleDismissApprovalNotification = () => {
+    if (user?.id) {
+      localStorage.setItem(`approval-notification-dismissed-${user.id}`, 'true');
+      setIsApprovalNotificationDismissed(true);
+    }
+  };
 
   // Fetch merchant's own restaurant (including inactive ones)
   const { data: userRestaurant } = useQuery<any>({
@@ -982,17 +999,26 @@ export default function MerchantPortal() {
       )}
 
       {/* Success Message for Approved Merchants (shown once) */}
-      {user?.approvalStatus === 'approved' && userRestaurant && (
+      {user?.approvalStatus === 'approved' && userRestaurant && !isApprovalNotificationDismissed && (
         <section className="bg-background py-4">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <Alert className="border-green-500 bg-green-50 dark:bg-green-950 dark:border-green-700" data-testid="alert-approved">
+            <Alert className="relative border-green-500 bg-green-50 dark:bg-green-950 dark:border-green-700" data-testid="alert-approved">
               <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
-              <AlertTitle className="text-green-800 dark:text-green-200 font-semibold">
+              <AlertTitle className="text-green-800 dark:text-green-200 font-semibold pr-8">
                 Account Approved!
               </AlertTitle>
               <AlertDescription className="text-green-700 dark:text-green-300">
                 Your account is approved! You can now add menu items and manage your restaurant. Change your restaurant status to <strong>Open</strong> when you're ready to accept orders.
               </AlertDescription>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute top-2 right-2 h-6 w-6 p-0 text-green-700 dark:text-green-300 hover:text-green-900 dark:hover:text-green-100 hover:bg-green-100 dark:hover:bg-green-900"
+                onClick={handleDismissApprovalNotification}
+                data-testid="button-dismiss-approval-notification"
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </Alert>
           </div>
         </section>
