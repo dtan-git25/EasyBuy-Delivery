@@ -1660,19 +1660,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const { email, phone } = req.body;
-      console.log("Admin profile update request:", { userId: req.user.id, email, phone });
-      
       const updateData: { email?: string; phone?: string } = {};
       
       if (email !== undefined) updateData.email = email;
       if (phone !== undefined) updateData.phone = phone;
       
-      console.log("Update data:", updateData);
       const user = await storage.updateUser(req.user.id, updateData);
-      console.log("Updated user:", { id: user.id, email: user.email, phone: user.phone });
       res.json(user);
     } catch (error) {
       console.error("Error updating admin profile:", error);
+      res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
+
+  // Rider profile update (riders only)
+  app.patch("/api/rider/profile", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'rider') {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const { email, phone } = req.body;
+      const updateData: { email?: string; phone?: string } = {};
+      
+      if (email !== undefined) updateData.email = email;
+      if (phone !== undefined) updateData.phone = phone;
+      
+      const user = await storage.updateUser(req.user.id, updateData);
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating rider profile:", error);
       res.status(500).json({ error: "Failed to update profile" });
     }
   });

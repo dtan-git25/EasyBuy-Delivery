@@ -7,10 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Bike, Wallet, Clock, Star, MapPin, Phone, User, Upload, FileText, CheckCircle, XCircle, AlertCircle, Map } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { Bike, Wallet, Clock, Star, MapPin, Phone, User, Upload, FileText, CheckCircle, XCircle, AlertCircle, Map, Users } from "lucide-react";
+import { apiRequest, queryClient as globalQueryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useWebSocket } from "@/lib/websocket";
+import { Input } from "@/components/ui/input";
 
 interface PendingOrder {
   id: string;
@@ -45,6 +46,9 @@ export default function RiderPortal() {
     idDocument: null,
   });
   const [isUpdatingDocuments, setIsUpdatingDocuments] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editedEmail, setEditedEmail] = useState("");
+  const [editedPhone, setEditedPhone] = useState("");
 
   const { data: wallet } = useQuery({
     queryKey: ["/api/wallet"],
@@ -237,6 +241,37 @@ export default function RiderPortal() {
       });
     },
   });
+
+  // Update rider profile mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: { email?: string; phone?: string }) => {
+      const response = await apiRequest("PATCH", "/api/rider/profile", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      setIsEditingProfile(false);
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error updating profile",
+        description: "There was an error updating your profile. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Initialize profile edit form when entering edit mode
+  useEffect(() => {
+    if (isEditingProfile && user) {
+      setEditedEmail(user.email || "");
+      setEditedPhone(user.phone || "");
+    }
+  }, [isEditingProfile, user]);
 
   const updateDocumentsMutation = useMutation({
     mutationFn: async (formData: FormData) => {
@@ -593,7 +628,7 @@ export default function RiderPortal() {
       <section className="py-6 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Tabs defaultValue="pending" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="pending" data-testid="tab-pending">
                 Pending Orders 
                 {pendingOrders.length > 0 && (
@@ -619,6 +654,10 @@ export default function RiderPortal() {
                 {riderProfile?.documentsStatus === 'rejected' && (
                   <XCircle className="w-3 h-3 ml-2 text-red-500" />
                 )}
+              </TabsTrigger>
+              <TabsTrigger value="profile" data-testid="tab-profile">
+                <Users className="w-4 h-4 mr-2" />
+                My Account
               </TabsTrigger>
             </TabsList>
 
@@ -1260,6 +1299,229 @@ export default function RiderPortal() {
                       <li>• All three documents are required before submission</li>
                       <li>• Documents will be reviewed within 24-48 hours</li>
                     </ul>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* My Account Tab */}
+            <TabsContent value="profile" className="space-y-6">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold">My Account</h2>
+                    {!isEditingProfile ? (
+                      <Button onClick={() => setIsEditingProfile(true)} data-testid="button-edit-profile">
+                        Edit Contact Info
+                      </Button>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setIsEditingProfile(false)}
+                          data-testid="button-cancel-edit-profile"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            updateProfileMutation.mutate({
+                              email: editedEmail,
+                              phone: editedPhone
+                            });
+                          }}
+                          disabled={updateProfileMutation.isPending}
+                          data-testid="button-save-profile"
+                        >
+                          {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-6">
+                    {/* Personal Information */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Personal Information</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm text-muted-foreground">Prefix</label>
+                          <p className="text-base font-medium" data-testid="text-prefix">
+                            {user?.prefix || "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-sm text-muted-foreground">First Name</label>
+                          <p className="text-base font-medium" data-testid="text-first-name">
+                            {user?.firstName || "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-sm text-muted-foreground">Middle Name</label>
+                          <p className="text-base font-medium" data-testid="text-middle-name">
+                            {user?.middleName || "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-sm text-muted-foreground">Last Name</label>
+                          <p className="text-base font-medium" data-testid="text-last-name">
+                            {user?.lastName || "-"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Address Information */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Address</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm text-muted-foreground">Lot/House No.</label>
+                          <p className="text-base font-medium" data-testid="text-lot-house-no">
+                            {user?.lotHouseNo || "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-sm text-muted-foreground">Street</label>
+                          <p className="text-base font-medium" data-testid="text-street">
+                            {user?.street || "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-sm text-muted-foreground">Barangay</label>
+                          <p className="text-base font-medium" data-testid="text-barangay">
+                            {user?.barangay || "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-sm text-muted-foreground">City/Municipality</label>
+                          <p className="text-base font-medium" data-testid="text-city">
+                            {user?.cityMunicipality || "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-sm text-muted-foreground">Province</label>
+                          <p className="text-base font-medium" data-testid="text-province">
+                            {user?.province || "-"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Contact Information */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Contact Information</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm text-muted-foreground">Email</label>
+                          {isEditingProfile ? (
+                            <Input
+                              type="email"
+                              value={editedEmail}
+                              onChange={(e) => setEditedEmail(e.target.value)}
+                              placeholder="Enter your email"
+                              data-testid="input-edit-email"
+                            />
+                          ) : (
+                            <p className="text-base font-medium" data-testid="text-email">
+                              {user?.email || "-"}
+                            </p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="text-sm text-muted-foreground">Phone Number</label>
+                          {isEditingProfile ? (
+                            <Input
+                              type="tel"
+                              value={editedPhone}
+                              onChange={(e) => setEditedPhone(e.target.value)}
+                              placeholder="09XXXXXXXXX"
+                              data-testid="input-edit-phone"
+                            />
+                          ) : (
+                            <p className="text-base font-medium" data-testid="text-phone">
+                              {user?.phone || "-"}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Rider Information */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Rider Information</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm text-muted-foreground">Driver's License No.</label>
+                          <p className="text-base font-medium" data-testid="text-license-no">
+                            {user?.driversLicenseNo || "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-sm text-muted-foreground">License Validity</label>
+                          <p className="text-base font-medium" data-testid="text-license-validity">
+                            {user?.licenseValidityDate ? new Date(user.licenseValidityDate).toLocaleDateString() : "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-sm text-muted-foreground">Account Status</label>
+                          <p className="text-base font-medium" data-testid="text-approval-status">
+                            <Badge variant={user?.approvalStatus === 'approved' ? 'default' : 'secondary'}>
+                              {user?.approvalStatus || "-"}
+                            </Badge>
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-sm text-muted-foreground">Account Created</label>
+                          <p className="text-base font-medium" data-testid="text-created-date">
+                            {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "-"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Optional: Link to documents */}
+                    {riderProfile?.documentsStatus && (
+                      <>
+                        <Separator />
+                        <div>
+                          <h3 className="text-lg font-semibold mb-4">Documents</h3>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm text-muted-foreground">Document Status</p>
+                              <Badge 
+                                variant={
+                                  riderProfile.documentsStatus === 'approved' ? 'default' : 
+                                  riderProfile.documentsStatus === 'rejected' ? 'destructive' : 
+                                  'secondary'
+                                }
+                                data-testid="text-documents-status"
+                              >
+                                {riderProfile.documentsStatus}
+                              </Badge>
+                            </div>
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                // This would switch to the documents tab
+                                const documentsTab = document.querySelector('[value="documents"]') as HTMLElement;
+                                documentsTab?.click();
+                              }}
+                              data-testid="button-view-documents"
+                            >
+                              <FileText className="w-4 h-4 mr-2" />
+                              View Documents
+                            </Button>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               </Card>
