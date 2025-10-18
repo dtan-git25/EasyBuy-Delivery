@@ -2523,7 +2523,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get completed deliveries count for each rider
       const ridersWithStats = await Promise.all(
         riders.map(async (rider) => {
-          const orders = await storage.getOrdersByRider(rider.id);
+          // getOrdersByRider expects userId, not rider.id
+          const orders = await storage.getOrdersByRider(rider.userId);
           const completedOrders = orders.filter((o: any) => o.status === 'delivered');
           const wallet = await storage.getWallet(rider.userId);
           
