@@ -56,6 +56,7 @@ Preferred communication style: Simple, everyday language.
 ### Business Logic
 - **Pricing**: Multi-tier model including markup, delivery fees, merchant fees, and convenience fees.
 - **Wallet System**: Pre-funded wallets for riders with commission deduction.
+- **Rider Commission System**: Configurable commission-based earnings where admins set the rider commission percentage (0-100%, default 70%) in system settings. Rider earnings are auto-calculated as: `(Delivery Fee + Order Markup) × Commission %`. For example, with a ₱50 delivery fee, ₱30 markup, and 70% commission, riders earn ₱56. The rider portal displays simplified earnings in a highlighted box showing only the total amount with an auto-calculated description.
 - **Order Management**: Complex order states, merchant-specific item management, and comprehensive order editing (add, modify, replace, delete items) with real-time recalculations and audit trails.
 - **Inventory Control**: Real-time availability tracking with alternative item suggestions.
 - **Product Options**: Two-level system where admins define global option types (e.g., Size, Flavor), and merchants define specific values with individual pricing for their menu items.
