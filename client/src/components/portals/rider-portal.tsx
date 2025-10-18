@@ -711,24 +711,14 @@ export default function RiderPortal() {
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <span className="text-sm text-muted-foreground">
-                            Commission: <span className="font-medium text-foreground">₱{order.commission}</span>
-                          </span>
-                          <span className="text-sm text-muted-foreground">
-                            Markup: <span className="font-medium text-foreground">₱{order.markup}</span>
-                          </span>
-                        </div>
-                        <div>
-                          <Button 
-                            onClick={() => acceptOrder(order.id)}
-                            disabled={updateOrderMutation.isPending}
-                            data-testid={`button-accept-${order.id}`}
-                          >
-                            Accept Order
-                          </Button>
-                        </div>
+                      <div className="flex justify-end">
+                        <Button 
+                          onClick={() => acceptOrder(order.id)}
+                          disabled={updateOrderMutation.isPending}
+                          data-testid={`button-accept-${order.id}`}
+                        >
+                          Accept Order
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
