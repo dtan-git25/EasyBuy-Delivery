@@ -393,19 +393,6 @@ export default function Dashboard() {
                       
                       <div className="flex gap-2 pt-2">
                         <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            cart.switchCart(restaurantCart.restaurantId);
-                            setShowAllCarts(false);
-                            setShowCart(true);
-                          }}
-                          className="flex-1"
-                          data-testid={`button-view-cart-${restaurantCart.restaurantId}`}
-                        >
-                          View Cart
-                        </Button>
-                        <Button
                           variant="destructive"
                           size="sm"
                           onClick={() => {
@@ -416,6 +403,7 @@ export default function Dashboard() {
                               }
                             }
                           }}
+                          className="w-full"
                           data-testid={`button-clear-cart-${restaurantCart.restaurantId}`}
                         >
                           Clear
@@ -438,7 +426,7 @@ export default function Dashboard() {
                       <p className="font-semibold text-lg">Total for All Carts</p>
                       <p className="text-sm text-muted-foreground">{cart.getAllCartsCount()} restaurant{cart.getAllCartsCount() > 1 ? 's' : ''}</p>
                     </div>
-                    <p className="text-2xl font-bold">₱{cart.getAllCartsTotal().toFixed(2)}</p>
+                    <p className="text-2xl font-bold">₱{(cart.getAllCartsTotal() + (settings?.showConvenienceFee ? parseFloat(settings.convenienceFee || '0') * cart.getAllCartsCount() : 0)).toFixed(2)}</p>
                   </div>
                   
                   <div className="flex gap-2 pt-2">
@@ -679,9 +667,15 @@ export default function Dashboard() {
                 })}
                 
                 <Separator />
+                {settings?.showConvenienceFee && (
+                  <div className="flex justify-between text-sm">
+                    <span>Convenience Fee ({cart.getAllCartsCount()} order{cart.getAllCartsCount() > 1 ? 's' : ''}):</span>
+                    <span>₱{(parseFloat(settings.convenienceFee || '0') * cart.getAllCartsCount()).toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center pt-2">
                   <span className="font-bold">Grand Total:</span>
-                  <span className="text-xl font-bold">₱{cart.getAllCartsTotal().toFixed(2)}</span>
+                  <span className="text-xl font-bold">₱{(cart.getAllCartsTotal() + (settings?.showConvenienceFee ? parseFloat(settings.convenienceFee || '0') * cart.getAllCartsCount() : 0)).toFixed(2)}</span>
                 </div>
               </div>
               
