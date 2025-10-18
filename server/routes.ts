@@ -1830,6 +1830,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Customer Management Routes (Admin only)
+  app.get("/api/admin/customers", async (req, res) => {
+    if (!req.isAuthenticated() || (req.user?.role !== 'admin' && req.user?.role !== 'owner')) {
+      return res.status(401).json({ error: "Unauthorized - Admin access required" });
+    }
+
+    try {
+      const { search, province, sortBy, sortOrder } = req.query;
+      const customers = await storage.getCustomers({
+        search: search as string,
+        province: province as string,
+        sortBy: sortBy as string,
+        sortOrder: sortOrder as 'asc' | 'desc'
+      });
+      res.json(customers);
+    } catch (error) {
+      console.error("Error fetching customers:", error);
+      res.status(500).json({ error: "Failed to fetch customers" });
+    }
+  });
+
+  app.get("/api/admin/customers/:id", async (req, res) => {
+    if (!req.isAuthenticated() || (req.user?.role !== 'admin' && req.user?.role !== 'owner')) {
+      return res.status(401).json({ error: "Unauthorized - Admin access required" });
+    }
+
+    try {
+      const customerDetails = await storage.getCustomerDetails(req.params.id);
+      if (!customerDetails) {
+        return res.status(404).json({ error: "Customer not found" });
+      }
+      res.json(customerDetails);
+    } catch (error) {
+      console.error("Error fetching customer details:", error);
+      res.status(500).json({ error: "Failed to fetch customer details" });
+    }
+  });
+
+  app.delete("/api/admin/customers/:id", async (req, res) => {
+    if (!req.isAuthenticated() || (req.user?.role !== 'admin' && req.user?.role !== 'owner')) {
+      return res.status(401).json({ error: "Unauthorized - Admin access required" });
+    }
+
+    try {
+      await storage.deleteCustomer(req.params.id);
+      res.json({ message: "Customer deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting customer:", error);
+      res.status(500).json({ error: "Failed to delete customer" });
+    }
+  });
+
   // Restaurant Management Routes (Admin and Merchant)
   app.patch("/api/restaurants/:id", async (req, res) => {
     if (!req.isAuthenticated()) {

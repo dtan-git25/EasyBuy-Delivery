@@ -20,6 +20,7 @@ import { z } from "zod";
 import { ShoppingCart, DollarSign, Bike, Store, Download, Eye, Check, X, Clock, Users, TrendingUp, FileText, AlertCircle, Crown, UserPlus, Trash2, Mail, Phone, MapPin, Calendar, CheckCircle, Utensils } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { CustomerManagement } from "@/components/customer-management";
 
 const systemAccountSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
@@ -1721,6 +1722,9 @@ export default function AdminPortal() {
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Customer Management - Full Width Section */}
+              <CustomerManagement />
             </TabsContent>
 
             <TabsContent value="reports" className="space-y-6">

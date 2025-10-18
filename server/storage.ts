@@ -130,6 +130,11 @@ export interface IStorage {
   getLatestRiderLocation(riderId: string): Promise<RiderLocationHistory | undefined>;
   updateRiderLocation(riderId: string, locationData: { latitude: number; longitude: number; accuracy?: number; heading?: number; speed?: number; batteryLevel?: number; orderId?: string }): Promise<RiderLocationHistory>;
 
+  // Customer management (Admin only)
+  getCustomers(filters?: { search?: string; province?: string; sortBy?: string; sortOrder?: 'asc' | 'desc' }): Promise<(User & { orderCount: number })[]>;
+  getCustomerDetails(id: string): Promise<{ customer: User; savedAddresses: SavedAddress[]; orderCount: number; recentOrders: Order[] } | undefined>;
+  deleteCustomer(id: string): Promise<void>;
+
   // Session management
   clearAllSessions(): Promise<void>;
 
@@ -964,6 +969,96 @@ export class DatabaseStorage implements IStorage {
     });
 
     return locationRecord;
+  }
+
+  // Customer management (Admin only)
+  async getCustomers(filters?: { search?: string; province?: string; sortBy?: string; sortOrder?: 'asc' | 'desc' }): Promise<(User & { orderCount: number })[]> {
+    const { search, province, sortBy = 'createdAt', sortOrder = 'desc' } = filters || {};
+    const { or, ilike, count, sql } = await import('drizzle-orm');
+    
+    // Build where conditions
+    const conditions = [eq(users.role, 'customer')];
+    
+    // Apply search filter
+    if (search) {
+      conditions.push(
+        or(
+          ilike(users.firstName, `%${search}%`),
+          ilike(users.lastName, `%${search}%`),
+          ilike(users.email, `%${search}%`)
+        )!
+      );
+    }
+
+    // Apply province filter
+    if (province) {
+      conditions.push(eq(users.province, province));
+    }
+
+    // Efficient query with LEFT JOIN and GROUP BY to get order counts in single query
+    const sortColumn = sortBy === 'name' ? users.firstName : users.createdAt;
+    const customersWithCounts = await db
+      .select({
+        user: users,
+        orderCount: count(orders.id)
+      })
+      .from(users)
+      .leftJoin(orders, eq(orders.customerId, users.id))
+      .where(and(...conditions))
+      .groupBy(users.id)
+      .orderBy(sortOrder === 'asc' ? asc(sortColumn) : desc(sortColumn));
+
+    // Sanitize customer data - strip sensitive fields
+    return customersWithCounts.map(({ user, orderCount }) => {
+      const { password, passwordResetToken, passwordResetExpiry, otpCode, otpExpiry, ...sanitizedUser } = user;
+      return {
+        ...sanitizedUser,
+        orderCount
+      };
+    });
+  }
+
+  async getCustomerDetails(id: string): Promise<{ customer: User; savedAddresses: SavedAddress[]; orderCount: number; recentOrders: Order[] } | undefined> {
+    // Get customer
+    const { count } = await import('drizzle-orm');
+    const customer = await this.getUser(id);
+    if (!customer || customer.role !== 'customer') {
+      return undefined;
+    }
+
+    // Get saved addresses
+    const addresses = await db.select()
+      .from(savedAddresses)
+      .where(eq(savedAddresses.userId, id))
+      .orderBy(desc(savedAddresses.isDefault));
+
+    // Get total order count (separate query for accuracy)
+    const [{ count: totalOrders }] = await db
+      .select({ count: count() })
+      .from(orders)
+      .where(eq(orders.customerId, id));
+
+    // Get recent orders (limited to 10)
+    const recentOrders = await db.select()
+      .from(orders)
+      .where(eq(orders.customerId, id))
+      .orderBy(desc(orders.createdAt))
+      .limit(10);
+
+    // Sanitize customer data - strip sensitive fields
+    const { password, passwordResetToken, passwordResetExpiry, otpCode, otpExpiry, ...sanitizedCustomer } = customer;
+
+    return {
+      customer: sanitizedCustomer as User,
+      savedAddresses: addresses,
+      orderCount: totalOrders,
+      recentOrders
+    };
+  }
+
+  async deleteCustomer(id: string): Promise<void> {
+    // The cascade delete will handle related data (orders, saved addresses, etc.)
+    await db.delete(users).where(eq(users.id, id));
   }
 
   // Session management
