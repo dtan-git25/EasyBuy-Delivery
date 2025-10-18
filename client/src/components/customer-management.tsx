@@ -76,7 +76,7 @@ export function CustomerManagement() {
 
   // Fetch customer details
   const { data: customerDetails } = useQuery<CustomerDetails>({
-    queryKey: ["/api/admin/customers", viewingCustomer],
+    queryKey: [`/api/admin/customers/${viewingCustomer}`],
     enabled: !!viewingCustomer,
   });
 
