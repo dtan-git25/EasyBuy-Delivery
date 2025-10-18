@@ -21,6 +21,7 @@ import { ShoppingCart, DollarSign, Bike, Store, Download, Eye, Check, X, Clock, 
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { CustomerManagement } from "@/components/customer-management";
+import { RiderManagement } from "@/components/rider-management";
 
 const systemAccountSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
@@ -1797,6 +1798,9 @@ export default function AdminPortal() {
 
               {/* Customer Management - Full Width Section */}
               <CustomerManagement />
+
+              {/* Rider Management - Full Width Section */}
+              <RiderManagement />
             </TabsContent>
 
             <TabsContent value="reports" className="space-y-6">
