@@ -1652,6 +1652,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin profile update (admin/owner only)
+  app.patch("/api/admin/profile", async (req, res) => {
+    if (!req.isAuthenticated() || (req.user?.role !== 'admin' && req.user?.role !== 'owner')) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const { email, phone } = req.body;
+      const updateData: { email?: string; phone?: string } = {};
+      
+      if (email !== undefined) updateData.email = email;
+      if (phone !== undefined) updateData.phone = phone;
+      
+      const user = await storage.updateUser(req.user.id, updateData);
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating admin profile:", error);
+      res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
+
   // Merchant profile update (merchants only)
   app.patch("/api/merchant/profile", async (req, res) => {
     if (!req.isAuthenticated() || req.user?.role !== 'merchant') {
