@@ -496,12 +496,19 @@ export class DatabaseStorage implements IStorage {
     return order || undefined;
   }
 
-  async getOrdersByCustomer(customerId: string): Promise<Order[]> {
-    return await db
+  async getOrdersByCustomer(customerId: string): Promise<any[]> {
+    const result = await db
       .select()
       .from(orders)
+      .leftJoin(restaurants, eq(orders.restaurantId, restaurants.id))
       .where(eq(orders.customerId, customerId))
       .orderBy(desc(orders.createdAt));
+
+    // Transform to include restaurant name
+    return result.map(row => ({
+      ...row.orders,
+      restaurantName: row.restaurants?.name || 'Unknown Restaurant',
+    }));
   }
 
   async getOrdersByRestaurant(restaurantId: string): Promise<any[]> {
