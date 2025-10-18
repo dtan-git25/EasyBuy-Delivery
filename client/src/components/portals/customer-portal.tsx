@@ -54,6 +54,7 @@ interface Order {
   subtotal: string;
   markup: string;
   deliveryFee: string;
+  convenienceFee?: string;
   total: string;
   status: string;
   deliveryAddress: string;
@@ -1175,10 +1176,48 @@ export default function CustomerPortal() {
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between">
-                        <div className="text-lg font-semibold">
-                          Total: ₱{parseFloat(order.total).toFixed(2)}
+                      {/* Order Items Breakdown */}
+                      <div className="mb-4">
+                        <h4 className="font-medium mb-2">Order Items</h4>
+                        <div className="space-y-1 text-sm">
+                          {(order.items as Array<{ name: string; quantity: number; price: string }>).map((item, index) => (
+                            <div key={index} className="flex justify-between">
+                              <span>{item.name} x{item.quantity}</span>
+                              <span>₱{(parseFloat(item.price) * item.quantity).toFixed(2)}</span>
+                            </div>
+                          ))}
                         </div>
+                      </div>
+
+                      {/* Order Cost Breakdown */}
+                      <div className="border-t pt-3 mb-4">
+                        <div className="space-y-1 text-sm">
+                          <div className="flex justify-between">
+                            <span>Subtotal:</span>
+                            <span>₱{parseFloat(order.subtotal).toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Total:</span>
+                            <span>₱{(parseFloat(order.subtotal) + parseFloat(order.markup)).toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Delivery Fee:</span>
+                            <span>₱{parseFloat(order.deliveryFee).toFixed(2)}</span>
+                          </div>
+                          {parseFloat(order.convenienceFee || '0') > 0 && (
+                            <div className="flex justify-between">
+                              <span>Convenience Fee:</span>
+                              <span>₱{parseFloat(order.convenienceFee || '0').toFixed(2)}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between font-semibold text-base pt-2 border-t">
+                            <span>Grand Total:</span>
+                            <span>₱{parseFloat(order.total).toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-end">
                         <div className="flex gap-2">
                           {(order.status === 'accepted' || order.status === 'preparing' || order.status === 'ready' || order.status === 'picked_up') && (
                             <Button

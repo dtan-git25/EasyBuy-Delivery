@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Bell, Bike, ShoppingCart, Package, Plus, Minus, X } from "lucide-react";
 import { useCart } from "@/contexts/cart-context";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import CustomerPortal from "@/components/portals/customer-portal";
@@ -19,7 +19,7 @@ import AdminPortal from "@/components/portals/admin-portal";
 import ChatWidget from "@/components/chat/chat-widget";
 import { cn } from "@/lib/utils";
 import { AddressSelector } from "@/components/address-selector";
-import type { SavedAddress } from "@shared/schema";
+import type { SavedAddress, SystemSettings } from "@shared/schema";
 
 type Portal = 'customer' | 'rider' | 'merchant' | 'admin' | 'owner';
 
@@ -37,6 +37,11 @@ export default function Dashboard() {
   const cart = useCart();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Fetch system settings for convenience fee
+  const { data: settings } = useQuery<SystemSettings>({
+    queryKey: ["/api/settings"],
+  });
 
   const createOrderMutation = useMutation({
     mutationFn: async (orderData: any) => {
@@ -99,7 +104,8 @@ export default function Dashboard() {
         const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         const markupAmount = subtotal * (restaurantCart.markup / 100);
         const deliveryFee = parseFloat(restaurantCart.deliveryFee.toString());
-        const total = subtotal + markupAmount + deliveryFee;
+        const convenienceFee = settings?.showConvenienceFee ? parseFloat(settings.convenienceFee || '0') : 0;
+        const total = subtotal + markupAmount + deliveryFee + convenienceFee;
 
         const orderData = {
           restaurantId: restaurantCart.restaurantId,
@@ -112,6 +118,7 @@ export default function Dashboard() {
           subtotal: subtotal.toFixed(2),
           markup: markupAmount.toFixed(2),
           deliveryFee: deliveryFee.toFixed(2),
+          convenienceFee: convenienceFee.toFixed(2),
           total: total.toFixed(2),
           deliveryAddress,
           deliveryLatitude: selectedAddress.latitude,
@@ -365,16 +372,23 @@ export default function Dashboard() {
                           <span>₱{subtotal.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span>Markup ({restaurantCart.markup}%):</span>
-                          <span>₱{markupAmount.toFixed(2)}</span>
+                          <span>Total:</span>
+                          <span>₱{(subtotal + markupAmount).toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Delivery Fee:</span>
                           <span>₱{deliveryFee.toFixed(2)}</span>
                         </div>
-                        <div className="flex justify-between font-semibold text-base pt-2">
-                          <span>Total:</span>
-                          <span>₱{total.toFixed(2)}</span>
+                        {settings?.showConvenienceFee && (
+                          <div className="flex justify-between">
+                            <span>Convenience Fee:</span>
+                            <span>₱{parseFloat(settings.convenienceFee || '0').toFixed(2)}</span>
+                          </div>
+                        )}
+                        <Separator className="my-2" />
+                        <div className="flex justify-between font-semibold text-base">
+                          <span>Grand Total:</span>
+                          <span>₱{(total + (settings?.showConvenienceFee ? parseFloat(settings.convenienceFee || '0') : 0)).toFixed(2)}</span>
                         </div>
                       </div>
                       
