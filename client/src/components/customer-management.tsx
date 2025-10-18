@@ -63,7 +63,7 @@ export function CustomerManagement() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
-  const [provinceFilter, setProvinceFilter] = useState("");
+  const [provinceFilter, setProvinceFilter] = useState("all");
   const [sortBy, setSortBy] = useState("createdAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [viewingCustomer, setViewingCustomer] = useState<string | null>(null);
@@ -71,7 +71,19 @@ export function CustomerManagement() {
 
   // Fetch customers with filters
   const { data: customers = [], isLoading } = useQuery<Customer[]>({
-    queryKey: ["/api/admin/customers", { search: searchTerm, province: provinceFilter, sortBy, sortOrder }],
+    queryKey: ["/api/admin/customers", searchTerm, provinceFilter, sortBy, sortOrder],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (searchTerm) params.append('search', searchTerm);
+      if (provinceFilter && provinceFilter !== 'all') params.append('province', provinceFilter);
+      params.append('sortBy', sortBy);
+      params.append('sortOrder', sortOrder);
+      
+      const url = `/api/admin/customers?${params.toString()}`;
+      const res = await fetch(url, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch customers');
+      return res.json();
+    },
   });
 
   // Fetch customer details
@@ -130,7 +142,7 @@ export function CustomerManagement() {
                 <SelectValue placeholder="All Provinces" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Provinces</SelectItem>
+                <SelectItem value="all">All Provinces</SelectItem>
                 {provinces.map((province: string) => (
                   <SelectItem key={province} value={province}>
                     {province}
