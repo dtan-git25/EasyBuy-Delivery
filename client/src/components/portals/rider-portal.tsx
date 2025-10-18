@@ -245,8 +245,14 @@ export default function RiderPortal() {
   // Update rider profile mutation
   const updateProfileMutation = useMutation({
     mutationFn: async (data: { email?: string; phone?: string }) => {
-      const response = await apiRequest("PATCH", "/api/rider/profile", data);
-      return response.json();
+      try {
+        const response = await apiRequest("PATCH", "/api/rider/profile", data);
+        const result = await response.json();
+        return result;
+      } catch (error) {
+        console.error("Mutation function error:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       setIsEditingProfile(false);
@@ -256,10 +262,11 @@ export default function RiderPortal() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
     },
-    onError: () => {
+    onError: (error: Error) => {
+      console.error("Profile update error:", error);
       toast({
         title: "Error updating profile",
-        description: "There was an error updating your profile. Please try again.",
+        description: error.message || "There was an error updating your profile. Please try again.",
         variant: "destructive",
       });
     }
@@ -1509,9 +1516,11 @@ export default function RiderPortal() {
                             <Button
                               variant="outline"
                               onClick={() => {
-                                // This would switch to the documents tab
-                                const documentsTab = document.querySelector('[value="documents"]') as HTMLElement;
-                                documentsTab?.click();
+                                // Switch to documents tab
+                                const documentsTab = document.querySelector('[data-testid="tab-documents"]') as HTMLButtonElement;
+                                if (documentsTab) {
+                                  documentsTab.click();
+                                }
                               }}
                               data-testid="button-view-documents"
                             >
