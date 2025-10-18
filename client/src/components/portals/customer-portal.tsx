@@ -1207,10 +1207,6 @@ export default function CustomerPortal() {
                       <div className="border-t pt-3 mb-4">
                         <div className="space-y-1 text-sm">
                           <div className="flex justify-between">
-                            <span>Subtotal:</span>
-                            <span>₱{parseFloat(order.subtotal).toFixed(2)}</span>
-                          </div>
-                          <div className="flex justify-between">
                             <span>Total:</span>
                             <span>₱{(parseFloat(order.subtotal) + parseFloat(order.markup)).toFixed(2)}</span>
                           </div>
