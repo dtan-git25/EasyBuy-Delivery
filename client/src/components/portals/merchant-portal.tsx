@@ -652,7 +652,7 @@ export default function MerchantPortal() {
   });
 
   const todayRevenue = todayOrders.reduce((sum: number, order: Order) => {
-    return sum + parseFloat(order.total || '0');
+    return sum + parseFloat(order.subtotal || '0');
   }, 0);
 
   const markOrderReady = (orderId: string) => {
@@ -1750,7 +1750,7 @@ export default function MerchantPortal() {
                         
                         <div className="mt-4 pt-4 border-t flex justify-between items-center">
                           <span className="font-semibold">Total:</span>
-                          <span className="text-lg font-bold">₱{order.total}</span>
+                          <span className="text-lg font-bold">₱{order.subtotal}</span>
                         </div>
                       </div>
                     </CardContent>
@@ -1778,7 +1778,7 @@ export default function MerchantPortal() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-2xl font-bold">
-                      ₱{orders.reduce((sum: number, order: Order) => sum + parseFloat(order.total || '0'), 0).toFixed(0)}
+                      ₱{orders.reduce((sum: number, order: Order) => sum + parseFloat(order.subtotal || '0'), 0).toFixed(0)}
                     </p>
                     <p className="text-sm text-muted-foreground">All time</p>
                   </CardContent>
@@ -1790,7 +1790,7 @@ export default function MerchantPortal() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-2xl font-bold">
-                      ₱{orders.length > 0 ? (orders.reduce((sum: number, order: Order) => sum + parseFloat(order.total || '0'), 0) / orders.length).toFixed(0) : '0'}
+                      ₱{orders.length > 0 ? (orders.reduce((sum: number, order: Order) => sum + parseFloat(order.subtotal || '0'), 0) / orders.length).toFixed(0) : '0'}
                     </p>
                     <p className="text-sm text-muted-foreground">Per order</p>
                   </CardContent>
@@ -1955,7 +1955,7 @@ export default function MerchantPortal() {
                         <Card className="p-4">
                           <p className="text-sm text-muted-foreground">Total Revenue</p>
                           <p className="text-2xl font-bold" data-testid="text-total-revenue">
-                            ₱{orders.reduce((sum: number, order: Order) => sum + parseFloat(order.total || '0'), 0).toFixed(0)}
+                            ₱{orders.reduce((sum: number, order: Order) => sum + parseFloat(order.subtotal || '0'), 0).toFixed(0)}
                           </p>
                         </Card>
                       </div>
