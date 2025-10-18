@@ -83,7 +83,7 @@ export interface IStorage {
   getOrder(id: string): Promise<Order | undefined>;
   getOrdersByCustomer(customerId: string): Promise<Order[]>;
   getOrdersByRestaurant(restaurantId: string): Promise<Order[]>;
-  getOrdersByRider(riderId: string): Promise<Order[]>;
+  getOrdersByRider(riderId: string): Promise<any[]>;
   getPendingOrders(): Promise<any[]>;
   createOrder(order: InsertOrder): Promise<Order>;
   updateOrder(id: string, updates: Partial<Order>): Promise<Order | undefined>;
@@ -532,12 +532,22 @@ export class DatabaseStorage implements IStorage {
 
   // Get orders by rider's user ID (not rider profile ID)
   // orders.rider_id has FK constraint to users.id
-  async getOrdersByRider(riderUserId: string): Promise<Order[]> {
-    return await db
+  async getOrdersByRider(riderUserId: string): Promise<any[]> {
+    const result = await db
       .select()
       .from(orders)
+      .leftJoin(users, eq(orders.customerId, users.id))
+      .leftJoin(restaurants, eq(orders.restaurantId, restaurants.id))
       .where(eq(orders.riderId, riderUserId))
       .orderBy(desc(orders.createdAt));
+
+    // Transform to include customer and restaurant details
+    return result.map(row => ({
+      ...row.orders,
+      customerName: row.users ? `${row.users.firstName || ''} ${row.users.lastName || ''}`.trim() || 'Unknown Customer' : 'Unknown Customer',
+      restaurantName: row.restaurants?.name || 'Unknown Restaurant',
+      restaurantAddress: row.restaurants?.address || 'Unknown Address',
+    }));
   }
 
   async getPendingOrders(): Promise<any[]> {

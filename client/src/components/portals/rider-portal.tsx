@@ -734,29 +734,42 @@ export default function RiderPortal() {
                   </CardContent>
                 </Card>
               ) : (
-                activeOrders.map((order: any) => (
-                  <Card key={order.id} data-testid={`active-order-${order.id}`}>
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <h4 className="font-semibold text-foreground">{order.orderNumber}</h4>
-                          <Badge 
-                            variant={order.status === 'delivered' ? 'default' : 'secondary'}
-                          >
-                            {order.status.replace('_', ' ').toUpperCase()}
-                          </Badge>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-lg font-bold text-foreground">₱{order.total}</p>
-                        </div>
-                      </div>
+                activeOrders.map((order: any) => {
+                  const orderItems = order.items as Array<{ name: string; quantity: number; price: string }>;
+                  const markup = parseFloat(order.markup);
+                  const subtotal = parseFloat(order.subtotal);
+                  const deliveryFee = parseFloat(order.deliveryFee);
+                  const convenienceFee = parseFloat(order.convenienceFee || '0');
+                  const commission = (deliveryFee * 0.7).toFixed(2);
 
-                      <div className="grid md:grid-cols-2 gap-4 mb-4">
+                  return (
+                    <Card key={order.id} data-testid={`active-order-${order.id}`}>
+                      <CardContent className="p-6 space-y-4">
+                        {/* Header with Order Number and Status */}
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-semibold text-lg text-foreground">{order.orderNumber}</h4>
+                            <Badge 
+                              variant={order.status === 'delivered' ? 'default' : 'secondary'}
+                              className="mt-1"
+                            >
+                              {order.status.replace('_', ' ').toUpperCase()}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        <Separator />
+
+                        {/* Customer Details */}
                         <div>
-                          <h5 className="font-medium text-foreground mb-2">Delivery Address</h5>
-                          <div className="space-y-1 text-sm text-muted-foreground">
+                          <h5 className="font-semibold text-foreground mb-2">Customer Details</h5>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex items-center">
+                              <User className="mr-2 h-4 w-4 text-muted-foreground" />
+                              <span>{order.customerName}</span>
+                            </div>
                             <div className="flex items-start">
-                              <MapPin className="mr-2 h-4 w-4 mt-0.5 flex-shrink-0" />
+                              <MapPin className="mr-2 h-4 w-4 mt-0.5 flex-shrink-0 text-muted-foreground" />
                               <div className="flex-1">
                                 <div>{order.deliveryAddress}</div>
                                 {order.deliveryLatitude && order.deliveryLongitude && (
@@ -777,39 +790,116 @@ export default function RiderPortal() {
                               </div>
                             </div>
                             <div className="flex items-center">
-                              <Phone className="mr-2 h-4 w-4" />
-                              {order.phoneNumber}
+                              <Phone className="mr-2 h-4 w-4 text-muted-foreground" />
+                              <a href={`tel:${order.phoneNumber}`} className="text-primary hover:underline">
+                                {order.phoneNumber}
+                              </a>
                             </div>
                           </div>
                         </div>
 
+                        <Separator />
+
+                        {/* Order Items */}
                         <div>
-                          <h5 className="font-medium text-foreground mb-2">Actions</h5>
-                          <div className="flex flex-col space-y-2">
-                            {order.status === 'accepted' && (
-                              <Button 
-                                size="sm"
-                                onClick={() => updateOrderStatus(order.id, 'picked_up')}
-                                data-testid={`button-pickup-${order.id}`}
-                              >
-                                Mark as Picked Up
-                              </Button>
-                            )}
-                            {order.status === 'picked_up' && (
-                              <Button 
-                                size="sm"
-                                onClick={() => updateOrderStatus(order.id, 'delivered')}
-                                data-testid={`button-delivered-${order.id}`}
-                              >
-                                Mark as Delivered
-                              </Button>
-                            )}
+                          <h5 className="font-semibold text-foreground mb-2">Order from: {order.restaurantName}</h5>
+                          <div className="space-y-1 text-sm">
+                            {orderItems.map((item, index) => {
+                              const markedUpPrice = parseFloat(item.price) * (1 + (markup / subtotal));
+                              return (
+                                <div key={index} className="flex justify-between">
+                                  <span>{item.name} x{item.quantity}</span>
+                                  <span>₱{(markedUpPrice * item.quantity).toFixed(2)}</span>
+                                </div>
+                              );
+                            })}
+                            <div className="flex justify-between pt-1 border-t font-medium">
+                              <span>Total:</span>
+                              <span>₱{(subtotal + markup).toFixed(2)}</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
+
+                        <Separator />
+
+                        {/* Collection Summary */}
+                        <div className="bg-primary/5 p-3 rounded-lg">
+                          <div className="flex justify-between items-center">
+                            <span className="font-semibold text-foreground">Total to Collect from Customer:</span>
+                            <span className="text-xl font-bold text-primary">₱{order.total}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {order.paymentMethod === 'cash' ? 'Cash on Delivery (COD)' : `Paid via ${order.paymentMethod}`}
+                          </p>
+                        </div>
+
+                        <Separator />
+
+                        {/* Delivery Details */}
+                        <div>
+                          <h5 className="font-semibold text-foreground mb-2">Delivery Details</h5>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Customer:</span>
+                              <span className="font-medium">{order.customerName}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Pickup:</span>
+                              <span className="font-medium">{order.restaurantAddress}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Delivery:</span>
+                              <span className="font-medium">{order.deliveryAddress}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Payment Method:</span>
+                              <span className="font-medium capitalize">{order.paymentMethod}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <Separator />
+
+                        {/* Rider Earnings */}
+                        <div>
+                          <h5 className="font-semibold text-foreground mb-2">Rider Earnings</h5>
+                          <div className="space-y-1 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Delivery Fee:</span>
+                              <span className="font-medium">₱{deliveryFee.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Your Commission (70%):</span>
+                              <span className="font-medium text-green-600">₱{commission}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <Separator />
+
+                        {/* Actions */}
+                        <div className="flex flex-col space-y-2">
+                          {order.status === 'accepted' && (
+                            <Button 
+                              onClick={() => updateOrderStatus(order.id, 'picked_up')}
+                              data-testid={`button-pickup-${order.id}`}
+                            >
+                              Mark as Picked Up
+                            </Button>
+                          )}
+                          {order.status === 'picked_up' && (
+                            <Button 
+                              onClick={() => updateOrderStatus(order.id, 'delivered')}
+                              data-testid={`button-delivered-${order.id}`}
+                            >
+                              Mark as Delivered
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })
               )}
             </TabsContent>
 
