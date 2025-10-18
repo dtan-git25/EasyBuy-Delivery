@@ -356,12 +356,15 @@ export default function Dashboard() {
                       <Separator />
                       
                       <div className="space-y-2 text-sm">
-                        {restaurantCart.items.map((item) => (
-                          <div key={item.id} className="flex justify-between">
-                            <span>{item.quantity}x {item.name}</span>
-                            <span>₱{(item.price * item.quantity).toFixed(2)}</span>
-                          </div>
-                        ))}
+                        {restaurantCart.items.map((item) => {
+                          const markedUpPrice = item.price * (1 + restaurantCart.markup / 100);
+                          return (
+                            <div key={item.id} className="flex justify-between">
+                              <span>{item.quantity}x {item.name}</span>
+                              <span>₱{(markedUpPrice * item.quantity).toFixed(2)}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                       
                       <Separator />
@@ -500,12 +503,14 @@ export default function Dashboard() {
               ) : (
                 <>
                   <div className="space-y-3">
-                    {cart.items.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div className="flex-1">
-                          <h4 className="font-medium">{item.name}</h4>
-                          <p className="text-sm text-muted-foreground">₱{Number(item.price).toFixed(2)} each</p>
-                        </div>
+                    {cart.items.map((item) => {
+                      const markedUpPrice = item.price * (1 + cart.markup / 100);
+                      return (
+                        <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex-1">
+                            <h4 className="font-medium">{item.name}</h4>
+                            <p className="text-sm text-muted-foreground">₱{markedUpPrice.toFixed(2)} each</p>
+                          </div>
                         <div className="flex items-center space-x-2">
                           <Button
                             variant="outline"
@@ -534,7 +539,8 @@ export default function Dashboard() {
                           </Button>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                   
                   <Separator />
@@ -651,12 +657,15 @@ export default function Dashboard() {
                     <div key={restaurantCart.restaurantId} className="space-y-2 p-3 border rounded-lg">
                       <h5 className="font-semibold text-sm">{restaurantCart.restaurantName}</h5>
                       <div className="text-sm space-y-1">
-                        {restaurantCart.items.map((item) => (
-                          <div key={item.id} className="flex justify-between">
-                            <span>{item.name} x{item.quantity}</span>
-                            <span>₱{(item.price * item.quantity).toFixed(2)}</span>
-                          </div>
-                        ))}
+                        {restaurantCart.items.map((item) => {
+                          const markedUpPrice = item.price * (1 + restaurantCart.markup / 100);
+                          return (
+                            <div key={item.id} className="flex justify-between">
+                              <span>{item.name} x{item.quantity}</span>
+                              <span>₱{(markedUpPrice * item.quantity).toFixed(2)}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                       <Separator />
                       <div className="space-y-1 text-sm">

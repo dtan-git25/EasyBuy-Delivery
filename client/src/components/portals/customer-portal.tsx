@@ -1146,6 +1146,9 @@ export default function CustomerPortal() {
                       <div className="flex items-start justify-between mb-4">
                         <div>
                           <h3 className="text-lg font-semibold">Order #{order.orderNumber}</h3>
+                          <p className="text-sm font-medium text-primary mb-1">
+                            {(order as any).restaurantName || 'Restaurant'}
+                          </p>
                           <p className="text-sm text-muted-foreground">
                             Placed on {new Date(order.createdAt).toLocaleString()}
                           </p>
@@ -1180,12 +1183,23 @@ export default function CustomerPortal() {
                       <div className="mb-4">
                         <h4 className="font-medium mb-2">Order Items</h4>
                         <div className="space-y-1 text-sm">
-                          {(order.items as Array<{ name: string; quantity: number; price: string }>).map((item, index) => (
-                            <div key={index} className="flex justify-between">
-                              <span>{item.name} x{item.quantity}</span>
-                              <span>₱{(parseFloat(item.price) * item.quantity).toFixed(2)}</span>
-                            </div>
-                          ))}
+                          {(() => {
+                            const orderItems = order.items as Array<{ name: string; quantity: number; price: string }>;
+                            const markup = parseFloat(order.markup);
+                            const subtotal = orderItems.reduce((sum, i) => sum + parseFloat(i.price) * i.quantity, 0);
+                            const markupPercentage = (markup / subtotal) * 100;
+                            
+                            return orderItems.map((item, index) => {
+                              const basePrice = parseFloat(item.price);
+                              const markedUpPrice = basePrice * (1 + markupPercentage / 100);
+                              return (
+                                <div key={index} className="flex justify-between">
+                                  <span>{item.name} x{item.quantity}</span>
+                                  <span>₱{(markedUpPrice * item.quantity).toFixed(2)}</span>
+                                </div>
+                              );
+                            });
+                          })()}
                         </div>
                       </div>
 
