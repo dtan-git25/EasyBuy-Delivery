@@ -999,6 +999,7 @@ export default function AdminPortal() {
     showConvenienceFee: (settings as any)?.showConvenienceFee ?? true,
     allowMultiMerchantCheckout: (settings as any)?.allowMultiMerchantCheckout ?? false,
     maxMerchantsPerOrder: (settings as any)?.maxMerchantsPerOrder || 2,
+    riderCommissionPercentage: (settings as any)?.riderCommissionPercentage || '70',
   });
 
   // Sync tempSettings when settings data changes
@@ -1011,6 +1012,7 @@ export default function AdminPortal() {
         showConvenienceFee: (settings as any).showConvenienceFee ?? true,
         allowMultiMerchantCheckout: (settings as any).allowMultiMerchantCheckout ?? false,
         maxMerchantsPerOrder: (settings as any).maxMerchantsPerOrder || 2,
+        riderCommissionPercentage: (settings as any).riderCommissionPercentage || '70',
       });
     }
   }, [settings]);
@@ -1638,6 +1640,38 @@ export default function AdminPortal() {
                           Update
                         </Button>
                       </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="rider-commission">Rider Commission (%)</Label>
+                      <p className="text-xs text-muted-foreground mt-1 mb-2">
+                        Percentage of (delivery fee + markup) that riders earn per order
+                      </p>
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          id="rider-commission"
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="1"
+                          value={tempSettings.riderCommissionPercentage}
+                          onChange={(e) => setTempSettings(prev => ({ ...prev, riderCommissionPercentage: e.target.value }))}
+                          className="flex-1"
+                          data-testid="input-rider-commission"
+                        />
+                        <span className="text-muted-foreground">%</span>
+                        <Button 
+                          size="sm"
+                          onClick={() => updateSetting('riderCommissionPercentage', tempSettings.riderCommissionPercentage)}
+                          disabled={updateSettingsMutation.isPending}
+                          data-testid="button-update-rider-commission"
+                        >
+                          Update
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Example: If set to 70%, rider earns 70% of delivery fee + markup combined
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
