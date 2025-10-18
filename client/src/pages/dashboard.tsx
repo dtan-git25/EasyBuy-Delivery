@@ -543,12 +543,8 @@ export default function Dashboard() {
                   
                   <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span>Subtotal:</span>
-                      <span>₱{cart.getSubtotal().toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Markup ({cart.markup}%):</span>
-                      <span>₱{cart.getMarkupAmount().toFixed(2)}</span>
+                      <span>Total:</span>
+                      <span>₱{(cart.getSubtotal() + cart.getMarkupAmount()).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Delivery Fee:</span>
@@ -556,7 +552,7 @@ export default function Dashboard() {
                     </div>
                     <Separator />
                     <div className="flex justify-between font-semibold text-lg">
-                      <span>Total:</span>
+                      <span>Grand Total:</span>
                       <span>₱{cart.getTotal().toFixed(2)}</span>
                     </div>
                   </div>
