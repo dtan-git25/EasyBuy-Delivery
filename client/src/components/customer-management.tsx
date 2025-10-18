@@ -70,7 +70,7 @@ export function CustomerManagement() {
   const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null);
 
   // Fetch customers with filters
-  const { data: customers = [], isLoading } = useQuery({
+  const { data: customers = [], isLoading } = useQuery<Customer[]>({
     queryKey: ["/api/admin/customers", { search: searchTerm, province: provinceFilter, sortBy, sortOrder }],
   });
 
@@ -96,7 +96,7 @@ export function CustomerManagement() {
   });
 
   // Get unique provinces for filter dropdown
-  const provinces = Array.from(new Set(customers.map((c: Customer) => c.province).filter(Boolean)));
+  const provinces = Array.from(new Set(customers.map((c: Customer) => c.province).filter((p): p is string => Boolean(p))));
 
   return (
     <Card>
