@@ -771,14 +771,14 @@ export default function RiderPortal() {
                         <div>
                           <h5 className="font-semibold text-foreground mb-2">Customer Details</h5>
                           <div className="space-y-2 text-sm">
-                            <div className="flex items-center">
-                              <User className="mr-2 h-4 w-4 text-muted-foreground" />
-                              <span>{order.customerName}</span>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Customer Name:</span>
+                              <span className="font-medium">{order.customerName}</span>
                             </div>
-                            <div className="flex items-start">
-                              <MapPin className="mr-2 h-4 w-4 mt-0.5 flex-shrink-0 text-muted-foreground" />
-                              <div className="flex-1">
-                                <div>{order.deliveryAddress}</div>
+                            <div className="flex justify-between items-start">
+                              <span className="text-muted-foreground">Delivery Address:</span>
+                              <div className="flex-1 text-right">
+                                <div className="font-medium">{order.deliveryAddress}</div>
                                 {order.deliveryLatitude && order.deliveryLongitude && (
                                   <Button
                                     variant="link"
@@ -796,9 +796,17 @@ export default function RiderPortal() {
                                 )}
                               </div>
                             </div>
-                            <div className="flex items-center">
-                              <Phone className="mr-2 h-4 w-4 text-muted-foreground" />
-                              <a href={`tel:${order.phoneNumber}`} className="text-primary hover:underline">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Pickup Location:</span>
+                              <span className="font-medium">{order.restaurantAddress}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Payment Method:</span>
+                              <span className="font-medium capitalize">{order.paymentMethod}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Contact:</span>
+                              <a href={`tel:${order.phoneNumber}`} className="text-primary hover:underline font-medium">
                                 {order.phoneNumber}
                               </a>
                             </div>
@@ -838,31 +846,6 @@ export default function RiderPortal() {
                           <p className="text-xs text-muted-foreground mt-1">
                             {order.paymentMethod === 'cash' ? 'Cash on Delivery (COD)' : `Paid via ${order.paymentMethod}`}
                           </p>
-                        </div>
-
-                        <Separator />
-
-                        {/* Delivery Details */}
-                        <div>
-                          <h5 className="font-semibold text-foreground mb-2">Delivery Details</h5>
-                          <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Customer:</span>
-                              <span className="font-medium">{order.customerName}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Pickup:</span>
-                              <span className="font-medium">{order.restaurantAddress}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Delivery:</span>
-                              <span className="font-medium">{order.deliveryAddress}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Payment Method:</span>
-                              <span className="font-medium capitalize">{order.paymentMethod}</span>
-                            </div>
-                          </div>
                         </div>
 
                         <Separator />
