@@ -50,6 +50,10 @@ export default function RiderPortal() {
     queryKey: ["/api/wallet"],
   });
 
+  const { data: settings } = useQuery({
+    queryKey: ["/api/settings"],
+  });
+
   const { data: myOrders = [] } = useQuery({
     queryKey: ["/api/orders"],
   });
@@ -737,11 +741,13 @@ export default function RiderPortal() {
               ) : (
                 activeOrders.map((order: any) => {
                   const orderItems = order.items as Array<{ name: string; quantity: number; price: string }>;
-                  const markup = parseFloat(order.markup);
-                  const subtotal = parseFloat(order.subtotal);
-                  const deliveryFee = parseFloat(order.deliveryFee);
+                  const markup = parseFloat(order.markup) || 0;
+                  const subtotal = parseFloat(order.subtotal) || 0;
+                  const deliveryFee = parseFloat(order.deliveryFee) || 0;
                   const convenienceFee = parseFloat(order.convenienceFee || '0');
-                  const commission = (deliveryFee * 0.7).toFixed(2);
+                  const rawCommission = (settings as any)?.riderCommissionPercentage;
+                  const commissionPercentage = (rawCommission ?? 70) / 100;
+                  const riderEarnings = ((deliveryFee + markup) * commissionPercentage).toFixed(2);
 
                   return (
                     <Card key={order.id} data-testid={`active-order-${order.id}`}>
@@ -862,18 +868,14 @@ export default function RiderPortal() {
                         <Separator />
 
                         {/* Rider Earnings */}
-                        <div>
-                          <h5 className="font-semibold text-foreground mb-2">Rider Earnings</h5>
-                          <div className="space-y-1 text-sm">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Delivery Fee:</span>
-                              <span className="font-medium">₱{deliveryFee.toFixed(2)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Your Commission (70%):</span>
-                              <span className="font-medium text-green-600">₱{commission}</span>
-                            </div>
+                        <div className="bg-green-50 dark:bg-green-950 p-3 rounded-lg">
+                          <div className="flex justify-between items-center">
+                            <span className="font-semibold text-foreground">Rider Earnings:</span>
+                            <span className="text-xl font-bold text-green-600">₱{riderEarnings}</span>
                           </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Auto-calculated as {rawCommission ?? 70}% of delivery fee + markup
+                          </p>
                         </div>
 
                         <Separator />
