@@ -68,7 +68,10 @@ export function RiderManagement() {
       if (provinceFilter && provinceFilter !== 'all') params.append('province', provinceFilter);
       
       const url = `/api/admin/riders?${params.toString()}`;
-      const res = await fetch(url, { credentials: 'include' });
+      const res = await fetch(url, { 
+        credentials: 'include',
+        cache: 'no-store' // Force fresh data
+      });
       if (!res.ok) throw new Error('Failed to fetch riders');
       return res.json();
     },

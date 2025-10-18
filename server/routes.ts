@@ -2528,6 +2528,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const completedOrders = orders.filter((o: any) => o.status === 'delivered');
           const wallet = await storage.getWallet(rider.userId);
           
+          console.log(`Rider ${rider.userId} (${rider.user?.firstName}): ${orders.length} total orders, ${completedOrders.length} delivered`);
+          
           return {
             ...rider,
             completedDeliveries: completedOrders.length,
