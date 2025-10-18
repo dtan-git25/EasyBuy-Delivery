@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Bike, Wallet, Clock, Star, MapPin, Phone, User, Upload, FileText, CheckCircle, XCircle, AlertCircle, Map, Users } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Bike, Wallet, Clock, Star, MapPin, Phone, User, Upload, FileText, CheckCircle, XCircle, AlertCircle, Map, Users, Download, Eye } from "lucide-react";
 import { apiRequest, queryClient as globalQueryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useWebSocket } from "@/lib/websocket";
@@ -49,6 +50,8 @@ export default function RiderPortal() {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editedEmail, setEditedEmail] = useState("");
   const [editedPhone, setEditedPhone] = useState("");
+  const [isDocumentsDialogOpen, setIsDocumentsDialogOpen] = useState(false);
+  const [fullSizeImage, setFullSizeImage] = useState<string | null>(null);
 
   const { data: wallet } = useQuery({
     queryKey: ["/api/wallet"],
@@ -1515,13 +1518,7 @@ export default function RiderPortal() {
                             </div>
                             <Button
                               variant="outline"
-                              onClick={() => {
-                                // Switch to documents tab
-                                const documentsTab = document.querySelector('[data-testid="tab-documents"]') as HTMLButtonElement;
-                                if (documentsTab) {
-                                  documentsTab.click();
-                                }
-                              }}
+                              onClick={() => setIsDocumentsDialogOpen(true)}
                               data-testid="button-view-documents"
                             >
                               <FileText className="w-4 h-4 mr-2" />
@@ -1538,6 +1535,239 @@ export default function RiderPortal() {
           </Tabs>
         </div>
       </section>
+
+      {/* Documents Viewer Dialog */}
+      <Dialog open={isDocumentsDialogOpen} onOpenChange={setIsDocumentsDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Verification Documents</DialogTitle>
+            <DialogDescription>
+              View all your uploaded verification documents
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Document Status */}
+            <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+              <div>
+                <p className="font-medium">Document Status</p>
+                <p className="text-sm text-muted-foreground">
+                  {riderProfile?.documentsStatus === 'approved' && 'All documents verified and approved'}
+                  {riderProfile?.documentsStatus === 'pending' && 'Documents under admin review'}
+                  {riderProfile?.documentsStatus === 'rejected' && 'Documents rejected - please reupload'}
+                  {riderProfile?.documentsStatus === 'incomplete' && 'Please upload all required documents'}
+                </p>
+              </div>
+              <Badge 
+                variant={
+                  riderProfile?.documentsStatus === 'approved' ? 'default' : 
+                  riderProfile?.documentsStatus === 'rejected' ? 'destructive' : 
+                  'secondary'
+                }
+              >
+                {riderProfile?.documentsStatus || 'Incomplete'}
+              </Badge>
+            </div>
+
+            {/* OR/CR Document */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <FileText className="w-5 h-5" />
+                  OR/CR Document
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {riderProfile?.orcrDocument ? (
+                  <div className="space-y-3">
+                    <div className="relative group">
+                      <img 
+                        src={riderProfile.orcrDocument} 
+                        alt="OR/CR Document" 
+                        className="w-full h-48 object-cover rounded-lg border cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => setFullSizeImage(riderProfile.orcrDocument)}
+                        data-testid="img-orcr-preview"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded-lg">
+                        <Eye className="w-8 h-8 text-white" />
+                      </div>
+                    </div>
+                    {riderProfile.documentsUploadedAt && (
+                      <p className="text-sm text-muted-foreground">
+                        Uploaded: {new Date(riderProfile.documentsUploadedAt).toLocaleDateString()}
+                      </p>
+                    )}
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setFullSizeImage(riderProfile.orcrDocument)}
+                        data-testid="button-view-orcr"
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        View Full Size
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => window.open(riderProfile.orcrDocument, '_blank')}
+                        data-testid="button-download-orcr"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p>No document uploaded</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Motor Image */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Bike className="w-5 h-5" />
+                  Motor/Vehicle Image
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {riderProfile?.motorImage ? (
+                  <div className="space-y-3">
+                    <div className="relative group">
+                      <img 
+                        src={riderProfile.motorImage} 
+                        alt="Motor Image" 
+                        className="w-full h-48 object-cover rounded-lg border cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => setFullSizeImage(riderProfile.motorImage)}
+                        data-testid="img-motor-preview"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded-lg">
+                        <Eye className="w-8 h-8 text-white" />
+                      </div>
+                    </div>
+                    {riderProfile.documentsUploadedAt && (
+                      <p className="text-sm text-muted-foreground">
+                        Uploaded: {new Date(riderProfile.documentsUploadedAt).toLocaleDateString()}
+                      </p>
+                    )}
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setFullSizeImage(riderProfile.motorImage)}
+                        data-testid="button-view-motor"
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        View Full Size
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => window.open(riderProfile.motorImage, '_blank')}
+                        data-testid="button-download-motor"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Bike className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p>No image uploaded</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Valid ID */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <User className="w-5 h-5" />
+                  Valid ID
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {riderProfile?.idDocument ? (
+                  <div className="space-y-3">
+                    <div className="relative group">
+                      <img 
+                        src={riderProfile.idDocument} 
+                        alt="Valid ID" 
+                        className="w-full h-48 object-cover rounded-lg border cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => setFullSizeImage(riderProfile.idDocument)}
+                        data-testid="img-id-preview"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded-lg">
+                        <Eye className="w-8 h-8 text-white" />
+                      </div>
+                    </div>
+                    {riderProfile.documentsUploadedAt && (
+                      <p className="text-sm text-muted-foreground">
+                        Uploaded: {new Date(riderProfile.documentsUploadedAt).toLocaleDateString()}
+                      </p>
+                    )}
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setFullSizeImage(riderProfile.idDocument)}
+                        data-testid="button-view-id"
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        View Full Size
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => window.open(riderProfile.idDocument, '_blank')}
+                        data-testid="button-download-id"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <User className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p>No document uploaded</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Full Size Image Viewer */}
+      <Dialog open={!!fullSizeImage} onOpenChange={() => setFullSizeImage(null)}>
+        <DialogContent className="max-w-6xl p-0">
+          <div className="relative">
+            <img 
+              src={fullSizeImage || ''} 
+              alt="Full size document" 
+              className="w-full h-auto max-h-[90vh] object-contain"
+              data-testid="img-full-size"
+            />
+            <Button
+              variant="secondary"
+              size="sm"
+              className="absolute top-4 right-4"
+              onClick={() => setFullSizeImage(null)}
+              data-testid="button-close-full-size"
+            >
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
