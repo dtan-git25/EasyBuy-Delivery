@@ -1660,12 +1660,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const { email, phone } = req.body;
+      console.log("Admin profile update request:", { userId: req.user.id, email, phone });
+      
       const updateData: { email?: string; phone?: string } = {};
       
       if (email !== undefined) updateData.email = email;
       if (phone !== undefined) updateData.phone = phone;
       
+      console.log("Update data:", updateData);
       const user = await storage.updateUser(req.user.id, updateData);
+      console.log("Updated user:", { id: user.id, email: user.email, phone: user.phone });
       res.json(user);
     } catch (error) {
       console.error("Error updating admin profile:", error);
