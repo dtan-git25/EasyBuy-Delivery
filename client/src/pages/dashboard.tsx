@@ -371,10 +371,6 @@ export default function Dashboard() {
                       
                       <div className="space-y-1 text-sm">
                         <div className="flex justify-between">
-                          <span>Subtotal:</span>
-                          <span>₱{subtotal.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
                           <span>Total:</span>
                           <span>₱{(subtotal + markupAmount).toFixed(2)}</span>
                         </div>
