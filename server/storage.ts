@@ -64,6 +64,7 @@ export interface IStorage {
   getRiderByUserId(userId: string): Promise<Rider | undefined>;
   createRider(rider: InsertRider): Promise<Rider>;
   updateRider(id: string, updates: Partial<Rider>): Promise<Rider | undefined>;
+  deleteRider(riderId: string): Promise<void>;
 
   // Wallet operations
   getWallet(userId: string): Promise<Wallet | undefined>;
@@ -418,6 +419,20 @@ export class DatabaseStorage implements IStorage {
   async updateRider(id: string, updates: Partial<Rider>): Promise<Rider | undefined> {
     const [rider] = await db.update(riders).set(updates).where(eq(riders.id, id)).returning();
     return rider || undefined;
+  }
+
+  async deleteRider(riderId: string): Promise<void> {
+    // First get the rider to find the userId
+    const rider = await this.getRider(riderId);
+    if (!rider) return;
+
+    // Delete the rider record (cascade will handle orders)
+    await db.delete(riders).where(eq(riders.id, riderId));
+
+    // Delete the associated user account
+    if (rider.userId) {
+      await db.delete(users).where(eq(users.id, rider.userId));
+    }
   }
 
   async getWallet(userId: string): Promise<Wallet | undefined> {

@@ -2491,6 +2491,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin Rider Management Routes
+  app.get("/api/admin/riders", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'admin') {
+      return res.status(401).json({ error: "Unauthorized - Admin access required" });
+    }
+
+    try {
+      const { status, province, search } = req.query;
+      
+      // Get all riders with user information
+      let riders = await storage.getRiders();
+      
+      // Apply filters
+      if (status && status !== 'all') {
+        riders = riders.filter(r => r.user?.approvalStatus === status);
+      }
+      
+      if (province && province !== 'all') {
+        riders = riders.filter(r => r.user?.province === province);
+      }
+      
+      if (search && typeof search === 'string') {
+        const searchLower = search.toLowerCase();
+        riders = riders.filter(r => {
+          const fullName = `${r.user?.firstName} ${r.user?.middleName || ''} ${r.user?.lastName}`.toLowerCase();
+          return fullName.includes(searchLower);
+        });
+      }
+      
+      // Get completed deliveries count for each rider
+      const ridersWithStats = await Promise.all(
+        riders.map(async (rider) => {
+          const orders = await storage.getOrdersByRider(rider.id);
+          const completedOrders = orders.filter((o: any) => o.status === 'delivered');
+          const wallet = await storage.getWallet(rider.userId);
+          
+          return {
+            ...rider,
+            completedDeliveries: completedOrders.length,
+            walletBalance: wallet?.balance || '0'
+          };
+        })
+      );
+      
+      res.json(ridersWithStats);
+    } catch (error) {
+      console.error("Error fetching riders:", error);
+      res.status(500).json({ error: "Failed to fetch riders" });
+    }
+  });
+
+  app.delete("/api/admin/riders/:id", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'admin') {
+      return res.status(401).json({ error: "Unauthorized - Admin access required" });
+    }
+
+    try {
+      const riderId = req.params.id;
+      
+      // Check if rider exists
+      const rider = await storage.getRider(riderId);
+      if (!rider) {
+        return res.status(404).json({ error: "Rider not found" });
+      }
+      
+      // Delete the rider
+      await storage.deleteRider(riderId);
+      
+      res.json({ 
+        message: "Rider deleted successfully",
+        success: true
+      });
+    } catch (error) {
+      console.error("Error deleting rider:", error);
+      res.status(500).json({ error: "Failed to delete rider" });
+    }
+  });
+
   // Merchant Approval Routes
   app.get("/api/admin/merchants-for-approval", async (req, res) => {
     if (!req.isAuthenticated() || (req.user.role !== 'admin' && req.user.role !== 'owner')) {
