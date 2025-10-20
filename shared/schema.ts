@@ -249,6 +249,7 @@ export const orders = pgTable("orders", {
   merchantFee: decimal("merchant_fee", { precision: 8, scale: 2 }).default('0'),
   convenienceFee: decimal("convenience_fee", { precision: 8, scale: 2 }).default('0'),
   total: decimal("total", { precision: 8, scale: 2 }).notNull(),
+  commission: decimal("commission", { precision: 8, scale: 2 }).default('0'),
   status: orderStatusEnum("status").default('pending'),
   deliveryAddress: text("delivery_address").notNull(),
   deliveryLatitude: decimal("delivery_latitude", { precision: 10, scale: 8 }),
@@ -257,6 +258,7 @@ export const orders = pgTable("orders", {
   paymentMethod: paymentMethodEnum("payment_method").notNull().default('cash'),
   phoneNumber: text("phone_number").notNull(),
   estimatedDeliveryTime: timestamp("estimated_delivery_time"),
+  completedAt: timestamp("completed_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

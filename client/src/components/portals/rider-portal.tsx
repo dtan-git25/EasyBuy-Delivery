@@ -590,14 +590,23 @@ export default function RiderPortal() {
   // Today's delivered orders (using completedAt to check when order was completed)
   const todayDeliveredOrders = historicalOrders.filter((order: any) => {
     if (order.status !== 'delivered' || !order.completedAt) return false;
-    const today = new Date().toDateString();
-    const deliveryDate = new Date(order.completedAt).toDateString();
-    return today === deliveryDate;
+    
+    // Use local date comparison to avoid timezone issues
+    const now = new Date();
+    const completedDate = new Date(order.completedAt);
+    
+    return (
+      now.getFullYear() === completedDate.getFullYear() &&
+      now.getMonth() === completedDate.getMonth() &&
+      now.getDate() === completedDate.getDate()
+    );
   });
 
   // Today's earnings (rider commission from delivered orders)
   const todayEarnings = todayDeliveredOrders.reduce((sum: number, order: any) => {
-    return sum + parseFloat(order.commission || '0') + parseFloat(order.markup || '0');
+    const commission = parseFloat(order.commission || '0');
+    const markup = parseFloat(order.markup || '0');
+    return sum + commission + markup;
   }, 0);
 
   // Success rate calculation: (delivered orders / total non-cancelled orders) × 100%

@@ -1003,6 +1003,22 @@ export class DatabaseStorage implements IStorage {
     const currentOrder = await this.getOrder(orderId);
     if (!currentOrder) return undefined;
 
+    // If status is changing to 'delivered', calculate commission and set completedAt
+    if (updates.status === 'delivered' && currentOrder.status !== 'delivered') {
+      const settings = await this.getSystemSettings();
+      const riderCommissionPercentage = parseFloat(settings?.riderCommission || '70') / 100;
+      
+      // Calculate rider commission: (delivery fee + markup) × commission percentage
+      const deliveryFee = parseFloat(currentOrder.deliveryFee as string);
+      const markup = parseFloat(currentOrder.markup as string);
+      const commission = (deliveryFee + markup) * riderCommissionPercentage;
+      
+      updates.commission = commission.toFixed(2);
+      updates.completedAt = new Date();
+      
+      console.log(`[Order ${orderId}] Setting commission: ₱${commission.toFixed(2)} (${riderCommissionPercentage * 100}% of ₱${deliveryFee} + ₱${markup})`);
+    }
+
     // Update the order
     const [updatedOrder] = await db.update(orders).set({
       ...updates,
