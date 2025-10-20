@@ -112,6 +112,89 @@ function RestaurantRating({ ownerId }: { ownerId?: string }) {
   );
 }
 
+function OrderRatingDisplay({ order, onRateClick }: { order: Order; onRateClick: () => void }) {
+  const { data: ratingData } = useQuery<{ rating: any }>({
+    queryKey: ["/api/ratings/order", order.id],
+    enabled: order.status === 'delivered',
+    queryFn: async () => {
+      const response = await fetch(`/api/ratings/order/${order.id}`);
+      return response.json();
+    },
+  });
+
+  const rating = ratingData?.rating;
+
+  if (order.status !== 'delivered') {
+    return null;
+  }
+
+  if (!rating) {
+    return (
+      <Button
+        variant="default"
+        size="sm"
+        onClick={onRateClick}
+        data-testid={`button-rate-order-${order.id}`}
+      >
+        <Star className="mr-2 h-4 w-4" />
+        Rate Order
+      </Button>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="text-sm font-medium text-green-600">✓ Rated</div>
+      {rating.merchantRating && (
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Merchant:</span>
+            <div className="flex items-center">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  className={`h-3 w-3 ${
+                    star <= rating.merchantRating
+                      ? 'fill-yellow-400 text-yellow-400'
+                      : 'text-gray-300'
+                  }`}
+                />
+              ))}
+              <span className="ml-1 text-sm font-medium">{rating.merchantRating}.0</span>
+            </div>
+          </div>
+          {rating.merchantComment && (
+            <p className="text-xs text-muted-foreground italic">"{rating.merchantComment}"</p>
+          )}
+        </div>
+      )}
+      {rating.riderRating && (
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Rider:</span>
+            <div className="flex items-center">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  className={`h-3 w-3 ${
+                    star <= rating.riderRating
+                      ? 'fill-yellow-400 text-yellow-400'
+                      : 'text-gray-300'
+                  }`}
+                />
+              ))}
+              <span className="ml-1 text-sm font-medium">{rating.riderRating}.0</span>
+            </div>
+          </div>
+          {rating.riderComment && (
+            <p className="text-xs text-muted-foreground italic">"{rating.riderComment}"</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function CustomerPortal() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("distance");
@@ -283,8 +366,14 @@ export default function CustomerPortal() {
         title: "Rating submitted",
         description: "Thank you for your feedback!",
       });
+      // Invalidate all queries related to orders and ratings
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/ratings"] });
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const key = query.queryKey[0];
+          return typeof key === 'string' && key.startsWith('/api/ratings');
+        }
+      });
     },
     onError: (error: any) => {
       toast({
@@ -589,10 +678,7 @@ export default function CustomerPortal() {
               <h1 className="text-3xl font-bold">{selectedRestaurant.name}</h1>
               <p className="text-lg opacity-90">{selectedRestaurant.cuisine}</p>
               <div className="flex items-center mt-2 space-x-4">
-                <div className="flex items-center">
-                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                  <span>{selectedRestaurant.rating}</span>
-                </div>
+                <RestaurantRating ownerId={selectedRestaurant.ownerId} />
                 <div className="flex items-center">
                   <Clock className="h-4 w-4 mr-1" />
                   <span>25-35 min</span>
@@ -1300,20 +1386,13 @@ export default function CustomerPortal() {
                               Track Order
                             </Button>
                           )}
-                          {order.status === 'delivered' && (
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedOrderForRating(order);
-                                setShowRatingModal(true);
-                              }}
-                              data-testid={`button-rate-order-${order.id}`}
-                            >
-                              <Star className="mr-2 h-4 w-4" />
-                              Rate Order
-                            </Button>
-                          )}
+                          <OrderRatingDisplay
+                            order={order}
+                            onRateClick={() => {
+                              setSelectedOrderForRating(order);
+                              setShowRatingModal(true);
+                            }}
+                          />
                         </div>
                       </div>
 
