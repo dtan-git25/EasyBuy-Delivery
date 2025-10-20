@@ -417,7 +417,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const logoUrl = `/uploads/logo/${req.file.filename}`;
       
       // Update system settings with the new logo path
-      await storage.updateSettings({ logo: logoUrl });
+      await storage.updateSystemSettings({ logo: logoUrl });
       
       res.json({ logoUrl });
     } catch (error) {
