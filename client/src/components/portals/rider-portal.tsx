@@ -726,7 +726,7 @@ export default function RiderPortal() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Today's Earnings</p>
-                    <p className="text-2xl font-bold text-foreground" data-testid="text-today-earnings">₱{todayEarnings.toFixed(0)}</p>
+                    <p className="text-2xl font-bold text-foreground" data-testid="text-today-earnings">₱{todayEarnings.toFixed(2)}</p>
                   </div>
                 </div>
               </CardContent>
