@@ -2050,12 +2050,20 @@ export default function MerchantPortal() {
                     {/* Business Summary */}
                     <div>
                       <h3 className="text-lg font-semibold mb-4">Business Summary</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <Card className="p-4">
                           <p className="text-sm text-muted-foreground">Total Orders</p>
                           <p className="text-2xl font-bold" data-testid="text-total-orders">
-                            {orders.length}
+                            {orders.filter((order: Order) => order.status === 'delivered').length}
                           </p>
+                          <p className="text-xs text-muted-foreground mt-1">Delivered</p>
+                        </Card>
+                        <Card className="p-4">
+                          <p className="text-sm text-muted-foreground">Cancelled Orders</p>
+                          <p className="text-2xl font-bold" data-testid="text-cancelled-orders">
+                            {orders.filter((order: Order) => order.status === 'cancelled').length}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">All time</p>
                         </Card>
                         <Card className="p-4">
                           <p className="text-sm text-muted-foreground">Menu Items</p>
@@ -2066,8 +2074,9 @@ export default function MerchantPortal() {
                         <Card className="p-4">
                           <p className="text-sm text-muted-foreground">Total Revenue</p>
                           <p className="text-2xl font-bold" data-testid="text-total-revenue">
-                            ₱{orders.reduce((sum: number, order: Order) => sum + parseFloat(order.subtotal || '0'), 0).toFixed(0)}
+                            ₱{orders.filter((order: Order) => order.status === 'delivered').reduce((sum: number, order: Order) => sum + parseFloat(order.subtotal || '0'), 0).toFixed(0)}
                           </p>
+                          <p className="text-xs text-muted-foreground mt-1">Delivered only</p>
                         </Card>
                       </div>
                     </div>
