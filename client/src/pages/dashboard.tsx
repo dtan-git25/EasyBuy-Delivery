@@ -211,7 +211,7 @@ export default function Dashboard() {
               </div>
               <div className="hidden sm:block">
                 <h1 className="text-xl font-bold text-foreground">Easy Buy Delivery</h1>
-                <p className="text-xs text-muted-foreground">Pabilir Padala Delivery Services</p>
+                <p className="text-xs text-muted-foreground">Online Delivery Services Platform</p>
               </div>
             </div>
 

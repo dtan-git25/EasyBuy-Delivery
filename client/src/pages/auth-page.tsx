@@ -190,7 +190,7 @@ export default function AuthPage() {
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-foreground">Easy Buy Delivery</h1>
-                <p className="text-muted-foreground">Pabilir Padala Delivery Services</p>
+                <p className="text-muted-foreground">Online Delivery Services Platform</p>
               </div>
             </div>
             
@@ -199,10 +199,10 @@ export default function AuthPage() {
             </h2>
             
             <p className="text-xl text-muted-foreground mb-8">
-              Join our comprehensive food delivery platform with multiple user portals for customers, riders, merchants, and administrators.
+              Join our comprehensive food delivery platform with multiple user portals for customers, riders and merchants.
             </p>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
               <div className="text-center p-4 bg-card rounded-lg border">
                 <Users className="mx-auto mb-2 text-primary" size={32} />
                 <p className="text-sm font-medium">Customers</p>
@@ -214,29 +214,6 @@ export default function AuthPage() {
               <div className="text-center p-4 bg-card rounded-lg border">
                 <Store className="mx-auto mb-2 text-primary" size={32} />
                 <p className="text-sm font-medium">Merchants</p>
-              </div>
-              <div className="text-center p-4 bg-card rounded-lg border">
-                <Settings className="mx-auto mb-2 text-primary" size={32} />
-                <p className="text-sm font-medium">Admins</p>
-              </div>
-            </div>
-
-            <div className="text-left space-y-3">
-              <div className="flex items-center text-muted-foreground">
-                <div className="w-2 h-2 bg-primary rounded-full mr-3"></div>
-                Real-time order tracking and chat system
-              </div>
-              <div className="flex items-center text-muted-foreground">
-                <div className="w-2 h-2 bg-primary rounded-full mr-3"></div>
-                GPS location services for accurate delivery
-              </div>
-              <div className="flex items-center text-muted-foreground">
-                <div className="w-2 h-2 bg-primary rounded-full mr-3"></div>
-                Wallet system with secure transactions
-              </div>
-              <div className="flex items-center text-muted-foreground">
-                <div className="w-2 h-2 bg-primary rounded-full mr-3"></div>
-                Comprehensive admin dashboard and analytics
               </div>
             </div>
           </div>
