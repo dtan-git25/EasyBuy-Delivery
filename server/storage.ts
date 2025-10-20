@@ -1,4 +1,4 @@
-import { users, restaurants, menuItems, categories, riders, wallets, orders, chatMessages, systemSettings, walletTransactions, orderStatusHistory, riderLocationHistory, optionTypes, menuItemOptionValues, savedAddresses, type User, type InsertUser, type Restaurant, type RestaurantWithOwner, type InsertRestaurant, type MenuItem, type InsertMenuItem, type Category, type InsertCategory, type Rider, type InsertRider, type Order, type InsertOrder, type ChatMessage, type InsertChatMessage, type Wallet, type SystemSettings, type WalletTransaction, type InsertWalletTransaction, type OrderStatusHistory, type InsertOrderStatusHistory, type RiderLocationHistory, type InsertRiderLocationHistory, type OptionType, type InsertOptionType, type MenuItemOptionValue, type InsertMenuItemOptionValue, type SavedAddress, type InsertSavedAddress } from "@shared/schema";
+import { users, restaurants, menuItems, categories, riders, wallets, orders, chatMessages, systemSettings, walletTransactions, orderStatusHistory, riderLocationHistory, optionTypes, menuItemOptionValues, savedAddresses, ratings, type User, type InsertUser, type Restaurant, type RestaurantWithOwner, type InsertRestaurant, type MenuItem, type InsertMenuItem, type Category, type InsertCategory, type Rider, type InsertRider, type Order, type InsertOrder, type ChatMessage, type InsertChatMessage, type Wallet, type SystemSettings, type WalletTransaction, type InsertWalletTransaction, type OrderStatusHistory, type InsertOrderStatusHistory, type RiderLocationHistory, type InsertRiderLocationHistory, type OptionType, type InsertOptionType, type MenuItemOptionValue, type InsertMenuItemOptionValue, type SavedAddress, type InsertSavedAddress, type Rating, type InsertRating } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc } from "drizzle-orm";
 import session from "express-session";
@@ -96,6 +96,14 @@ export interface IStorage {
   // System settings
   getSystemSettings(): Promise<SystemSettings | undefined>;
   updateSystemSettings(updates: Partial<SystemSettings>): Promise<SystemSettings | undefined>;
+
+  // Rating operations
+  createRating(rating: InsertRating): Promise<Rating>;
+  getRatingByOrder(orderId: string): Promise<Rating | undefined>;
+  getRatingsByMerchant(merchantId: string): Promise<Rating[]>;
+  getRatingsByRider(riderId: string): Promise<Rating[]>;
+  getAverageMerchantRating(merchantId: string): Promise<{ average: number; count: number }>;
+  getAverageRiderRating(riderId: string): Promise<{ average: number; count: number }>;
 
   // Wallet transaction operations
   getWalletTransactions(walletId: string): Promise<WalletTransaction[]>;
@@ -647,6 +655,75 @@ export class DatabaseStorage implements IStorage {
       const [settings] = await db.insert(systemSettings).values(updates).returning();
       return settings;
     }
+  }
+
+  // Rating operations
+  async createRating(rating: InsertRating): Promise<Rating> {
+    const [newRating] = await db.insert(ratings).values(rating).returning();
+    return newRating;
+  }
+
+  async getRatingByOrder(orderId: string): Promise<Rating | undefined> {
+    const [rating] = await db.select().from(ratings).where(eq(ratings.orderId, orderId));
+    return rating || undefined;
+  }
+
+  async getRatingsByMerchant(merchantId: string): Promise<Rating[]> {
+    return await db
+      .select()
+      .from(ratings)
+      .where(eq(ratings.merchantId, merchantId))
+      .orderBy(desc(ratings.createdAt));
+  }
+
+  async getRatingsByRider(riderId: string): Promise<Rating[]> {
+    return await db
+      .select()
+      .from(ratings)
+      .where(eq(ratings.riderId, riderId))
+      .orderBy(desc(ratings.createdAt));
+  }
+
+  async getAverageMerchantRating(merchantId: string): Promise<{ average: number; count: number }> {
+    const merchantRatings = await db
+      .select()
+      .from(ratings)
+      .where(and(
+        eq(ratings.merchantId, merchantId),
+        eq(ratings.merchantRating, ratings.merchantRating) // Only non-null ratings
+      ));
+    
+    const validRatings = merchantRatings.filter(r => r.merchantRating !== null);
+    if (validRatings.length === 0) {
+      return { average: 0, count: 0 };
+    }
+    
+    const sum = validRatings.reduce((acc, r) => acc + (r.merchantRating || 0), 0);
+    return {
+      average: sum / validRatings.length,
+      count: validRatings.length
+    };
+  }
+
+  async getAverageRiderRating(riderId: string): Promise<{ average: number; count: number }> {
+    const riderRatings = await db
+      .select()
+      .from(ratings)
+      .where(and(
+        eq(ratings.riderId, riderId),
+        eq(ratings.riderRating, ratings.riderRating) // Only non-null ratings
+      ));
+    
+    const validRatings = riderRatings.filter(r => r.riderRating !== null);
+    if (validRatings.length === 0) {
+      return { average: 0, count: 0 };
+    }
+    
+    const sum = validRatings.reduce((acc, r) => acc + (r.riderRating || 0), 0);
+    return {
+      average: sum / validRatings.length,
+      count: validRatings.length
+    };
   }
 
   // Wallet transaction operations
