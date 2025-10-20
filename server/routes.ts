@@ -2168,10 +2168,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Order already rated" });
       }
       
+      // Get restaurant to find owner ID
+      const restaurant = await storage.getRestaurant(order.restaurantId);
+      if (!restaurant) {
+        return res.status(404).json({ error: "Restaurant not found" });
+      }
+      
       const rating = await storage.createRating({
         orderId,
         customerId: req.user.id,
-        merchantId: order.restaurantOwnerId,
+        merchantId: restaurant.ownerId,
         riderId: order.riderId || undefined,
         merchantRating: merchantRating || null,
         riderRating: riderRating || null,

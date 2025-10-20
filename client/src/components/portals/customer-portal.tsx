@@ -117,6 +117,14 @@ export default function CustomerPortal() {
   const [editedEmail, setEditedEmail] = useState("");
   const [editedPhone, setEditedPhone] = useState("");
   
+  // Rating modal state
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [selectedOrderForRating, setSelectedOrderForRating] = useState<Order | null>(null);
+  const [merchantRating, setMerchantRating] = useState(0);
+  const [riderRating, setRiderRating] = useState(0);
+  const [merchantComment, setMerchantComment] = useState("");
+  const [riderComment, setRiderComment] = useState("");
+  
   const cart = useCart();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -227,6 +235,34 @@ export default function CustomerPortal() {
       toast({
         title: "Error updating profile",
         description: "There was an error updating your profile. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Submit rating mutation
+  const submitRatingMutation = useMutation({
+    mutationFn: async (data: { orderId: string; merchantRating?: number; riderRating?: number; merchantComment?: string; riderComment?: string }) => {
+      const response = await apiRequest("POST", "/api/ratings", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      setShowRatingModal(false);
+      setMerchantRating(0);
+      setRiderRating(0);
+      setMerchantComment("");
+      setRiderComment("");
+      setSelectedOrderForRating(null);
+      toast({
+        title: "Rating submitted",
+        description: "Thank you for your feedback!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error submitting rating",
+        description: error.message || "There was an error submitting your rating. Please try again.",
         variant: "destructive",
       });
     }
@@ -1240,6 +1276,20 @@ export default function CustomerPortal() {
                               Track Order
                             </Button>
                           )}
+                          {order.status === 'delivered' && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedOrderForRating(order);
+                                setShowRatingModal(true);
+                              }}
+                              data-testid={`button-rate-order-${order.id}`}
+                            >
+                              <Star className="mr-2 h-4 w-4" />
+                              Rate Order
+                            </Button>
+                          )}
                         </div>
                       </div>
 
@@ -1716,6 +1766,113 @@ export default function CustomerPortal() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Rating Modal */}
+      <Dialog open={showRatingModal} onOpenChange={setShowRatingModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rate Your Order</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            {/* Merchant Rating */}
+            <div className="space-y-3">
+              <h4 className="font-medium">How was the food?</h4>
+              <div className="flex gap-2">
+                {[1, 2, 3, 4, 5].map((rating) => (
+                  <button
+                    key={rating}
+                    onClick={() => setMerchantRating(rating)}
+                    className="transition-all"
+                    data-testid={`button-merchant-rating-${rating}`}
+                  >
+                    <Star
+                      className={`h-8 w-8 ${
+                        rating <= merchantRating
+                          ? 'fill-yellow-400 text-yellow-400'
+                          : 'text-gray-300'
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+              <textarea
+                placeholder="Any comments about the food or restaurant? (optional)"
+                value={merchantComment}
+                onChange={(e) => setMerchantComment(e.target.value)}
+                className="w-full p-2 border rounded-md text-sm min-h-[80px] resize-none"
+                data-testid="input-merchant-comment"
+              />
+            </div>
+
+            {/* Rider Rating (only if order had a rider) */}
+            {selectedOrderForRating?.riderId && (
+              <div className="space-y-3">
+                <h4 className="font-medium">How was the delivery service?</h4>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((rating) => (
+                    <button
+                      key={rating}
+                      onClick={() => setRiderRating(rating)}
+                      className="transition-all"
+                      data-testid={`button-rider-rating-${rating}`}
+                    >
+                      <Star
+                        className={`h-8 w-8 ${
+                          rating <= riderRating
+                            ? 'fill-yellow-400 text-yellow-400'
+                            : 'text-gray-300'
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+                <textarea
+                  placeholder="Any comments about the delivery? (optional)"
+                  value={riderComment}
+                  onChange={(e) => setRiderComment(e.target.value)}
+                  className="w-full p-2 border rounded-md text-sm min-h-[80px] resize-none"
+                  data-testid="input-rider-comment"
+                />
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowRatingModal(false);
+                  setMerchantRating(0);
+                  setRiderRating(0);
+                  setMerchantComment("");
+                  setRiderComment("");
+                  setSelectedOrderForRating(null);
+                }}
+                className="flex-1"
+                data-testid="button-cancel-rating"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  if (!selectedOrderForRating) return;
+                  submitRatingMutation.mutate({
+                    orderId: selectedOrderForRating.id,
+                    merchantRating: merchantRating || undefined,
+                    riderRating: riderRating || undefined,
+                    merchantComment: merchantComment || undefined,
+                    riderComment: riderComment || undefined,
+                  });
+                }}
+                disabled={submitRatingMutation.isPending || (merchantRating === 0 && riderRating === 0)}
+                className="flex-1"
+                data-testid="button-submit-rating"
+              >
+                {submitRatingMutation.isPending ? "Submitting..." : "Submit Rating"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
