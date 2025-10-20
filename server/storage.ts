@@ -1006,7 +1006,7 @@ export class DatabaseStorage implements IStorage {
     // If status is changing to 'delivered', calculate commission and set completedAt
     if (updates.status === 'delivered' && currentOrder.status !== 'delivered') {
       const settings = await this.getSystemSettings();
-      const riderCommissionPercentage = parseFloat(settings?.riderCommission || '70') / 100;
+      const riderCommissionPercentage = parseFloat(settings?.riderCommissionPercentage || '70') / 100;
       
       // Calculate rider commission: (delivery fee + markup) × commission percentage
       const deliveryFee = parseFloat(currentOrder.deliveryFee as string);
