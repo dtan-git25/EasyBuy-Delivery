@@ -70,12 +70,6 @@ export default function AuthPage() {
       lastName: "",
       age: 18,
       gender: "Prefer not to say",
-      lotHouseNo: "",
-      street: "",
-      barangay: "",
-      cityMunicipality: "",
-      province: "",
-      landmark: "",
       email: "",
       phone: "",
       username: "",
@@ -475,95 +469,6 @@ export default function AuthPage() {
                                   <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
                                 </SelectContent>
                               </Select>
-                            </div>
-                          </div>
-
-                          {/* Philippine Address */}
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <Label htmlFor="customer-lotHouseNo">Lot/House No. *</Label>
-                              <Input
-                                id="customer-lotHouseNo"
-                                data-testid="input-customer-lotHouseNo"
-                                {...customerForm.register("lotHouseNo")}
-                                placeholder="123"
-                              />
-                              {customerForm.formState.errors.lotHouseNo && (
-                                <p className="text-sm text-destructive mt-1">
-                                  {customerForm.formState.errors.lotHouseNo.message}
-                                </p>
-                              )}
-                            </div>
-                            <div>
-                              <Label htmlFor="customer-street">Street *</Label>
-                              <Input
-                                id="customer-street"
-                                data-testid="input-customer-street"
-                                {...customerForm.register("street")}
-                                placeholder="Rizal Street"
-                              />
-                              {customerForm.formState.errors.street && (
-                                <p className="text-sm text-destructive mt-1">
-                                  {customerForm.formState.errors.street.message}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <Label htmlFor="customer-barangay">Barangay *</Label>
-                              <Input
-                                id="customer-barangay"
-                                data-testid="input-customer-barangay"
-                                {...customerForm.register("barangay")}
-                                placeholder="Poblacion"
-                              />
-                              {customerForm.formState.errors.barangay && (
-                                <p className="text-sm text-destructive mt-1">
-                                  {customerForm.formState.errors.barangay.message}
-                                </p>
-                              )}
-                            </div>
-                            <div>
-                              <Label htmlFor="customer-cityMunicipality">City/Municipality *</Label>
-                              <Input
-                                id="customer-cityMunicipality"
-                                data-testid="input-customer-cityMunicipality"
-                                {...customerForm.register("cityMunicipality")}
-                                placeholder="Makati City"
-                              />
-                              {customerForm.formState.errors.cityMunicipality && (
-                                <p className="text-sm text-destructive mt-1">
-                                  {customerForm.formState.errors.cityMunicipality.message}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <Label htmlFor="customer-province">Province *</Label>
-                              <Input
-                                id="customer-province"
-                                data-testid="input-customer-province"
-                                {...customerForm.register("province")}
-                                placeholder="Metro Manila"
-                              />
-                              {customerForm.formState.errors.province && (
-                                <p className="text-sm text-destructive mt-1">
-                                  {customerForm.formState.errors.province.message}
-                                </p>
-                              )}
-                            </div>
-                            <div>
-                              <Label htmlFor="customer-landmark">Landmark</Label>
-                              <Input
-                                id="customer-landmark"
-                                data-testid="input-customer-landmark"
-                                {...customerForm.register("landmark")}
-                                placeholder="Near Jollibee"
-                              />
                             </div>
                           </div>
 
