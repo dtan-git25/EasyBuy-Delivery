@@ -148,6 +148,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Configure multer for app logo
+  const logoUpload = multer({
+    storage: multer.diskStorage({
+      destination: async (req, file, cb) => {
+        try {
+          const logoDir = path.join(process.cwd(), 'uploads', 'logo');
+          await fs.promises.mkdir(logoDir, { recursive: true });
+          cb(null, logoDir);
+        } catch (error) {
+          console.error('Error creating logo upload directory:', error);
+          cb(error as Error);
+        }
+      },
+      filename: (req, file, cb) => {
+        const fileExtension = path.extname(file.originalname);
+        const fileName = `logo${fileExtension}`;
+        cb(null, fileName);
+      }
+    }),
+    limits: {
+      fileSize: 2 * 1024 * 1024, // 2MB limit for logo
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = /jpeg|jpg|png|webp|svg/;
+      const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+      const mimetype = allowedTypes.test(file.mimetype);
+      
+      if (mimetype && extname) {
+        return cb(null, true);
+      } else {
+        cb(new Error('Only JPEG, PNG, WebP, and SVG images are allowed'));
+      }
+    }
+  });
+
   // Serve uploaded files (requires authentication and authorization)
   app.get("/uploads/:folder/:userId/:filename", async (req, res) => {
     if (!req.isAuthenticated()) {
@@ -208,13 +243,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Serve menu-items and restaurants images (publicly accessible)
+  // Serve menu-items, restaurants, and logo images (publicly accessible)
   app.get("/uploads/:folder/:filename", async (req, res) => {
     try {
       const { folder, filename } = req.params;
       
-      // Only allow menu-items and restaurants folders for public access
-      if (folder !== 'menu-items' && folder !== 'restaurants') {
+      // Only allow menu-items, restaurants, and logo folders for public access
+      const allowedFolders = ['menu-items', 'restaurants', 'logo'];
+      if (!allowedFolders.includes(folder)) {
         return res.status(400).json({ error: "Invalid folder" });
       }
       
@@ -365,6 +401,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error uploading restaurant image:", error);
       res.status(500).json({ error: "Failed to upload image" });
+    }
+  });
+
+  app.post("/api/logo/upload", logoUpload.single('image'), async (req, res) => {
+    if (!req.isAuthenticated() || (req.user?.role !== 'admin' && req.user?.role !== 'owner')) {
+      return res.status(401).json({ error: "Unauthorized - Admin access required" });
+    }
+
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+
+      const logoUrl = `/uploads/logo/${req.file.filename}`;
+      
+      // Update system settings with the new logo path
+      await storage.updateSettings({ logo: logoUrl });
+      
+      res.json({ logoUrl });
+    } catch (error) {
+      console.error("Error uploading logo:", error);
+      res.status(500).json({ error: "Failed to upload logo" });
     }
   });
 

@@ -206,9 +206,17 @@ export default function Dashboard() {
           <div className="flex items-center justify-between h-16">
             {/* Logo and Brand */}
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-                <Bike className="text-primary-foreground text-lg" />
-              </div>
+              {settings?.logo ? (
+                <img
+                  src={settings.logo}
+                  alt="App Logo"
+                  className="w-10 h-10 object-contain"
+                />
+              ) : (
+                <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
+                  <Bike className="text-primary-foreground text-lg" />
+                </div>
+              )}
               <div className="hidden sm:block">
                 <h1 className="text-xl font-bold text-foreground">Easy Buy Delivery</h1>
                 <p className="text-xs text-muted-foreground">Online Food Delivery Services</p>

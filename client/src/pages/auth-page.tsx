@@ -11,7 +11,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Bike, Store, Users, Settings, Upload, Camera } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { 
   customerRegistrationSchema, 
   riderRegistrationSchema, 
@@ -35,6 +35,11 @@ export default function AuthPage() {
   const [registerRole, setRegisterRole] = useState<"customer" | "rider" | "merchant">("customer");
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotPasswordMessage, setForgotPasswordMessage] = useState("");
+
+  // Fetch system settings for app logo
+  const { data: settings } = useQuery({
+    queryKey: ['/api/settings'],
+  });
 
   // Redirect to dashboard when user is authenticated
   useEffect(() => {
@@ -185,9 +190,17 @@ export default function AuthPage() {
           {/* Hero Section */}
           <div className="text-center lg:text-left">
             <div className="flex items-center justify-center lg:justify-start mb-6">
-              <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mr-4">
-                <Bike className="text-primary-foreground text-2xl" />
-              </div>
+              {settings?.logo ? (
+                <img
+                  src={settings.logo}
+                  alt="App Logo"
+                  className="w-16 h-16 object-contain mr-4"
+                />
+              ) : (
+                <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mr-4">
+                  <Bike className="text-primary-foreground text-2xl" />
+                </div>
+              )}
               <div>
                 <h1 className="text-3xl font-bold text-foreground">Easy Buy Delivery</h1>
                 <p className="text-muted-foreground">Online Food Delivery Services</p>

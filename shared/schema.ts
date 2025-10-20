@@ -328,6 +328,7 @@ export const systemSettings = pgTable("system_settings", {
   allowMultiMerchantCheckout: boolean("allow_multi_merchant_checkout").default(false),
   maxMerchantsPerOrder: integer("max_merchants_per_order").default(2),
   riderCommissionPercentage: decimal("rider_commission_percentage", { precision: 5, scale: 2 }).default('70'),
+  logo: text("logo"), // App logo path
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 

@@ -17,7 +17,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ShoppingCart, DollarSign, Bike, Store, Download, Eye, Check, X, Clock, Users, TrendingUp, FileText, AlertCircle, Crown, UserPlus, Trash2, Mail, Phone, MapPin, Calendar, CheckCircle, Utensils, Star } from "lucide-react";
+import { ShoppingCart, DollarSign, Bike, Store, Download, Eye, Check, X, Clock, Users, TrendingUp, FileText, AlertCircle, Crown, UserPlus, Trash2, Mail, Phone, MapPin, Calendar, CheckCircle, Utensils, Star, ImageIcon } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { CustomerManagement } from "@/components/customer-management";
@@ -1822,6 +1822,83 @@ export default function AdminPortal() {
                           </p>
                         </div>
                       )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* App Logo Upload */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <ImageIcon className="mr-2 h-5 w-5 text-primary" />
+                      App Logo
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label>Current Logo</Label>
+                      <div className="mt-2 flex items-center space-x-4">
+                        {settings?.logo ? (
+                          <img
+                            src={settings.logo}
+                            alt="App Logo"
+                            className="h-16 w-16 object-contain rounded border"
+                            data-testid="img-current-logo"
+                          />
+                        ) : (
+                          <div className="h-16 w-16 bg-primary rounded-full flex items-center justify-center">
+                            <Bike className="text-primary-foreground text-2xl" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="logo-upload">Upload New Logo</Label>
+                      <p className="text-xs text-muted-foreground mt-1 mb-2">
+                        Recommended size: 256x256px. Formats: JPEG, PNG, WebP, SVG (max 2MB)
+                      </p>
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          id="logo-upload"
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+
+                            const formData = new FormData();
+                            formData.append('image', file);
+
+                            try {
+                              const response = await fetch('/api/logo/upload', {
+                                method: 'POST',
+                                body: formData,
+                                credentials: 'include',
+                              });
+
+                              if (!response.ok) {
+                                throw new Error('Upload failed');
+                              }
+
+                              const data = await response.json();
+                              queryClient.invalidateQueries({ queryKey: ['/api/settings'] });
+                              toast({
+                                title: "Success",
+                                description: "Logo uploaded successfully",
+                              });
+                            } catch (error) {
+                              toast({
+                                title: "Error",
+                                description: "Failed to upload logo",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                          className="flex-1"
+                          data-testid="input-logo-upload"
+                        />
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
