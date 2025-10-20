@@ -603,10 +603,10 @@ export default function RiderPortal() {
   });
 
   // Today's earnings (rider commission from delivered orders)
+  // Commission already includes the rider's share of (deliveryFee + markup)
   const todayEarnings = todayDeliveredOrders.reduce((sum: number, order: any) => {
     const commission = parseFloat(order.commission || '0');
-    const markup = parseFloat(order.markup || '0');
-    return sum + commission + markup;
+    return sum + commission;
   }, 0);
 
   // Success rate calculation: (delivered orders / total non-cancelled orders) × 100%
