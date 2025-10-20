@@ -329,6 +329,20 @@ export const systemSettings = pgTable("system_settings", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Ratings table - Customer ratings for merchants and riders
+export const ratings = pgTable("ratings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderId: varchar("order_id").notNull().references(() => orders.id, { onDelete: 'cascade' }),
+  customerId: varchar("customer_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  merchantId: varchar("merchant_id").references(() => users.id, { onDelete: 'cascade' }), // Restaurant owner ID
+  riderId: varchar("rider_id").references(() => users.id, { onDelete: 'cascade' }), // Rider user ID
+  merchantRating: integer("merchant_rating"), // 1-5 stars
+  riderRating: integer("rider_rating"), // 1-5 stars
+  merchantComment: text("merchant_comment"),
+  riderComment: text("rider_comment"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many, one }) => ({
   restaurants: many(restaurants),
@@ -373,6 +387,14 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
   restaurant: one(restaurants, { fields: [orders.restaurantId], references: [restaurants.id] }),
   rider: one(riders, { fields: [orders.riderId], references: [riders.id] }),
   chatMessages: many(chatMessages),
+  rating: one(ratings, { fields: [orders.id], references: [ratings.orderId] }),
+}));
+
+export const ratingsRelations = relations(ratings, ({ one }) => ({
+  order: one(orders, { fields: [ratings.orderId], references: [orders.id] }),
+  customer: one(users, { fields: [ratings.customerId], references: [users.id] }),
+  merchant: one(users, { fields: [ratings.merchantId], references: [users.id] }),
+  rider: one(users, { fields: [ratings.riderId], references: [users.id] }),
 }));
 
 export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
@@ -464,6 +486,11 @@ export const insertSavedAddressSchema = createInsertSchema(savedAddresses).omit(
   id: true,
   createdAt: true,
   updatedAt: true,
+});
+
+export const insertRatingSchema = createInsertSchema(ratings).omit({
+  id: true,
+  createdAt: true,
 });
 
 // Role-specific Registration Schemas - Philippine Standards
@@ -597,3 +624,5 @@ export type InsertRiderLocationHistory = z.infer<typeof insertRiderLocationHisto
 export type SavedAddress = typeof savedAddresses.$inferSelect;
 export type InsertSavedAddress = z.infer<typeof insertSavedAddressSchema>;
 export type SystemSettings = typeof systemSettings.$inferSelect;
+export type Rating = typeof ratings.$inferSelect;
+export type InsertRating = z.infer<typeof insertRatingSchema>;
