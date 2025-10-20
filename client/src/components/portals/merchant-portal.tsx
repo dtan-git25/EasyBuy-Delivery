@@ -36,6 +36,87 @@ interface Order {
   createdAt: string;
 }
 
+function MerchantRatingDisplay({ merchantId }: { merchantId?: string }) {
+  const { data: ratingData } = useQuery<{ average: { average: number; count: number }; ratings: any[] }>({
+    queryKey: ["/api/ratings/merchant", merchantId],
+    enabled: !!merchantId,
+    queryFn: async () => {
+      if (!merchantId) return { average: { average: 0, count: 0 }, ratings: [] };
+      const response = await fetch(`/api/ratings/merchant/${merchantId}`);
+      return response.json();
+    },
+  });
+
+  const avgRating = ratingData?.average?.average || 0;
+  const count = ratingData?.average?.count || 0;
+  const ratings = ratingData?.ratings || [];
+
+  return (
+    <div>
+      <h3 className="text-lg font-semibold mb-4">Customer Ratings</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="text-sm text-muted-foreground">Average Rating</label>
+          <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  className={`h-5 w-5 ${
+                    star <= avgRating
+                      ? 'fill-yellow-400 text-yellow-400'
+                      : 'text-gray-300'
+                  }`}
+                />
+              ))}
+            </div>
+            <span className="text-base font-medium">
+              {avgRating > 0 ? avgRating.toFixed(1) : "No ratings yet"}
+            </span>
+          </div>
+        </div>
+        <div>
+          <label className="text-sm text-muted-foreground">Total Reviews</label>
+          <p className="text-base font-medium mt-1" data-testid="text-rating-count">
+            {count} {count === 1 ? 'review' : 'reviews'}
+          </p>
+        </div>
+      </div>
+      {ratings.length > 0 && (
+        <div className="mt-4">
+          <h4 className="text-sm font-medium mb-2">Recent Reviews</h4>
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {ratings.slice(0, 5).map((rating: any) => (
+              <div key={rating.id} className="border rounded-lg p-3 text-sm">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="flex">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        className={`h-3 w-3 ${
+                          star <= (rating.merchantRating || 0)
+                            ? 'fill-yellow-400 text-yellow-400'
+                            : 'text-gray-300'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(rating.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+                {rating.merchantComment && (
+                  <p className="text-muted-foreground">{rating.merchantComment}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function MerchantPortal() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -1896,6 +1977,11 @@ export default function MerchantPortal() {
                         </div>
                       </div>
                     </div>
+
+                    <Separator />
+
+                    {/* Rating Information */}
+                    <MerchantRatingDisplay merchantId={user?.id} />
 
                     <Separator />
 
