@@ -36,6 +36,33 @@ interface Order {
   createdAt: string;
 }
 
+// Compact inline rating display for profile headers
+function InlineMerchantRating({ merchantId }: { merchantId?: string }) {
+  const { data: ratingData } = useQuery<{ average: { average: number; count: number } }>({
+    queryKey: ["/api/ratings/merchant", merchantId],
+    enabled: !!merchantId,
+    queryFn: async () => {
+      if (!merchantId) return { average: { average: 0, count: 0 } };
+      const response = await fetch(`/api/ratings/merchant/${merchantId}`);
+      return response.json();
+    },
+  });
+
+  const avgRating = ratingData?.average?.average || 0;
+  const count = ratingData?.average?.count || 0;
+
+  if (count === 0) {
+    return <span className="text-sm text-muted-foreground">★ No ratings yet</span>;
+  }
+
+  return (
+    <span className="text-sm text-muted-foreground">
+      ★ {avgRating.toFixed(1)} ({count} {count === 1 ? 'rating' : 'ratings'})
+    </span>
+  );
+}
+
+// Full rating display for account settings tab
 function MerchantRatingDisplay({ merchantId }: { merchantId?: string }) {
   const { data: ratingData } = useQuery<{ average: { average: number; count: number }; ratings: any[] }>({
     queryKey: ["/api/ratings/merchant", merchantId],
@@ -998,9 +1025,7 @@ export default function MerchantPortal() {
                   <Badge variant={user?.approvalStatus === 'approved' && userRestaurant?.isActive ? "default" : "secondary"}>
                     {user?.approvalStatus === 'approved' && userRestaurant?.isActive ? "Open" : "Closed"}
                   </Badge>
-                  <span className="text-sm text-muted-foreground">
-                    Rating: {userRestaurant?.rating || "0"}/5
-                  </span>
+                  <InlineMerchantRating merchantId={user?.id} />
                   <Button 
                     variant="link" 
                     size="sm" 

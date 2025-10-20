@@ -33,6 +33,33 @@ interface PendingOrder {
   createdAt: string;
 }
 
+// Compact inline rating display for profile headers
+function InlineRiderRating({ riderId }: { riderId?: string }) {
+  const { data: ratingData } = useQuery<{ average: { average: number; count: number } }>({
+    queryKey: ["/api/ratings/rider", riderId],
+    enabled: !!riderId,
+    queryFn: async () => {
+      if (!riderId) return { average: { average: 0, count: 0 } };
+      const response = await fetch(`/api/ratings/rider/${riderId}`);
+      return response.json();
+    },
+  });
+
+  const avgRating = ratingData?.average?.average || 0;
+  const count = ratingData?.average?.count || 0;
+
+  if (count === 0) {
+    return <span className="text-sm text-muted-foreground">★ No ratings yet</span>;
+  }
+
+  return (
+    <span className="text-sm text-muted-foreground">
+      ★ {avgRating.toFixed(1)} ({count} {count === 1 ? 'rating' : 'ratings'})
+    </span>
+  );
+}
+
+// Full rating display for account settings tab
 function RiderRatingDisplay({ riderId }: { riderId?: string }) {
   const { data: ratingData } = useQuery<{ average: { average: number; count: number }; ratings: any[] }>({
     queryKey: ["/api/ratings/rider", riderId],
@@ -599,7 +626,7 @@ export default function RiderPortal() {
                   <Badge variant={riderStatus === 'online' ? 'default' : 'secondary'}>
                     {riderStatus === 'online' ? 'Online' : 'Offline'}
                   </Badge>
-                  <span className="text-sm text-muted-foreground">Rating: 4.9/5</span>
+                  <InlineRiderRating riderId={user?.id} />
                 </div>
               </div>
             </div>
