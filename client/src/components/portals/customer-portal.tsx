@@ -30,6 +30,7 @@ interface Restaurant {
   address: string;
   phone: string;
   isActive: boolean;
+  ownerId?: string;
 }
 
 interface MenuItem {
@@ -84,6 +85,31 @@ interface OrderStatusHistory {
     lastName: string;
     role: string;
   };
+}
+
+function RestaurantRating({ ownerId }: { ownerId?: string }) {
+  const { data: ratingData } = useQuery<{ average: { average: number; count: number } }>({
+    queryKey: ["/api/ratings/merchant", ownerId],
+    enabled: !!ownerId,
+    queryFn: async () => {
+      if (!ownerId) return { average: { average: 0, count: 0 } };
+      const response = await fetch(`/api/ratings/merchant/${ownerId}`);
+      return response.json();
+    },
+  });
+
+  const avgRating = ratingData?.average?.average || 0;
+  const count = ratingData?.average?.count || 0;
+
+  return (
+    <div className="flex items-center space-x-1">
+      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+      <span>
+        {avgRating > 0 ? avgRating.toFixed(1) : "New"}
+        {count > 0 && <span className="text-muted-foreground text-xs ml-1">({count})</span>}
+      </span>
+    </div>
+  );
 }
 
 export default function CustomerPortal() {
@@ -1141,10 +1167,7 @@ export default function CustomerPortal() {
                       </div>
                       <p className="text-sm text-muted-foreground mb-3">{restaurant.cuisine}</p>
                       <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center space-x-1">
-                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                          <span>{restaurant.rating}</span>
-                        </div>
+                        <RestaurantRating ownerId={restaurant.ownerId} />
                         <div className="flex items-center space-x-1">
                           <Clock className="h-4 w-4 text-muted-foreground" />
                           <span>25-35 min</span>
