@@ -468,7 +468,7 @@ export const insertSavedAddressSchema = createInsertSchema(savedAddresses).omit(
 
 // Role-specific Registration Schemas - Philippine Standards
 
-// Customer Registration Schema
+// Customer Registration Schema - Simplified (no address fields required)
 export const customerRegistrationSchema = z.object({
   // Personal Information
   firstName: z.string().min(1, "First name is required"),
@@ -476,14 +476,6 @@ export const customerRegistrationSchema = z.object({
   lastName: z.string().min(1, "Last name is required"),
   age: z.number().min(13, "Must be at least 13 years old").max(120, "Invalid age"),
   gender: z.enum(['Male', 'Female', 'Prefer not to say']),
-  
-  // Address
-  lotHouseNo: z.string().min(1, "Lot/House number is required"),
-  street: z.string().min(1, "Street is required"),
-  barangay: z.string().min(1, "Barangay is required"),
-  cityMunicipality: z.string().min(1, "City/Municipality is required"),
-  province: z.string().min(1, "Province is required"),
-  landmark: z.string().optional(),
   
   // Contact
   email: z.string().email("Invalid email address"),
