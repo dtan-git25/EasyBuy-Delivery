@@ -2141,6 +2141,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Rating endpoints
+  app.post("/api/ratings", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'customer') {
+      return res.status(401).json({ error: "Unauthorized - Customers only" });
+    }
+
+    try {
+      const { orderId, merchantRating, riderRating, merchantComment, riderComment } = req.body;
+      
+      // Verify order exists and belongs to customer
+      const order = await storage.getOrder(orderId);
+      if (!order) {
+        return res.status(404).json({ error: "Order not found" });
+      }
+      if (order.customerId !== req.user.id) {
+        return res.status(403).json({ error: "Not authorized to rate this order" });
+      }
+      if (order.status !== 'delivered') {
+        return res.status(400).json({ error: "Can only rate delivered orders" });
+      }
+      
+      // Check if rating already exists
+      const existingRating = await storage.getRatingByOrder(orderId);
+      if (existingRating) {
+        return res.status(400).json({ error: "Order already rated" });
+      }
+      
+      const rating = await storage.createRating({
+        orderId,
+        customerId: req.user.id,
+        merchantId: order.restaurantOwnerId,
+        riderId: order.riderId || undefined,
+        merchantRating: merchantRating || null,
+        riderRating: riderRating || null,
+        merchantComment: merchantComment || null,
+        riderComment: riderComment || null
+      });
+      
+      res.status(201).json(rating);
+    } catch (error) {
+      console.error("Error creating rating:", error);
+      res.status(500).json({ error: "Failed to create rating" });
+    }
+  });
+
+  app.get("/api/ratings/order/:orderId", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const rating = await storage.getRatingByOrder(req.params.orderId);
+      res.json(rating || null);
+    } catch (error) {
+      console.error("Error fetching order rating:", error);
+      res.status(500).json({ error: "Failed to fetch rating" });
+    }
+  });
+
+  app.get("/api/ratings/merchant/:merchantId", async (req, res) => {
+    try {
+      const ratings = await storage.getRatingsByMerchant(req.params.merchantId);
+      const avgRating = await storage.getAverageMerchantRating(req.params.merchantId);
+      res.json({ ratings, average: avgRating });
+    } catch (error) {
+      console.error("Error fetching merchant ratings:", error);
+      res.status(500).json({ error: "Failed to fetch ratings" });
+    }
+  });
+
+  app.get("/api/ratings/rider/:riderId", async (req, res) => {
+    try {
+      const ratings = await storage.getRatingsByRider(req.params.riderId);
+      const avgRating = await storage.getAverageRiderRating(req.params.riderId);
+      res.json({ ratings, average: avgRating });
+    } catch (error) {
+      console.error("Error fetching rider ratings:", error);
+      res.status(500).json({ error: "Failed to fetch ratings" });
+    }
+  });
+
   // Rider Profile Route
   app.get("/api/rider/profile", async (req, res) => {
     if (!req.isAuthenticated() || req.user.role !== 'rider') {
