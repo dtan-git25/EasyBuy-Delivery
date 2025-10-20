@@ -17,7 +17,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ShoppingCart, DollarSign, Bike, Store, Download, Eye, Check, X, Clock, Users, TrendingUp, FileText, AlertCircle, Crown, UserPlus, Trash2, Mail, Phone, MapPin, Calendar, CheckCircle, Utensils } from "lucide-react";
+import { ShoppingCart, DollarSign, Bike, Store, Download, Eye, Check, X, Clock, Users, TrendingUp, FileText, AlertCircle, Crown, UserPlus, Trash2, Mail, Phone, MapPin, Calendar, CheckCircle, Utensils, Star } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { CustomerManagement } from "@/components/customer-management";
@@ -497,6 +497,33 @@ function CategoryManagement() {
   );
 }
 
+function MerchantRatingCell({ merchantId }: { merchantId?: string }) {
+  const { data: ratingData } = useQuery<{ average: { average: number; count: number } }>({
+    queryKey: ["/api/ratings/merchant", merchantId],
+    enabled: !!merchantId,
+    queryFn: async () => {
+      if (!merchantId) return { average: { average: 0, count: 0 } };
+      const response = await fetch(`/api/ratings/merchant/${merchantId}`);
+      return response.json();
+    },
+  });
+
+  const avgRating = ratingData?.average?.average || 0;
+  const count = ratingData?.average?.count || 0;
+
+  if (!merchantId || count === 0) {
+    return <span className="text-sm text-muted-foreground">No ratings</span>;
+  }
+
+  return (
+    <div className="flex items-center gap-1">
+      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+      <span className="text-sm font-medium">{avgRating.toFixed(1)}</span>
+      <span className="text-xs text-muted-foreground">({count})</span>
+    </div>
+  );
+}
+
 function StoreManagementTable() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -602,13 +629,14 @@ function StoreManagementTable() {
                 <th className="px-4 py-3 text-left text-sm font-medium">Restaurant Name</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Markup</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">Rating</th>
                 <th className="px-4 py-3 text-center text-sm font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
               {adminRestaurants.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
+                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                     No restaurants found
                   </td>
                 </tr>
@@ -636,6 +664,9 @@ function StoreManagementTable() {
                     </td>
                     <td className="px-4 py-3 text-sm" data-testid={`markup-${restaurant.id}`}>
                       {restaurant.markup}%
+                    </td>
+                    <td className="px-4 py-3">
+                      <MerchantRatingCell merchantId={restaurant.ownerId} />
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center space-x-2">

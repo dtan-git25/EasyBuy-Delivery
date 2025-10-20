@@ -272,7 +272,7 @@ export default function CustomerPortal() {
       const response = await apiRequest("POST", "/api/ratings", data);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       setShowRatingModal(false);
       setMerchantRating(0);
       setRiderRating(0);
@@ -284,6 +284,7 @@ export default function CustomerPortal() {
         description: "Thank you for your feedback!",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/ratings"] });
     },
     onError: (error: any) => {
       toast({

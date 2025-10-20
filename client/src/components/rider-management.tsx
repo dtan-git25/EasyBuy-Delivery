@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Eye, Trash2, MapPin, Phone, Mail, Calendar, Bike, FileText, Wallet, Download, User as UserIcon } from "lucide-react";
+import { Search, Eye, Trash2, MapPin, Phone, Mail, Calendar, Bike, FileText, Wallet, Download, User as UserIcon, Star } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
@@ -44,6 +44,31 @@ interface Rider {
     approvalStatus: string;
     createdAt: string;
   };
+}
+
+function RiderRatingCell({ riderId }: { riderId: string }) {
+  const { data: ratingData } = useQuery<{ average: { average: number; count: number } }>({
+    queryKey: ["/api/ratings/rider", riderId],
+    queryFn: async () => {
+      const response = await fetch(`/api/ratings/rider/${riderId}`);
+      return response.json();
+    },
+  });
+
+  const avgRating = ratingData?.average?.average || 0;
+  const count = ratingData?.average?.count || 0;
+
+  if (count === 0) {
+    return <span className="text-sm text-muted-foreground">No ratings</span>;
+  }
+
+  return (
+    <div className="flex items-center gap-1">
+      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+      <span className="text-sm font-medium">{avgRating.toFixed(1)}</span>
+      <span className="text-xs text-muted-foreground">({count})</span>
+    </div>
+  );
 }
 
 export function RiderManagement() {
@@ -191,19 +216,20 @@ export function RiderManagement() {
                 <TableHead>Account Status</TableHead>
                 <TableHead>Province</TableHead>
                 <TableHead>Deliveries</TableHead>
+                <TableHead>Rating</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     Loading riders...
                   </TableCell>
                 </TableRow>
               ) : sortedRiders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     No riders found
                   </TableCell>
                 </TableRow>
@@ -228,6 +254,9 @@ export function RiderManagement() {
                     </TableCell>
                     <TableCell>{rider.user?.province || '-'}</TableCell>
                     <TableCell>{rider.completedDeliveries}</TableCell>
+                    <TableCell>
+                      <RiderRatingCell riderId={rider.userId} />
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button
