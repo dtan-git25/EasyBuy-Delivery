@@ -911,7 +911,11 @@ export default function RiderPortal() {
                   const convenienceFee = parseFloat(order.convenienceFee || '0');
                   const rawCommission = (settings as any)?.riderCommissionPercentage;
                   const commissionPercentage = (rawCommission ?? 70) / 100;
-                  const riderEarnings = ((deliveryFee + markup) * commissionPercentage).toFixed(2);
+                  
+                  // Calculate rider earnings with rounded markup portion
+                  const deliveryFeeCommission = deliveryFee * commissionPercentage;
+                  const markupCommission = Math.round(markup * commissionPercentage);
+                  const riderEarnings = (deliveryFeeCommission + markupCommission).toFixed(2);
 
                   return (
                     <Card key={order.id} data-testid={`active-order-${order.id}`}>
