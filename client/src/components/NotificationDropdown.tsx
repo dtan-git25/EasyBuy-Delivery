@@ -1,15 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import type { Notification } from "@shared/schema";
 
 export function NotificationDropdown() {
   const [open, setOpen] = useState(false);
+  const { toast } = useToast();
+  const prevNotificationsRef = useRef<Notification[]>([]);
 
   // Fetch notifications
   const { data: notifications = [] } = useQuery<Notification[]>({
@@ -25,25 +28,10 @@ export function NotificationDropdown() {
 
   const unreadCount = unreadData?.count || 0;
 
-  // Mark notification as read
-  const markAsReadMutation = useMutation({
-    mutationFn: async (id: string) => {
-      return await apiRequest(`/api/notifications/${id}/read`, {
-        method: 'PATCH',
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/notifications/unread-count'] });
-    },
-  });
-
   // Mark all as read
   const markAllAsReadMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest('/api/notifications/mark-all-read', {
-        method: 'PATCH',
-      });
+      return await apiRequest('PATCH', '/api/notifications/mark-all-read');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
@@ -51,26 +39,44 @@ export function NotificationDropdown() {
     },
   });
 
-  const handleNotificationClick = (notification: Notification) => {
-    // Mark as read
-    if (!notification.isRead) {
-      markAsReadMutation.mutate(notification.id);
-    }
+  // Show toast alerts for new notifications
+  useEffect(() => {
+    if (notifications.length === 0) return;
 
-    // Navigate based on notification type
-    const metadata = notification.metadata as any;
-    if (metadata?.orderId) {
-      // Navigate to order details
-      window.location.href = `/orders/${metadata.orderId}`;
-    }
-  };
+    const prevNotifications = prevNotificationsRef.current;
+    
+    // Find new notifications (not in previous list)
+    const newNotifications = notifications.filter(
+      (notif) => !prevNotifications.some((prev) => prev.id === notif.id)
+    );
 
-  const handleMarkAllAsRead = () => {
-    markAllAsReadMutation.mutate();
+    // Show toast for each new unread notification
+    newNotifications.forEach((notif) => {
+      if (!notif.isRead) {
+        toast({
+          title: notif.title,
+          description: notif.message,
+          duration: 5000,
+        });
+      }
+    });
+
+    // Update the ref with current notifications
+    prevNotificationsRef.current = notifications;
+  }, [notifications, toast]);
+
+  // Auto mark all as read when dropdown opens
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    
+    // When opening the dropdown, mark all as read
+    if (newOpen && unreadCount > 0) {
+      markAllAsReadMutation.mutate();
+    }
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
@@ -92,17 +98,6 @@ export function NotificationDropdown() {
       <PopoverContent className="w-80 p-0" align="end">
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="font-semibold text-sm">Notifications</h3>
-          {unreadCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-auto p-0 text-xs text-blue-600 hover:text-blue-700"
-              onClick={handleMarkAllAsRead}
-              data-testid="button-mark-all-read"
-            >
-              Mark all as read
-            </Button>
-          )}
         </div>
         <ScrollArea className="h-96">
           {notifications.length === 0 ? (
@@ -114,23 +109,17 @@ export function NotificationDropdown() {
               {notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`p-4 cursor-pointer hover:bg-muted/50 transition-colors ${
-                    !notification.isRead ? 'bg-blue-50 dark:bg-blue-950/20' : ''
-                  }`}
-                  onClick={() => handleNotificationClick(notification)}
+                  className="p-4 transition-colors"
                   data-testid={`notification-${notification.id}`}
                 >
                   <div className="flex items-start gap-3">
-                    <div className={`mt-0.5 h-2 w-2 rounded-full ${
-                      !notification.isRead ? 'bg-blue-500' : 'bg-transparent'
-                    }`} />
                     <div className="flex-1 space-y-1">
                       <div className="flex items-start justify-between gap-2">
-                        <p className={`text-sm ${!notification.isRead ? 'font-semibold' : 'font-medium'}`}>
+                        <p className="text-sm font-medium">
                           {notification.title}
                         </p>
                         <span className="text-xs text-muted-foreground whitespace-nowrap">
-                          {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                          {notification.createdAt ? formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true }) : 'Just now'}
                         </span>
                       </div>
                       <p className="text-sm text-muted-foreground">
