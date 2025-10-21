@@ -1838,6 +1838,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const totalOrders = orders.length;
       const totalRevenue = orders.reduce((sum: number, order: any) => sum + parseFloat(order.total.toString()), 0);
 
+      // Get order counts by status
+      const pendingOrders = orders.filter((order: any) => order.status === 'pending').length;
+      const activeOrders = orders.filter((order: any) => 
+        order.status === 'accepted' || order.status === 'picked_up'
+      ).length;
+      const completedOrders = orders.filter((order: any) => order.status === 'delivered').length;
+
       // Get active riders count  
       const riders = await storage.getRiders();
       const activeRiders = riders.filter((rider: any) => rider.status === 'active').length;
@@ -1845,6 +1852,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get total restaurants count
       const restaurants = await storage.getRestaurants();
       const totalRestaurants = restaurants.filter((restaurant: any) => restaurant.isActive).length;
+
+      // Get total customers count
+      const customers = await storage.getUsersByRole('customer');
+      const totalCustomers = customers.length;
 
       // Calculate growth metrics (simplified - we'll use basic calculations)
       // For a real implementation, you'd want to filter orders by date ranges
@@ -1855,7 +1866,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({
         totalOrders,
+        pendingOrders,
+        activeOrders,
+        completedOrders,
         totalRevenue,
+        totalCustomers,
         activeRiders,
         totalRestaurants,
         ordersGrowth,

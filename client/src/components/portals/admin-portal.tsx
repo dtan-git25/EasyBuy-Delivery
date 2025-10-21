@@ -1178,7 +1178,7 @@ export default function AdminPortal() {
       <section className="py-6 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card>
+            <Card data-testid="card-total-orders">
               <CardContent className="p-6">
                 <div className="flex items-center space-x-3">
                   <div className="bg-blue-500 bg-opacity-10 p-3 rounded-lg">
@@ -1186,68 +1186,144 @@ export default function AdminPortal() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Total Orders</p>
-                    <p className="text-2xl font-bold text-foreground">
+                    <p className="text-2xl font-bold text-foreground" data-testid="text-total-orders">
                       {systemStats?.totalOrders?.toLocaleString() || '0'}
                     </p>
                     <p className="text-sm text-green-600">
-                      +{systemStats?.ordersGrowth || 0}% from last month
+                      All time
                     </p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card data-testid="card-pending-orders">
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-yellow-500 bg-opacity-10 p-3 rounded-lg">
+                    <Clock className="text-yellow-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Pending Orders</p>
+                    <p className="text-2xl font-bold text-foreground" data-testid="text-pending-orders">
+                      {systemStats?.pendingOrders?.toLocaleString() || '0'}
+                    </p>
+                    <p className="text-sm text-yellow-600">
+                      Awaiting rider
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card data-testid="card-active-orders">
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-orange-500 bg-opacity-10 p-3 rounded-lg">
+                    <Bike className="text-orange-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Active Orders</p>
+                    <p className="text-2xl font-bold text-foreground" data-testid="text-active-orders">
+                      {systemStats?.activeOrders?.toLocaleString() || '0'}
+                    </p>
+                    <p className="text-sm text-orange-600">
+                      In progress
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card data-testid="card-completed-orders">
               <CardContent className="p-6">
                 <div className="flex items-center space-x-3">
                   <div className="bg-green-500 bg-opacity-10 p-3 rounded-lg">
-                    <DollarSign className="text-green-600" />
+                    <CheckCircle className="text-green-600" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Revenue</p>
-                    <p className="text-2xl font-bold text-foreground">
-                      ₱{systemStats?.totalRevenue?.toLocaleString() || '0'}
+                    <p className="text-sm text-muted-foreground">Completed Orders</p>
+                    <p className="text-2xl font-bold text-foreground" data-testid="text-completed-orders">
+                      {systemStats?.completedOrders?.toLocaleString() || '0'}
                     </p>
                     <p className="text-sm text-green-600">
-                      +{systemStats?.revenueGrowth || 0}% from last month
+                      Delivered
                     </p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card data-testid="card-total-customers">
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-indigo-500 bg-opacity-10 p-3 rounded-lg">
+                    <Users className="text-indigo-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Customers</p>
+                    <p className="text-2xl font-bold text-foreground" data-testid="text-total-customers">
+                      {systemStats?.totalCustomers?.toLocaleString() || '0'}
+                    </p>
+                    <p className="text-sm text-indigo-600">
+                      Registered users
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card data-testid="card-total-merchants">
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-pink-500 bg-opacity-10 p-3 rounded-lg">
+                    <Store className="text-pink-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Merchants</p>
+                    <p className="text-2xl font-bold text-foreground" data-testid="text-total-merchants">
+                      {systemStats?.totalRestaurants?.toLocaleString() || '0'}
+                    </p>
+                    <p className="text-sm text-pink-600">
+                      Active stores
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card data-testid="card-total-riders">
               <CardContent className="p-6">
                 <div className="flex items-center space-x-3">
                   <div className="bg-purple-500 bg-opacity-10 p-3 rounded-lg">
                     <Bike className="text-purple-600" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Active Riders</p>
-                    <p className="text-2xl font-bold text-foreground">
-                      {systemStats?.activeRiders || '0'}
+                    <p className="text-sm text-muted-foreground">Total Riders</p>
+                    <p className="text-2xl font-bold text-foreground" data-testid="text-total-riders">
+                      {systemStats?.activeRiders?.toLocaleString() || '0'}
                     </p>
-                    <p className="text-sm text-green-600">
-                      +{systemStats?.ridersGrowth || 0} new this week
+                    <p className="text-sm text-purple-600">
+                      Active riders
                     </p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card data-testid="card-total-revenue">
               <CardContent className="p-6">
                 <div className="flex items-center space-x-3">
-                  <div className="bg-orange-500 bg-opacity-10 p-3 rounded-lg">
-                    <Store className="text-orange-600" />
+                  <div className="bg-emerald-500 bg-opacity-10 p-3 rounded-lg">
+                    <DollarSign className="text-emerald-600" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Restaurants</p>
-                    <p className="text-2xl font-bold text-foreground">
-                      {systemStats?.totalRestaurants || '0'}
+                    <p className="text-sm text-muted-foreground">Total Revenue</p>
+                    <p className="text-2xl font-bold text-foreground" data-testid="text-total-revenue">
+                      ₱{systemStats?.totalRevenue?.toLocaleString() || '0'}
                     </p>
-                    <p className="text-sm text-green-600">
-                      +{systemStats?.restaurantsGrowth || 0} pending approval
+                    <p className="text-sm text-emerald-600">
+                      All time sales
                     </p>
                   </div>
                 </div>
