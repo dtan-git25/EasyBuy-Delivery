@@ -44,6 +44,22 @@ export default function Dashboard() {
     queryKey: ["/api/settings"],
   });
 
+  // Reset payment method to first enabled method when settings change
+  useEffect(() => {
+    if (settings) {
+      const enabledMethods = [];
+      if (settings.codEnabled) enabledMethods.push('cash');
+      if (settings.gcashEnabled) enabledMethods.push('gcash');
+      if (settings.mayaEnabled) enabledMethods.push('paymaya');
+      if (settings.cardEnabled) enabledMethods.push('card');
+      
+      // If current payment method is disabled, switch to first enabled method
+      if (enabledMethods.length > 0 && !enabledMethods.includes(paymentMethod)) {
+        setPaymentMethod(enabledMethods[0]);
+      }
+    }
+  }, [settings, paymentMethod]);
+
   const createOrderMutation = useMutation({
     mutationFn: async (orderData: any) => {
       const response = await apiRequest("POST", "/api/orders", orderData);
@@ -90,6 +106,24 @@ export default function Dashboard() {
         variant: "destructive",
       });
       return;
+    }
+
+    // Validate selected payment method is enabled
+    if (settings) {
+      const isPaymentMethodEnabled = 
+        (paymentMethod === 'cash' && settings.codEnabled) ||
+        (paymentMethod === 'gcash' && settings.gcashEnabled) ||
+        (paymentMethod === 'paymaya' && settings.mayaEnabled) ||
+        (paymentMethod === 'card' && settings.cardEnabled);
+      
+      if (!isPaymentMethodEnabled) {
+        toast({
+          title: "Payment method unavailable",
+          description: "The selected payment method is no longer available. Please choose another method.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     const deliveryAddress = [
