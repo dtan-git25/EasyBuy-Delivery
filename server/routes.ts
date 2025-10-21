@@ -331,6 +331,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       const restaurant = await storage.createRestaurant(restaurantData);
+      
+      // Notify admins about new merchant registration
+      const admins = await storage.getUsersByRole('admin');
+      for (const admin of admins) {
+        await storage.createNotification({
+          userId: admin.id,
+          type: 'merchant_pending_approval',
+          title: 'New Merchant Registration',
+          message: `${req.user.firstName} ${req.user.lastName} has registered as a merchant`,
+          metadata: { merchantId: req.user.id, restaurantId: restaurant.id }
+        });
+      }
+      
       res.status(201).json(restaurant);
     } catch (error) {
       console.error("Error creating restaurant:", error);
@@ -1022,6 +1035,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const parsedOrderData = insertOrderSchema.parse(orderData);
       const order = await storage.createOrder(parsedOrderData);
       
+      // Create notifications for new order
+      // Notify admin about new order
+      const admins = await storage.getUsersByRole('admin');
+      for (const admin of admins) {
+        await storage.createNotification({
+          userId: admin.id,
+          type: 'new_order',
+          title: 'New Order Placed',
+          message: `Order #${order.id.substring(0, 8)} has been placed`,
+          metadata: { orderId: order.id }
+        });
+      }
+      
+      // Notify merchant about new order
+      if (order.restaurantId) {
+        const restaurant = await storage.getRestaurant(order.restaurantId);
+        if (restaurant) {
+          await storage.createNotification({
+            userId: restaurant.ownerId,
+            type: 'new_order',
+            title: 'New Order Received',
+            message: `You have received a new order`,
+            metadata: { orderId: order.id }
+          });
+        }
+      }
+      
       // Broadcast new order to connected riders via WebSocket
       if (wss) {
         const message = JSON.stringify({
@@ -1130,6 +1170,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         req.body.notes,
         req.body.location
       );
+      
+      // Create notifications for order status changes
+      if (order && req.body.status) {
+        const statusMessages: Record<string, string> = {
+          'accepted': 'Your order has been accepted by a rider',
+          'preparing': 'Your order is being prepared',
+          'ready': 'Your order is ready for pickup',
+          'picked_up': 'Your order has been picked up',
+          'delivered': 'Your order has been delivered',
+          'cancelled': 'Your order has been cancelled'
+        };
+        
+        // Notify customer about order status change
+        if (statusMessages[req.body.status]) {
+          await storage.createNotification({
+            userId: order.customerId,
+            type: 'order_status_change',
+            title: 'Order Update',
+            message: statusMessages[req.body.status],
+            metadata: { orderId: order.id, status: req.body.status }
+          });
+        }
+        
+        // Notify merchant when order is accepted by rider
+        if (req.body.status === 'accepted' && order.restaurantId) {
+          const restaurant = await storage.getRestaurant(order.restaurantId);
+          if (restaurant) {
+            await storage.createNotification({
+              userId: restaurant.ownerId,
+              type: 'order_accepted_by_rider',
+              title: 'Rider Assigned',
+              message: 'A rider has accepted your order',
+              metadata: { orderId: order.id }
+            });
+          }
+        }
+      }
       
       if (order && wss) {
         // Enhanced WebSocket broadcast with more details
@@ -1376,6 +1453,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       const rider = await storage.createRider(riderData);
+      
+      // Notify admins about new rider registration
+      const admins = await storage.getUsersByRole('admin');
+      for (const admin of admins) {
+        await storage.createNotification({
+          userId: admin.id,
+          type: 'rider_pending_approval',
+          title: 'New Rider Registration',
+          message: `${req.user.firstName} ${req.user.lastName} has registered as a rider`,
+          metadata: { riderId: rider.id, userId: req.user.id }
+        });
+      }
+      
       res.status(201).json(rider);
     } catch (error) {
       console.error("Error creating rider profile:", error);
@@ -2178,6 +2268,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: 'completed'
         });
       }
+      
+      // Notify user about wallet deposit
+      await storage.createNotification({
+        userId: req.user.id,
+        type: 'wallet_update',
+        title: 'Wallet Deposit',
+        message: `Your wallet has been credited with ₱${amount}`,
+        metadata: { transactionId: transaction.id, amount: amount.toString(), type: 'deposit' }
+      });
 
       res.status(201).json(transaction);
     } catch (error) {
