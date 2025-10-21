@@ -19,6 +19,7 @@ import AdminPortal from "@/components/portals/admin-portal";
 import ChatWidget from "@/components/chat/chat-widget";
 import { cn } from "@/lib/utils";
 import { AddressSelector } from "@/components/address-selector";
+import { NotificationDropdown } from "@/components/NotificationDropdown";
 import type { SavedAddress, SystemSettings } from "@shared/schema";
 
 type Portal = 'customer' | 'rider' | 'merchant' | 'admin' | 'owner';
@@ -266,12 +267,7 @@ export default function Dashboard() {
                 </Button>
               )}
               
-              <Button variant="ghost" size="sm" className="relative">
-                <Bell className="h-4 w-4" />
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
-                  3
-                </span>
-              </Button>
+              <NotificationDropdown />
               
               <div className="flex items-center space-x-2">
                 <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">

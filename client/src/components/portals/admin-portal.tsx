@@ -22,6 +22,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { CustomerManagement } from "@/components/customer-management";
 import { RiderManagement } from "@/components/rider-management";
+import { NotificationDropdown } from "@/components/NotificationDropdown";
 
 const systemAccountSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
@@ -1165,6 +1166,7 @@ export default function AdminPortal() {
                 <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                 <span className="text-sm text-muted-foreground">System Status: Online</span>
               </div>
+              <NotificationDropdown />
               <Button data-testid="button-export-reports">
                 <Download className="mr-2 h-4 w-4" />
                 Export Reports
