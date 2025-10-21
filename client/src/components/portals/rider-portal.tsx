@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Bike, Wallet, Clock, Star, MapPin, Phone, User, Upload, FileText, CheckCircle, XCircle, AlertCircle, Map, Users, Download, Eye } from "lucide-react";
+import { Bike, Wallet, Clock, Star, MapPin, Phone, User, Upload, FileText, CheckCircle, XCircle, AlertCircle, Map, Users, Download, Eye, Package, DollarSign } from "lucide-react";
 import { apiRequest, queryClient as globalQueryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useWebSocket } from "@/lib/websocket";
@@ -704,11 +704,11 @@ export default function RiderPortal() {
       <section className="py-6 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
+            <Card data-testid="card-today-orders">
               <CardContent className="p-4">
                 <div className="flex items-center space-x-3">
-                  <div className="bg-primary bg-opacity-10 p-3 rounded-lg">
-                    <Bike className="text-primary" />
+                  <div className="bg-blue-500 bg-opacity-10 p-3 rounded-lg">
+                    <Package className="text-blue-600 h-6 w-6" />
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Today's Orders</p>
@@ -718,11 +718,11 @@ export default function RiderPortal() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card data-testid="card-today-earnings">
               <CardContent className="p-4">
                 <div className="flex items-center space-x-3">
-                  <div className="bg-secondary bg-opacity-10 p-3 rounded-lg">
-                    <Wallet className="text-secondary" />
+                  <div className="bg-green-500 bg-opacity-10 p-3 rounded-lg">
+                    <DollarSign className="text-green-600 h-6 w-6" />
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Today's Earnings</p>
