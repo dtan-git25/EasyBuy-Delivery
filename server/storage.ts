@@ -1008,15 +1008,23 @@ export class DatabaseStorage implements IStorage {
       const settings = await this.getSystemSettings();
       const riderCommissionPercentage = parseFloat(settings?.riderCommissionPercentage || '70') / 100;
       
-      // Calculate rider commission: (delivery fee + markup) × commission percentage
-      const deliveryFee = parseFloat(currentOrder.deliveryFee as string);
-      const markup = parseFloat(currentOrder.markup as string);
-      const commission = (deliveryFee + markup) * riderCommissionPercentage;
+      // Calculate rider commission with rounded markup portion
+      const deliveryFee = parseFloat(currentOrder.deliveryFee as string) || 0;
+      const markup = parseFloat(currentOrder.markup as string) || 0;
+      
+      // Delivery fee portion: keep exact
+      const deliveryFeeCommission = deliveryFee * riderCommissionPercentage;
+      
+      // Markup portion: round to nearest whole number
+      const markupCommission = Math.round(markup * riderCommissionPercentage);
+      
+      // Total commission
+      const commission = deliveryFeeCommission + markupCommission;
       
       updates.commission = commission.toFixed(2);
       updates.completedAt = new Date();
       
-      console.log(`[Order ${orderId}] Setting commission: ₱${commission.toFixed(2)} (${riderCommissionPercentage * 100}% of ₱${deliveryFee} + ₱${markup})`);
+      console.log(`[Order ${orderId}] Setting commission: ₱${commission.toFixed(2)} (Delivery: ₱${deliveryFeeCommission.toFixed(2)} + Markup: ₱${markupCommission} from ₱${markup}) at ${(riderCommissionPercentage * 100).toFixed(0)}%`);
     }
 
     // Update the order
