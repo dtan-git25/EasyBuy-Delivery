@@ -1,4 +1,4 @@
-import { users, restaurants, menuItems, categories, riders, wallets, orders, chatMessages, systemSettings, walletTransactions, orderStatusHistory, riderLocationHistory, optionTypes, menuItemOptionValues, savedAddresses, ratings, type User, type InsertUser, type Restaurant, type RestaurantWithOwner, type InsertRestaurant, type MenuItem, type InsertMenuItem, type Category, type InsertCategory, type Rider, type InsertRider, type Order, type InsertOrder, type ChatMessage, type InsertChatMessage, type Wallet, type SystemSettings, type WalletTransaction, type InsertWalletTransaction, type OrderStatusHistory, type InsertOrderStatusHistory, type RiderLocationHistory, type InsertRiderLocationHistory, type OptionType, type InsertOptionType, type MenuItemOptionValue, type InsertMenuItemOptionValue, type SavedAddress, type InsertSavedAddress, type Rating, type InsertRating } from "@shared/schema";
+import { users, restaurants, menuItems, categories, riders, wallets, orders, chatMessages, systemSettings, walletTransactions, orderStatusHistory, riderLocationHistory, optionTypes, menuItemOptionValues, savedAddresses, ratings, notifications, type User, type InsertUser, type Restaurant, type RestaurantWithOwner, type InsertRestaurant, type MenuItem, type InsertMenuItem, type Category, type InsertCategory, type Rider, type InsertRider, type Order, type InsertOrder, type ChatMessage, type InsertChatMessage, type Wallet, type SystemSettings, type WalletTransaction, type InsertWalletTransaction, type OrderStatusHistory, type InsertOrderStatusHistory, type RiderLocationHistory, type InsertRiderLocationHistory, type OptionType, type InsertOptionType, type MenuItemOptionValue, type InsertMenuItemOptionValue, type SavedAddress, type InsertSavedAddress, type Rating, type InsertRating, type Notification, type InsertNotification } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc } from "drizzle-orm";
 import session from "express-session";
@@ -143,6 +143,14 @@ export interface IStorage {
   getCustomers(filters?: { search?: string; province?: string; sortBy?: string; sortOrder?: 'asc' | 'desc' }): Promise<(User & { orderCount: number })[]>;
   getCustomerDetails(id: string): Promise<{ customer: User; savedAddresses: SavedAddress[]; orderCount: number; recentOrders: Order[] } | undefined>;
   deleteCustomer(id: string): Promise<void>;
+
+  // Notification operations
+  getNotifications(userId: string): Promise<Notification[]>;
+  getUnreadNotificationCount(userId: string): Promise<number>;
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  markNotificationAsRead(id: string): Promise<Notification | undefined>;
+  markAllNotificationsAsRead(userId: string): Promise<void>;
+  deleteNotification(id: string): Promise<void>;
 
   // Session management
   clearAllSessions(): Promise<void>;
@@ -1192,6 +1200,54 @@ export class DatabaseStorage implements IStorage {
   async deleteCustomer(id: string): Promise<void> {
     // The cascade delete will handle related data (orders, saved addresses, etc.)
     await db.delete(users).where(eq(users.id, id));
+  }
+
+  // Notification operations
+  async getNotifications(userId: string): Promise<Notification[]> {
+    const userNotifications = await db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(desc(notifications.createdAt))
+      .limit(50); // Limit to most recent 50 notifications
+    return userNotifications;
+  }
+
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    const { count } = await import('drizzle-orm');
+    const [result] = await db
+      .select({ count: count() })
+      .from(notifications)
+      .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+    return result.count;
+  }
+
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const [newNotification] = await db
+      .insert(notifications)
+      .values(notification)
+      .returning();
+    return newNotification;
+  }
+
+  async markNotificationAsRead(id: string): Promise<Notification | undefined> {
+    const [updated] = await db
+      .update(notifications)
+      .set({ isRead: true })
+      .where(eq(notifications.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async markAllNotificationsAsRead(userId: string): Promise<void> {
+    await db
+      .update(notifications)
+      .set({ isRead: true })
+      .where(eq(notifications.userId, userId));
+  }
+
+  async deleteNotification(id: string): Promise<void> {
+    await db.delete(notifications).where(eq(notifications.id, id));
   }
 
   // Session management
