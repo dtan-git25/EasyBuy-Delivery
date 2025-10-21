@@ -17,6 +17,20 @@ export const documentApprovalEnum = pgEnum('document_approval', [
 ]);
 export const approvalStatusEnum = pgEnum('approval_status', ['pending', 'approved', 'rejected']);
 
+export const notificationTypeEnum = pgEnum('notification_type', [
+  'order_status_change',
+  'order_cancelled',
+  'order_modified',
+  'new_order',
+  'order_accepted_by_rider',
+  'chat_message',
+  'wallet_update',
+  'item_unavailable',
+  'merchant_pending_approval',
+  'rider_pending_approval',
+  'system_alert'
+]);
+
 // Users table - Enhanced for Philippine standards
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -346,6 +360,18 @@ export const ratings = pgTable("ratings", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Notifications table - Real-time notifications for all user types
+export const notifications = pgTable("notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  type: notificationTypeEnum("type").notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  metadata: jsonb("metadata"), // Additional data like orderId, chatMessageId, etc.
+  isRead: boolean("is_read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many, one }) => ({
   restaurants: many(restaurants),
@@ -354,6 +380,11 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   wallet: one(wallets, { fields: [users.id], references: [wallets.userId] }),
   sentMessages: many(chatMessages),
   savedAddresses: many(savedAddresses),
+  notifications: many(notifications),
+}));
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, { fields: [notifications.userId], references: [users.id] }),
 }));
 
 export const savedAddressesRelations = relations(savedAddresses, ({ one }) => ({
@@ -496,6 +527,11 @@ export const insertRatingSchema = createInsertSchema(ratings).omit({
   createdAt: true,
 });
 
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Role-specific Registration Schemas - Philippine Standards
 
 // Customer Registration Schema - Simplified (no address fields required)
@@ -629,3 +665,5 @@ export type InsertSavedAddress = z.infer<typeof insertSavedAddressSchema>;
 export type SystemSettings = typeof systemSettings.$inferSelect;
 export type Rating = typeof ratings.$inferSelect;
 export type InsertRating = z.infer<typeof insertRatingSchema>;
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
