@@ -1771,7 +1771,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const settings = await storage.updateSystemSettings(req.body);
+      // Validate payment methods - at least one must be enabled
+      const updates = req.body;
+      if (
+        updates.hasOwnProperty('codEnabled') ||
+        updates.hasOwnProperty('gcashEnabled') ||
+        updates.hasOwnProperty('mayaEnabled') ||
+        updates.hasOwnProperty('cardEnabled')
+      ) {
+        const currentSettings = await storage.getSystemSettings();
+        const newSettings = { ...currentSettings, ...updates };
+        
+        const hasEnabledMethod = 
+          newSettings.codEnabled || 
+          newSettings.gcashEnabled || 
+          newSettings.mayaEnabled || 
+          newSettings.cardEnabled;
+        
+        if (!hasEnabledMethod) {
+          return res.status(400).json({ error: "At least one payment method must be enabled" });
+        }
+      }
+      
+      const settings = await storage.updateSystemSettings(updates);
       res.json(settings);
     } catch (error) {
       console.error("Error updating settings:", error);

@@ -1,0 +1,127 @@
+Implement GCash and Maya payment integration for checkout:
+
+PAYMENT OPTIONS AT CHECKOUT:
+1. Cash on Delivery (COD) - existing
+2. GCash - new
+3. Maya (formerly PayMaya) - new
+
+IMPLEMENTATION:
+
+1. CHECKOUT PAGE UPDATES:
+   - Add payment method selection radio buttons
+   - Show GCash and Maya logos/icons
+   - Display total amount to pay
+   - Payment method must be selected before placing order
+
+2. GCASH INTEGRATION:
+   Use GCash API or Paymongo (supports GCash):
+   
+   Option A - Direct GCash API:
+   - Register at GCash for Developers
+   - Get API credentials (Client ID, Secret Key)
+   - Implement payment request
+   - Redirect to GCash payment page
+   - Handle payment callback/webhook
+   - Verify payment status
+   
+   Option B - Paymongo (Easier, Recommended):
+   - Sign up at paymongo.com
+   - Supports both GCash and Maya
+   - Get API keys (Public Key, Secret Key)
+   - Use Paymongo SDK or API
+   - Create payment intent
+   - Redirect to payment page
+   - Handle webhooks for payment confirmation
+
+3. MAYA INTEGRATION:
+   Use Maya Checkout API or Paymongo:
+   
+   Option A - Direct Maya API:
+   - Register at Maya Business
+   - Get API credentials
+   - Implement checkout API
+   - Redirect to Maya payment page
+   - Handle payment webhooks
+   
+   Option B - Paymongo (Easier, Recommended):
+   - Same Paymongo account handles Maya
+   - Unified integration for both wallets
+
+4. PAYMENT FLOW:
+
+   Customer selects GCash/Maya:
+   - Click "Place Order" button
+   - System creates payment intent/request
+   - Generate unique transaction reference
+   - Redirect to GCash/Maya payment page
+   - Customer completes payment on their app/page
+   - Payment provider sends webhook/callback
+   - Verify payment status
+   - If successful: Create order, notify merchant/rider
+   - If failed: Show error, allow retry
+   - Update order payment status in database
+
+5. DATABASE UPDATES:
+
+   Orders table add fields:
+   - payment_method (cod/gcash/maya)
+   - payment_status (pending/paid/failed/refunded)
+   - payment_reference (transaction ID from provider)
+   - payment_date
+   - payment_details (JSON with provider response)
+
+   Transactions table:
+   - transaction_id
+   - order_id
+   - payment_method
+   - amount
+   - status
+   - provider_reference
+   - created_at
+
+6. ADMIN FEATURES:
+
+   Payment Reports:
+   - Payment method breakdown (COD vs GCash vs Maya)
+   - Payment success/failure rates
+   - Transaction list with status
+   - Refund management
+   - Settlement tracking
+
+7. SECURITY:
+
+   - Validate webhook signatures
+   - Store API keys in environment variables
+   - Verify payment amounts match order totals
+   - Prevent duplicate payments
+   - Log all payment attempts
+   - Handle payment timeouts (15-30 min expiry)
+
+8. USER EXPERIENCE:
+
+   - Show payment processing loader
+   - Clear success/failure messages
+   - Payment receipt/confirmation
+   - Order status updates after payment
+   - Email notification with payment details
+   - Ability to retry failed payments
+
+9. TESTING MODE:
+
+   - Use sandbox/test API keys first
+   - Test successful payments
+   - Test failed payments
+   - Test payment cancellations
+   - Test webhooks locally (use ngrok for Replit)
+
+10. REFUND HANDLING:
+
+    - Admin can initiate refunds for cancelled orders
+    - Refund to same payment method
+    - Update transaction status
+    - Notify customer of refund
+    - Track refund in financial reports
+
+RECOMMENDATION: Use Paymongo as it supports both GCash and Maya with single integration, easier implementation, and good documentation for Philippine market.
+
+I will need to provide API credentials after signing up with the chosen payment provider.

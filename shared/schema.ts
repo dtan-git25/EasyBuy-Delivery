@@ -343,6 +343,13 @@ export const systemSettings = pgTable("system_settings", {
   maxMerchantsPerOrder: integer("max_merchants_per_order").default(2),
   riderCommissionPercentage: decimal("rider_commission_percentage", { precision: 5, scale: 2 }).default('70'),
   logo: text("logo"), // App logo path
+  
+  // Payment method toggles
+  codEnabled: boolean("cod_enabled").default(true),
+  gcashEnabled: boolean("gcash_enabled").default(true),
+  mayaEnabled: boolean("maya_enabled").default(true),
+  cardEnabled: boolean("card_enabled").default(true),
+  
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
