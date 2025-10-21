@@ -33,6 +33,16 @@ Preferred communication style: Simple, everyday language.
 - **Security**: Scrypt-based password hashing.
 - **Access Control**: Four distinct user roles with specific permissions.
 - **Workflows**: Admin approval for riders/merchants, OTP for customers.
+- **Password Reset System**: Complete forgot password functionality with:
+  - Email-based reset request from login page
+  - Secure token generation (cryptographically random 32-byte tokens)
+  - One-time use tokens with 1-hour expiration
+  - Professional email templates via SendGrid
+  - Dedicated reset password page with token validation
+  - Password strength indicator (Weak/Fair/Good/Strong)
+  - Minimum 6-character password requirement
+  - Automatic token invalidation after successful reset
+  - Works for all account types (Customer, Rider, Merchant, Admin)
 
 ### Real-time Features
 - Custom WebSocket server for live updates.

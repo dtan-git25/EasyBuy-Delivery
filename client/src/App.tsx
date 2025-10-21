@@ -8,7 +8,7 @@ import { CartProvider } from "@/contexts/cart-context";
 import { ProtectedRoute } from "./lib/protected-route";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
-import ResetPasswordPage from "@/pages/reset-password-page";
+import ResetPasswordPage from "@/pages/reset-password";
 import Dashboard from "@/pages/dashboard";
 
 function Router() {

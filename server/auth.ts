@@ -494,6 +494,33 @@ export function setupAuth(app: Express) {
     }
   });
 
+  // Validate reset token endpoint
+  app.get("/api/reset-password/validate", async (req, res) => {
+    try {
+      const token = req.query.token as string;
+
+      if (!token) {
+        return res.status(400).json({ valid: false, error: "Token is required" });
+      }
+
+      // Find user by reset token
+      const user = await storage.getUserByPasswordResetToken(token);
+      if (!user) {
+        return res.status(200).json({ valid: false, error: "Invalid or expired reset token" });
+      }
+
+      // Check if token is expired
+      if (!user.passwordResetExpiry || user.passwordResetExpiry < new Date()) {
+        return res.status(200).json({ valid: false, error: "Reset token has expired" });
+      }
+
+      res.status(200).json({ valid: true });
+    } catch (error) {
+      console.error("Token validation error:", error);
+      res.status(500).json({ valid: false, error: "Failed to validate token" });
+    }
+  });
+
   // Password reset confirmation endpoint
   app.post("/api/reset-password", async (req, res) => {
     try {

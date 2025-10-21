@@ -18,7 +18,8 @@ import {
   merchantRegistrationSchema,
   type CustomerRegistration,
   type RiderRegistration,
-  type MerchantRegistration
+  type MerchantRegistration,
+  type SystemSettings
 } from "@shared/schema";
 
 const loginSchema = z.object({
@@ -37,7 +38,7 @@ export default function AuthPage() {
   const [forgotPasswordMessage, setForgotPasswordMessage] = useState("");
 
   // Fetch system settings for app logo
-  const { data: settings } = useQuery({
+  const { data: settings } = useQuery<SystemSettings>({
     queryKey: ['/api/settings'],
   });
 
