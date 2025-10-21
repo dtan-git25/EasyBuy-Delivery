@@ -1068,6 +1068,10 @@ export default function AdminPortal() {
     allowMultiMerchantCheckout: (settings as any)?.allowMultiMerchantCheckout ?? false,
     maxMerchantsPerOrder: (settings as any)?.maxMerchantsPerOrder || 2,
     riderCommissionPercentage: (settings as any)?.riderCommissionPercentage || '70',
+    codEnabled: (settings as any)?.codEnabled ?? true,
+    gcashEnabled: (settings as any)?.gcashEnabled ?? true,
+    mayaEnabled: (settings as any)?.mayaEnabled ?? true,
+    cardEnabled: (settings as any)?.cardEnabled ?? true,
   });
 
   // Sync tempSettings when settings data changes
@@ -1081,6 +1085,10 @@ export default function AdminPortal() {
         allowMultiMerchantCheckout: (settings as any).allowMultiMerchantCheckout ?? false,
         maxMerchantsPerOrder: (settings as any).maxMerchantsPerOrder || 2,
         riderCommissionPercentage: (settings as any).riderCommissionPercentage || '70',
+        codEnabled: (settings as any).codEnabled ?? true,
+        gcashEnabled: (settings as any).gcashEnabled ?? true,
+        mayaEnabled: (settings as any).mayaEnabled ?? true,
+        cardEnabled: (settings as any).cardEnabled ?? true,
       });
     }
   }, [settings]);
@@ -1901,6 +1909,110 @@ export default function AdminPortal() {
                           </p>
                         </div>
                       )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Payment Methods Settings */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <CreditCard className="mr-2 h-5 w-5 text-primary" />
+                      Payment Methods
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Control which payment methods are available to customers at checkout
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* COD Toggle */}
+                    <div className="flex items-center justify-between py-2 border-b">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="cod-toggle" className="text-base font-medium">
+                          Cash on Delivery
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          {tempSettings.codEnabled ? "Active" : "Inactive"}
+                        </p>
+                      </div>
+                      <Switch
+                        id="cod-toggle"
+                        checked={tempSettings.codEnabled}
+                        onCheckedChange={(checked) => {
+                          setTempSettings(prev => ({ ...prev, codEnabled: checked }));
+                          updateSetting('codEnabled', checked);
+                        }}
+                        data-testid="switch-cod-enabled"
+                      />
+                    </div>
+
+                    {/* GCash Toggle */}
+                    <div className="flex items-center justify-between py-2 border-b">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="gcash-toggle" className="text-base font-medium">
+                          GCash
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          {tempSettings.gcashEnabled ? "Active" : "Inactive"}
+                        </p>
+                      </div>
+                      <Switch
+                        id="gcash-toggle"
+                        checked={tempSettings.gcashEnabled}
+                        onCheckedChange={(checked) => {
+                          setTempSettings(prev => ({ ...prev, gcashEnabled: checked }));
+                          updateSetting('gcashEnabled', checked);
+                        }}
+                        data-testid="switch-gcash-enabled"
+                      />
+                    </div>
+
+                    {/* Maya Toggle */}
+                    <div className="flex items-center justify-between py-2 border-b">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="maya-toggle" className="text-base font-medium">
+                          Maya
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          {tempSettings.mayaEnabled ? "Active" : "Inactive"}
+                        </p>
+                      </div>
+                      <Switch
+                        id="maya-toggle"
+                        checked={tempSettings.mayaEnabled}
+                        onCheckedChange={(checked) => {
+                          setTempSettings(prev => ({ ...prev, mayaEnabled: checked }));
+                          updateSetting('mayaEnabled', checked);
+                        }}
+                        data-testid="switch-maya-enabled"
+                      />
+                    </div>
+
+                    {/* Card Toggle */}
+                    <div className="flex items-center justify-between py-2">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="card-toggle" className="text-base font-medium">
+                          Debit/Credit Card
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          {tempSettings.cardEnabled ? "Active" : "Inactive"}
+                        </p>
+                      </div>
+                      <Switch
+                        id="card-toggle"
+                        checked={tempSettings.cardEnabled}
+                        onCheckedChange={(checked) => {
+                          setTempSettings(prev => ({ ...prev, cardEnabled: checked }));
+                          updateSetting('cardEnabled', checked);
+                        }}
+                        data-testid="switch-card-enabled"
+                      />
+                    </div>
+
+                    <div className="pt-2">
+                      <p className="text-xs text-muted-foreground">
+                        ⚠️ At least one payment method must remain enabled
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
