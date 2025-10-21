@@ -618,10 +618,10 @@ export default function Dashboard() {
                     <SelectValue placeholder="Select payment method" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="cash">Cash on Delivery</SelectItem>
-                    <SelectItem value="gcash">GCash</SelectItem>
-                    <SelectItem value="paymaya">PayMaya</SelectItem>
-                    <SelectItem value="card">Credit/Debit Card</SelectItem>
+                    {settings?.codEnabled && <SelectItem value="cash">Cash on Delivery</SelectItem>}
+                    {settings?.gcashEnabled && <SelectItem value="gcash">GCash</SelectItem>}
+                    {settings?.mayaEnabled && <SelectItem value="paymaya">PayMaya</SelectItem>}
+                    {settings?.cardEnabled && <SelectItem value="card">Credit/Debit Card</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>
