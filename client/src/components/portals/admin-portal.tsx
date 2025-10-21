@@ -930,6 +930,7 @@ export default function AdminPortal() {
 
   const { data: systemStats } = useQuery({
     queryKey: ["/api/admin/stats"],
+    refetchInterval: 5000, // Refetch every 5 seconds for real-time updates
   });
 
   const { data: settings } = useQuery({
