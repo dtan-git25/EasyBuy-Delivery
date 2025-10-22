@@ -72,6 +72,16 @@ Preferred communication style: Simple, everyday language.
 - **Product Options**: Two-level system where admins define global option types (e.g., Size, Flavor), and merchants define specific values with individual pricing for their menu items.
 - **Multi-Merchant Checkout**: Configurable system allowing admins to enable/disable customers ordering from multiple merchants in a single checkout session, with configurable merchant limits (2-5 merchants per order). Features single "Checkout All Carts" button that processes all merchant orders simultaneously with shared delivery details.
 - **Store Management (Admin)**: Comprehensive restaurant management system with table view showing all restaurants (active and inactive), owner information, markup percentages, and registration dates. Admins can set individual restaurant markups, toggle active/inactive status, view detailed information, and delete restaurants with cascade delete (automatically removes menu items, orders, and related data).
+- **Payment Method Controls**: Admin can enable/disable payment methods (COD, GCash, Maya, Debit/Credit Card) platform-wide. Backend validation ensures at least one method remains enabled. Customer checkout automatically filters to show only enabled payment methods with real-time state synchronization.
+- **Analytics & Reporting System**: Comprehensive analytics dashboard for admins featuring:
+  - **Revenue Analytics**: Total revenue, delivery fees, markup earnings, average order value, revenue breakdown by payment method and merchant, daily revenue trends
+  - **Order Analytics**: Order counts by status (pending, active, completed, cancelled), completion rate, cancellation rate, average delivery time, orders by merchant, daily/weekly trends, peak ordering hours heatmap
+  - **User Analytics**: Customer metrics (total, new, active, top spenders), merchant analytics (total, active, top performers by revenue/orders, average ratings), rider analytics (total, active, top performers by deliveries/earnings, ratings)
+  - **Delivery Metrics**: Total deliveries, success rate, average distance, delivery fees collected, distance distribution by ranges, deliveries by rider
+  - **Product Analytics**: Total menu items, most/least ordered items (top 20), items by category, average item price
+  - **Date Range Filtering**: All analytics support date range filtering via query parameters (startDate, endDate)
+  - **Backend API**: Five dedicated analytics endpoints at `/api/admin/analytics/*` (revenue, orders, users, delivery, products) with admin-only authentication guards
+  - **Frontend Dashboard**: Complete Reports tab in Admin portal with organized sections, metric cards, data tables for top performers, placeholder areas for charts (Recharts integration pending), export buttons (PDF/Excel - pending implementation), responsive grid layouts with color-coded metrics
 
 ## External Dependencies
 

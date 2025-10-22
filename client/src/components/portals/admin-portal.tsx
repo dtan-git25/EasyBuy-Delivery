@@ -2103,20 +2103,364 @@ export default function AdminPortal() {
             </TabsContent>
 
             <TabsContent value="reports" className="space-y-6">
+              {/* Analytics Dashboard Header */}
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold tracking-tight">Analytics & Reports</h2>
+                  <p className="text-muted-foreground">Comprehensive insights into your platform performance</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" data-testid="button-export-pdf">
+                    <Download className="mr-2 h-4 w-4" />
+                    Export PDF
+                  </Button>
+                  <Button variant="outline" size="sm" data-testid="button-export-excel">
+                    <FileText className="mr-2 h-4 w-4" />
+                    Export Excel
+                  </Button>
+                </div>
+              </div>
+
+              {/* Date Range Filter */}
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" data-testid="button-filter-today">Today</Button>
+                    <Button variant="outline" size="sm" data-testid="button-filter-week">This Week</Button>
+                    <Button variant="outline" size="sm" data-testid="button-filter-month">This Month</Button>
+                    <Button variant="outline" size="sm" data-testid="button-filter-custom">Custom Range</Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Revenue Analytics */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Reports & Analytics</CardTitle>
+                  <CardTitle className="flex items-center">
+                    <DollarSign className="mr-2 h-5 w-5 text-green-600" />
+                    Revenue Analytics
+                  </CardTitle>
                 </CardHeader>
-                <CardContent className="p-8 text-center">
-                  <TrendingUp className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold text-foreground mb-2">Advanced Analytics Coming Soon</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Detailed reports and analytics dashboard with charts and graphs will be available here.
-                  </p>
-                  <Button variant="outline">
-                    <Download className="mr-2 h-4 w-4" />
-                    Export Current Data
-                  </Button>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Total Revenue</p>
+                      <p className="text-2xl font-bold text-green-600" data-testid="text-total-revenue">₱0.00</p>
+                      <p className="text-xs text-green-600">↑ 0%</p>
+                    </div>
+                    <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Delivery Fees</p>
+                      <p className="text-2xl font-bold text-blue-600" data-testid="text-delivery-fees">₱0.00</p>
+                    </div>
+                    <div className="p-4 bg-purple-50 dark:bg-purple-950 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Markup Earnings</p>
+                      <p className="text-2xl font-bold text-purple-600" data-testid="text-markup-earnings">₱0.00</p>
+                    </div>
+                    <div className="p-4 bg-orange-50 dark:bg-orange-950 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Avg Order Value</p>
+                      <p className="text-2xl font-bold text-orange-600" data-testid="text-avg-order-value">₱0.00</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-semibold mb-2">Revenue Breakdown</h3>
+                    <div className="h-[300px] flex items-center justify-center border rounded-lg bg-muted/10">
+                      <p className="text-muted-foreground">Revenue chart will display here</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-semibold mb-2">Top Merchants by Revenue</h3>
+                    <div className="h-[300px] flex items-center justify-center border rounded-lg bg-muted/10">
+                      <p className="text-muted-foreground">Merchant revenue chart will display here</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Order Analytics */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <ShoppingCart className="mr-2 h-5 w-5 text-blue-600" />
+                    Order Analytics
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div className="p-4 border rounded-lg">
+                      <p className="text-sm text-muted-foreground">Total Orders</p>
+                      <p className="text-2xl font-bold" data-testid="text-total-orders">0</p>
+                    </div>
+                    <div className="p-4 border rounded-lg bg-yellow-50 dark:bg-yellow-950">
+                      <p className="text-sm text-muted-foreground">Pending</p>
+                      <p className="text-2xl font-bold text-yellow-600" data-testid="text-pending-orders">0</p>
+                    </div>
+                    <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-950">
+                      <p className="text-sm text-muted-foreground">Active</p>
+                      <p className="text-2xl font-bold text-blue-600" data-testid="text-active-orders">0</p>
+                    </div>
+                    <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-950">
+                      <p className="text-sm text-muted-foreground">Completed</p>
+                      <p className="text-2xl font-bold text-green-600" data-testid="text-completed-orders">0</p>
+                    </div>
+                    <div className="p-4 border rounded-lg bg-red-50 dark:bg-red-950">
+                      <p className="text-sm text-muted-foreground">Cancelled</p>
+                      <p className="text-2xl font-bold text-red-600" data-testid="text-cancelled-orders">0</p>
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="p-4 border rounded-lg">
+                      <p className="text-sm text-muted-foreground mb-1">Completion Rate</p>
+                      <p className="text-3xl font-bold text-green-600" data-testid="text-completion-rate">0%</p>
+                    </div>
+                    <div className="p-4 border rounded-lg">
+                      <p className="text-sm text-muted-foreground mb-1">Avg Delivery Time</p>
+                      <p className="text-3xl font-bold text-blue-600" data-testid="text-avg-delivery-time">0 min</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-semibold mb-2">Order Trends</h3>
+                    <div className="h-[300px] flex items-center justify-center border rounded-lg bg-muted/10">
+                      <p className="text-muted-foreground">Order trends chart will display here</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-semibold mb-2">Peak Ordering Hours</h3>
+                    <div className="h-[200px] flex items-center justify-center border rounded-lg bg-muted/10">
+                      <p className="text-muted-foreground">Peak hours chart will display here</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* User Analytics */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Users className="mr-2 h-5 w-5 text-purple-600" />
+                    User Analytics
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <Tabs defaultValue="customers" className="w-full">
+                    <TabsList className="grid w-full grid-cols-3">
+                      <TabsTrigger value="customers" data-testid="tab-customer-analytics">Customers</TabsTrigger>
+                      <TabsTrigger value="merchants" data-testid="tab-merchant-analytics">Merchants</TabsTrigger>
+                      <TabsTrigger value="riders" data-testid="tab-rider-analytics">Riders</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="customers" className="space-y-4 mt-4">
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="p-4 border rounded-lg">
+                          <p className="text-sm text-muted-foreground">Total Customers</p>
+                          <p className="text-2xl font-bold" data-testid="text-total-customers">0</p>
+                        </div>
+                        <div className="p-4 border rounded-lg">
+                          <p className="text-sm text-muted-foreground">New Customers</p>
+                          <p className="text-2xl font-bold text-green-600" data-testid="text-new-customers">0</p>
+                        </div>
+                        <div className="p-4 border rounded-lg">
+                          <p className="text-sm text-muted-foreground">Active Customers</p>
+                          <p className="text-2xl font-bold text-blue-600" data-testid="text-active-customers">0</p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="text-sm font-semibold mb-2">Top Customers</h4>
+                        <div className="border rounded-lg overflow-hidden">
+                          <table className="w-full">
+                            <thead className="bg-muted">
+                              <tr>
+                                <th className="text-left p-3 text-sm font-medium">Customer</th>
+                                <th className="text-left p-3 text-sm font-medium">Orders</th>
+                                <th className="text-left p-3 text-sm font-medium">Total Spent</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td colSpan={3} className="text-center p-8 text-muted-foreground">
+                                  No data available
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="merchants" className="space-y-4 mt-4">
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="p-4 border rounded-lg">
+                          <p className="text-sm text-muted-foreground">Total Merchants</p>
+                          <p className="text-2xl font-bold" data-testid="text-total-merchants">0</p>
+                        </div>
+                        <div className="p-4 border rounded-lg">
+                          <p className="text-sm text-muted-foreground">Active Merchants</p>
+                          <p className="text-2xl font-bold text-green-600" data-testid="text-active-merchants">0</p>
+                        </div>
+                        <div className="p-4 border rounded-lg">
+                          <p className="text-sm text-muted-foreground">Avg Rating</p>
+                          <p className="text-2xl font-bold text-yellow-600" data-testid="text-avg-merchant-rating">0.0</p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="text-sm font-semibold mb-2">Top Merchants by Performance</h4>
+                        <div className="border rounded-lg overflow-hidden">
+                          <table className="w-full">
+                            <thead className="bg-muted">
+                              <tr>
+                                <th className="text-left p-3 text-sm font-medium">Merchant</th>
+                                <th className="text-left p-3 text-sm font-medium">Orders</th>
+                                <th className="text-left p-3 text-sm font-medium">Revenue</th>
+                                <th className="text-left p-3 text-sm font-medium">Rating</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td colSpan={4} className="text-center p-8 text-muted-foreground">
+                                  No data available
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="riders" className="space-y-4 mt-4">
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="p-4 border rounded-lg">
+                          <p className="text-sm text-muted-foreground">Total Riders</p>
+                          <p className="text-2xl font-bold" data-testid="text-total-riders">0</p>
+                        </div>
+                        <div className="p-4 border rounded-lg">
+                          <p className="text-sm text-muted-foreground">Active Riders</p>
+                          <p className="text-2xl font-bold text-green-600" data-testid="text-active-riders">0</p>
+                        </div>
+                        <div className="p-4 border rounded-lg">
+                          <p className="text-sm text-muted-foreground">Avg Rating</p>
+                          <p className="text-2xl font-bold text-yellow-600" data-testid="text-avg-rider-rating">0.0</p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="text-sm font-semibold mb-2">Top Riders by Performance</h4>
+                        <div className="border rounded-lg overflow-hidden">
+                          <table className="w-full">
+                            <thead className="bg-muted">
+                              <tr>
+                                <th className="text-left p-3 text-sm font-medium">Rider</th>
+                                <th className="text-left p-3 text-sm font-medium">Deliveries</th>
+                                <th className="text-left p-3 text-sm font-medium">Earnings</th>
+                                <th className="text-left p-3 text-sm font-medium">Rating</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td colSpan={4} className="text-center p-8 text-muted-foreground">
+                                  No data available
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </CardContent>
+              </Card>
+
+              {/* Delivery Metrics */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Bike className="mr-2 h-5 w-5 text-orange-600" />
+                    Delivery Metrics
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="p-4 border rounded-lg">
+                      <p className="text-sm text-muted-foreground">Total Deliveries</p>
+                      <p className="text-2xl font-bold" data-testid="text-total-deliveries">0</p>
+                    </div>
+                    <div className="p-4 border rounded-lg">
+                      <p className="text-sm text-muted-foreground">Success Rate</p>
+                      <p className="text-2xl font-bold text-green-600" data-testid="text-success-rate">0%</p>
+                    </div>
+                    <div className="p-4 border rounded-lg">
+                      <p className="text-sm text-muted-foreground">Avg Distance</p>
+                      <p className="text-2xl font-bold text-blue-600" data-testid="text-avg-distance">0 km</p>
+                    </div>
+                    <div className="p-4 border rounded-lg">
+                      <p className="text-sm text-muted-foreground">Delivery Fees</p>
+                      <p className="text-2xl font-bold text-green-600" data-testid="text-total-delivery-fees">₱0.00</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-semibold mb-2">Distance Distribution</h3>
+                    <div className="h-[200px] flex items-center justify-center border rounded-lg bg-muted/10">
+                      <p className="text-muted-foreground">Distance distribution chart will display here</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Product Analytics */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Utensils className="mr-2 h-5 w-5 text-red-600" />
+                    Product Analytics
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 border rounded-lg">
+                      <p className="text-sm text-muted-foreground">Total Menu Items</p>
+                      <p className="text-2xl font-bold" data-testid="text-total-menu-items">0</p>
+                    </div>
+                    <div className="p-4 border rounded-lg">
+                      <p className="text-sm text-muted-foreground">Avg Item Price</p>
+                      <p className="text-2xl font-bold text-green-600" data-testid="text-avg-item-price">₱0.00</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-semibold mb-2">Most Ordered Items (Top 10)</h3>
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="w-full">
+                        <thead className="bg-muted">
+                          <tr>
+                            <th className="text-left p-3 text-sm font-medium">Item Name</th>
+                            <th className="text-left p-3 text-sm font-medium">Category</th>
+                            <th className="text-left p-3 text-sm font-medium">Orders</th>
+                            <th className="text-left p-3 text-sm font-medium">Revenue</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td colSpan={4} className="text-center p-8 text-muted-foreground">
+                              No data available
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-semibold mb-2">Items by Category</h3>
+                    <div className="h-[200px] flex items-center justify-center border rounded-lg bg-muted/10">
+                      <p className="text-muted-foreground">Category distribution chart will display here</p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
