@@ -1,0 +1,70 @@
+CRITICAL FIX - Reports showing zero/empty data:
+
+The reports page is displaying but not fetching actual data from the database. All metrics show 0 or empty.
+
+DEBUG AND FIX:
+
+1. CHECK API ENDPOINTS:
+   - Verify API routes exist for fetching report data
+   - Check if endpoints are being called (check Network tab in browser)
+   - Look for 404 or 500 errors on API calls
+
+2. CREATE MISSING API ENDPOINTS if they don't exist:
+   
+   GET /api/reports/revenue?startDate=XXX&endDate=XXX
+   - Return: total revenue, order count, breakdown by payment method, fees
+   
+   GET /api/reports/orders?startDate=XXX&endDate=XXX
+   - Return: orders by status, completion rate, cancellation stats
+   
+   GET /api/reports/users?startDate=XXX&endDate=XXX
+   - Return: customer count, merchant count, rider count, new registrations
+   
+   GET /api/reports/top-merchants?startDate=XXX&endDate=XXX&limit=10
+   - Return: top merchants with order count and revenue
+   
+   GET /api/reports/top-riders?startDate=XXX&endDate=XXX&limit=10
+   - Return: top riders with delivery count and earnings
+   
+   GET /api/reports/delivery-metrics?startDate=XXX&endDate=XXX
+   - Return: avg delivery time, total deliveries, success rate
+   
+   GET /api/reports/recent-orders?limit=20
+   - Return: latest orders with all details
+
+3. VERIFY DATABASE QUERIES:
+   - Check if queries are selecting from correct tables
+   - Verify date filtering is working (WHERE created_at BETWEEN startDate AND endDate)
+   - Make sure JOINs are correct (orders, users, merchants, riders tables)
+   - Test queries directly in database to confirm they return data
+
+4. CHECK FRONTEND DATA FETCHING:
+   - Verify fetch/axios calls are sending correct date parameters
+   - Check if date format is correct (ISO format: YYYY-MM-DD)
+   - Console.log the API responses to see if data is being received
+   - Verify state is being updated with fetched data
+
+5. TEST WITH EXISTING DATA:
+   - Make sure there ARE completed orders in the database to report on
+   - Check if test orders were actually saved to database
+   - Verify order statuses are correct (completed, not just pending)
+
+6. COMMON ISSUES TO CHECK:
+   - Date filter passing wrong format
+   - API endpoint not connected to database
+   - Missing await on async database queries
+   - Wrong table/column names in queries
+   - Data exists but not in selected date range
+   - Frontend not calling APIs on page load
+
+7. SIMPLE TEST:
+   First, create a basic endpoint that just counts total orders:
+   
+   GET /api/reports/test
+   Response: { totalOrders: 50, totalRevenue: 25000 }
+   
+   If this works, then build out the complex queries.
+
+PRIORITY: Get basic metrics showing real numbers first (total orders, total revenue, user counts), then add the detailed breakdowns and charts.
+
+The reports UI is built - we just need to connect it to actual database data.

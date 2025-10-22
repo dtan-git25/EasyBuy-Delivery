@@ -1093,6 +1093,92 @@ export default function AdminPortal() {
     }
   }, [settings]);
 
+  // Analytics date range state
+  const [analyticsDateFilter, setAnalyticsDateFilter] = useState<'today' | 'week' | 'month' | 'all'>('all');
+  const [customStartDate, setCustomStartDate] = useState<string>('');
+  const [customEndDate, setCustomEndDate] = useState<string>('');
+
+  // Calculate date range based on filter
+  const getDateRangeParams = () => {
+    const now = new Date();
+    let startDate = '';
+    let endDate = new Date().toISOString().split('T')[0];
+
+    switch (analyticsDateFilter) {
+      case 'today':
+        startDate = endDate;
+        break;
+      case 'week':
+        const weekAgo = new Date(now);
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        startDate = weekAgo.toISOString().split('T')[0];
+        break;
+      case 'month':
+        const monthAgo = new Date(now);
+        monthAgo.setMonth(monthAgo.getMonth() - 1);
+        startDate = monthAgo.toISOString().split('T')[0];
+        break;
+      case 'all':
+      default:
+        return {};
+    }
+
+    return { startDate, endDate };
+  };
+
+  const dateParams = getDateRangeParams();
+
+  // Analytics data queries
+  const { data: revenueAnalytics } = useQuery({
+    queryKey: ['/api/admin/analytics/revenue', dateParams],
+    queryFn: async () => {
+      const params = new URLSearchParams(dateParams as any);
+      const response = await fetch(`/api/admin/analytics/revenue?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch revenue analytics');
+      return response.json();
+    },
+  });
+
+  const { data: orderAnalytics } = useQuery({
+    queryKey: ['/api/admin/analytics/orders', dateParams],
+    queryFn: async () => {
+      const params = new URLSearchParams(dateParams as any);
+      const response = await fetch(`/api/admin/analytics/orders?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch order analytics');
+      return response.json();
+    },
+  });
+
+  const { data: userAnalytics } = useQuery({
+    queryKey: ['/api/admin/analytics/users', dateParams],
+    queryFn: async () => {
+      const params = new URLSearchParams(dateParams as any);
+      const response = await fetch(`/api/admin/analytics/users?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch user analytics');
+      return response.json();
+    },
+  });
+
+  const { data: deliveryAnalytics } = useQuery({
+    queryKey: ['/api/admin/analytics/delivery', dateParams],
+    queryFn: async () => {
+      const params = new URLSearchParams(dateParams as any);
+      const response = await fetch(`/api/admin/analytics/delivery?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch delivery analytics');
+      return response.json();
+    },
+  });
+
+  const { data: productAnalytics } = useQuery({
+    queryKey: ['/api/admin/analytics/products', dateParams],
+    queryFn: async () => {
+      const params = new URLSearchParams(dateParams as any);
+      const response = await fetch(`/api/admin/analytics/products?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch product analytics');
+      return response.json();
+    },
+  });
+
   const systemAccountForm = useForm<SystemAccountForm>({
     resolver: zodResolver(systemAccountSchema),
     defaultValues: {
@@ -2125,10 +2211,38 @@ export default function AdminPortal() {
               <Card>
                 <CardContent className="p-4">
                   <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" size="sm" data-testid="button-filter-today">Today</Button>
-                    <Button variant="outline" size="sm" data-testid="button-filter-week">This Week</Button>
-                    <Button variant="outline" size="sm" data-testid="button-filter-month">This Month</Button>
-                    <Button variant="outline" size="sm" data-testid="button-filter-custom">Custom Range</Button>
+                    <Button 
+                      variant={analyticsDateFilter === 'today' ? 'default' : 'outline'} 
+                      size="sm" 
+                      onClick={() => setAnalyticsDateFilter('today')}
+                      data-testid="button-filter-today"
+                    >
+                      Today
+                    </Button>
+                    <Button 
+                      variant={analyticsDateFilter === 'week' ? 'default' : 'outline'} 
+                      size="sm" 
+                      onClick={() => setAnalyticsDateFilter('week')}
+                      data-testid="button-filter-week"
+                    >
+                      This Week
+                    </Button>
+                    <Button 
+                      variant={analyticsDateFilter === 'month' ? 'default' : 'outline'} 
+                      size="sm" 
+                      onClick={() => setAnalyticsDateFilter('month')}
+                      data-testid="button-filter-month"
+                    >
+                      This Month
+                    </Button>
+                    <Button 
+                      variant={analyticsDateFilter === 'all' ? 'default' : 'outline'} 
+                      size="sm" 
+                      onClick={() => setAnalyticsDateFilter('all')}
+                      data-testid="button-filter-all"
+                    >
+                      All Time
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -2145,20 +2259,27 @@ export default function AdminPortal() {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg">
                       <p className="text-sm text-muted-foreground">Total Revenue</p>
-                      <p className="text-2xl font-bold text-green-600" data-testid="text-total-revenue">₱0.00</p>
-                      <p className="text-xs text-green-600">↑ 0%</p>
+                      <p className="text-2xl font-bold text-green-600" data-testid="text-total-revenue">
+                        ₱{((revenueAnalytics as any)?.totalRevenue || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
                     </div>
                     <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
                       <p className="text-sm text-muted-foreground">Delivery Fees</p>
-                      <p className="text-2xl font-bold text-blue-600" data-testid="text-delivery-fees">₱0.00</p>
+                      <p className="text-2xl font-bold text-blue-600" data-testid="text-delivery-fees">
+                        ₱{((revenueAnalytics as any)?.totalDeliveryFees || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
                     </div>
                     <div className="p-4 bg-purple-50 dark:bg-purple-950 rounded-lg">
                       <p className="text-sm text-muted-foreground">Markup Earnings</p>
-                      <p className="text-2xl font-bold text-purple-600" data-testid="text-markup-earnings">₱0.00</p>
+                      <p className="text-2xl font-bold text-purple-600" data-testid="text-markup-earnings">
+                        ₱{((revenueAnalytics as any)?.totalMarkup || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
                     </div>
                     <div className="p-4 bg-orange-50 dark:bg-orange-950 rounded-lg">
                       <p className="text-sm text-muted-foreground">Avg Order Value</p>
-                      <p className="text-2xl font-bold text-orange-600" data-testid="text-avg-order-value">₱0.00</p>
+                      <p className="text-2xl font-bold text-orange-600" data-testid="text-avg-order-value">
+                        ₱{((revenueAnalytics as any)?.averageOrderValue || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
                     </div>
                   </div>
 
@@ -2190,34 +2311,50 @@ export default function AdminPortal() {
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                     <div className="p-4 border rounded-lg">
                       <p className="text-sm text-muted-foreground">Total Orders</p>
-                      <p className="text-2xl font-bold" data-testid="text-total-orders">0</p>
+                      <p className="text-2xl font-bold" data-testid="text-total-orders">
+                        {((orderAnalytics as any)?.totalOrders || 0).toLocaleString()}
+                      </p>
                     </div>
                     <div className="p-4 border rounded-lg bg-yellow-50 dark:bg-yellow-950">
                       <p className="text-sm text-muted-foreground">Pending</p>
-                      <p className="text-2xl font-bold text-yellow-600" data-testid="text-pending-orders">0</p>
+                      <p className="text-2xl font-bold text-yellow-600" data-testid="text-pending-orders">
+                        {((orderAnalytics as any)?.ordersByStatus?.pending || 0).toLocaleString()}
+                      </p>
                     </div>
                     <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-950">
                       <p className="text-sm text-muted-foreground">Active</p>
-                      <p className="text-2xl font-bold text-blue-600" data-testid="text-active-orders">0</p>
+                      <p className="text-2xl font-bold text-blue-600" data-testid="text-active-orders">
+                        {(((orderAnalytics as any)?.ordersByStatus?.['rider-assigned'] || 0) + 
+                          ((orderAnalytics as any)?.ordersByStatus?.['picked-up'] || 0) + 
+                          ((orderAnalytics as any)?.ordersByStatus?.['in-transit'] || 0)).toLocaleString()}
+                      </p>
                     </div>
                     <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-950">
                       <p className="text-sm text-muted-foreground">Completed</p>
-                      <p className="text-2xl font-bold text-green-600" data-testid="text-completed-orders">0</p>
+                      <p className="text-2xl font-bold text-green-600" data-testid="text-completed-orders">
+                        {((orderAnalytics as any)?.ordersByStatus?.delivered || 0).toLocaleString()}
+                      </p>
                     </div>
                     <div className="p-4 border rounded-lg bg-red-50 dark:bg-red-950">
                       <p className="text-sm text-muted-foreground">Cancelled</p>
-                      <p className="text-2xl font-bold text-red-600" data-testid="text-cancelled-orders">0</p>
+                      <p className="text-2xl font-bold text-red-600" data-testid="text-cancelled-orders">
+                        {((orderAnalytics as any)?.ordersByStatus?.cancelled || 0).toLocaleString()}
+                      </p>
                     </div>
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="p-4 border rounded-lg">
                       <p className="text-sm text-muted-foreground mb-1">Completion Rate</p>
-                      <p className="text-3xl font-bold text-green-600" data-testid="text-completion-rate">0%</p>
+                      <p className="text-3xl font-bold text-green-600" data-testid="text-completion-rate">
+                        {((orderAnalytics as any)?.completionRate || 0).toFixed(1)}%
+                      </p>
                     </div>
                     <div className="p-4 border rounded-lg">
                       <p className="text-sm text-muted-foreground mb-1">Avg Delivery Time</p>
-                      <p className="text-3xl font-bold text-blue-600" data-testid="text-avg-delivery-time">0 min</p>
+                      <p className="text-3xl font-bold text-blue-600" data-testid="text-avg-delivery-time">
+                        {Math.round((orderAnalytics as any)?.averageDeliveryTime || 0)} min
+                      </p>
                     </div>
                   </div>
 
@@ -2257,15 +2394,21 @@ export default function AdminPortal() {
                       <div className="grid grid-cols-3 gap-4">
                         <div className="p-4 border rounded-lg">
                           <p className="text-sm text-muted-foreground">Total Customers</p>
-                          <p className="text-2xl font-bold" data-testid="text-total-customers">0</p>
+                          <p className="text-2xl font-bold" data-testid="text-total-customers">
+                            {((userAnalytics as any)?.customers?.total || 0).toLocaleString()}
+                          </p>
                         </div>
                         <div className="p-4 border rounded-lg">
                           <p className="text-sm text-muted-foreground">New Customers</p>
-                          <p className="text-2xl font-bold text-green-600" data-testid="text-new-customers">0</p>
+                          <p className="text-2xl font-bold text-green-600" data-testid="text-new-customers">
+                            {((userAnalytics as any)?.customers?.new || 0).toLocaleString()}
+                          </p>
                         </div>
                         <div className="p-4 border rounded-lg">
                           <p className="text-sm text-muted-foreground">Active Customers</p>
-                          <p className="text-2xl font-bold text-blue-600" data-testid="text-active-customers">0</p>
+                          <p className="text-2xl font-bold text-blue-600" data-testid="text-active-customers">
+                            {((userAnalytics as any)?.customers?.active || 0).toLocaleString()}
+                          </p>
                         </div>
                       </div>
 
@@ -2281,11 +2424,21 @@ export default function AdminPortal() {
                               </tr>
                             </thead>
                             <tbody>
-                              <tr>
-                                <td colSpan={3} className="text-center p-8 text-muted-foreground">
-                                  No data available
-                                </td>
-                              </tr>
+                              {((userAnalytics as any)?.customers?.topCustomers || []).length > 0 ? (
+                                ((userAnalytics as any)?.customers?.topCustomers || []).map((customer: any, idx: number) => (
+                                  <tr key={idx} className="border-t">
+                                    <td className="p-3">{customer.name}</td>
+                                    <td className="p-3">{customer.orderCount}</td>
+                                    <td className="p-3">₱{customer.totalSpent.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</td>
+                                  </tr>
+                                ))
+                              ) : (
+                                <tr>
+                                  <td colSpan={3} className="text-center p-8 text-muted-foreground">
+                                    No data available
+                                  </td>
+                                </tr>
+                              )}
                             </tbody>
                           </table>
                         </div>
@@ -2296,15 +2449,21 @@ export default function AdminPortal() {
                       <div className="grid grid-cols-3 gap-4">
                         <div className="p-4 border rounded-lg">
                           <p className="text-sm text-muted-foreground">Total Merchants</p>
-                          <p className="text-2xl font-bold" data-testid="text-total-merchants">0</p>
+                          <p className="text-2xl font-bold" data-testid="text-total-merchants">
+                            {((userAnalytics as any)?.merchants?.total || 0).toLocaleString()}
+                          </p>
                         </div>
                         <div className="p-4 border rounded-lg">
                           <p className="text-sm text-muted-foreground">Active Merchants</p>
-                          <p className="text-2xl font-bold text-green-600" data-testid="text-active-merchants">0</p>
+                          <p className="text-2xl font-bold text-green-600" data-testid="text-active-merchants">
+                            {((userAnalytics as any)?.merchants?.active || 0).toLocaleString()}
+                          </p>
                         </div>
                         <div className="p-4 border rounded-lg">
                           <p className="text-sm text-muted-foreground">Avg Rating</p>
-                          <p className="text-2xl font-bold text-yellow-600" data-testid="text-avg-merchant-rating">0.0</p>
+                          <p className="text-2xl font-bold text-yellow-600" data-testid="text-avg-merchant-rating">
+                            {((userAnalytics as any)?.merchants?.averageRating || 0).toFixed(1)}
+                          </p>
                         </div>
                       </div>
 
@@ -2321,11 +2480,25 @@ export default function AdminPortal() {
                               </tr>
                             </thead>
                             <tbody>
-                              <tr>
-                                <td colSpan={4} className="text-center p-8 text-muted-foreground">
-                                  No data available
-                                </td>
-                              </tr>
+                              {((userAnalytics as any)?.merchants?.topMerchants || []).length > 0 ? (
+                                ((userAnalytics as any)?.merchants?.topMerchants || []).map((merchant: any, idx: number) => (
+                                  <tr key={idx} className="border-t">
+                                    <td className="p-3">{merchant.name}</td>
+                                    <td className="p-3">{merchant.orderCount}</td>
+                                    <td className="p-3">₱{merchant.revenue.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</td>
+                                    <td className="p-3 flex items-center">
+                                      <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 mr-1" />
+                                      {merchant.rating.toFixed(1)}
+                                    </td>
+                                  </tr>
+                                ))
+                              ) : (
+                                <tr>
+                                  <td colSpan={4} className="text-center p-8 text-muted-foreground">
+                                    No data available
+                                  </td>
+                                </tr>
+                              )}
                             </tbody>
                           </table>
                         </div>
@@ -2336,15 +2509,21 @@ export default function AdminPortal() {
                       <div className="grid grid-cols-3 gap-4">
                         <div className="p-4 border rounded-lg">
                           <p className="text-sm text-muted-foreground">Total Riders</p>
-                          <p className="text-2xl font-bold" data-testid="text-total-riders">0</p>
+                          <p className="text-2xl font-bold" data-testid="text-total-riders">
+                            {((userAnalytics as any)?.riders?.total || 0).toLocaleString()}
+                          </p>
                         </div>
                         <div className="p-4 border rounded-lg">
                           <p className="text-sm text-muted-foreground">Active Riders</p>
-                          <p className="text-2xl font-bold text-green-600" data-testid="text-active-riders">0</p>
+                          <p className="text-2xl font-bold text-green-600" data-testid="text-active-riders">
+                            {((userAnalytics as any)?.riders?.active || 0).toLocaleString()}
+                          </p>
                         </div>
                         <div className="p-4 border rounded-lg">
                           <p className="text-sm text-muted-foreground">Avg Rating</p>
-                          <p className="text-2xl font-bold text-yellow-600" data-testid="text-avg-rider-rating">0.0</p>
+                          <p className="text-2xl font-bold text-yellow-600" data-testid="text-avg-rider-rating">
+                            {((userAnalytics as any)?.riders?.averageRating || 0).toFixed(1)}
+                          </p>
                         </div>
                       </div>
 
@@ -2361,11 +2540,25 @@ export default function AdminPortal() {
                               </tr>
                             </thead>
                             <tbody>
-                              <tr>
-                                <td colSpan={4} className="text-center p-8 text-muted-foreground">
-                                  No data available
-                                </td>
-                              </tr>
+                              {((userAnalytics as any)?.riders?.topRiders || []).length > 0 ? (
+                                ((userAnalytics as any)?.riders?.topRiders || []).map((rider: any, idx: number) => (
+                                  <tr key={idx} className="border-t">
+                                    <td className="p-3">{rider.name}</td>
+                                    <td className="p-3">{rider.deliveryCount}</td>
+                                    <td className="p-3">₱{rider.earnings.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</td>
+                                    <td className="p-3 flex items-center">
+                                      <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 mr-1" />
+                                      {rider.rating.toFixed(1)}
+                                    </td>
+                                  </tr>
+                                ))
+                              ) : (
+                                <tr>
+                                  <td colSpan={4} className="text-center p-8 text-muted-foreground">
+                                    No data available
+                                  </td>
+                                </tr>
+                              )}
                             </tbody>
                           </table>
                         </div>
@@ -2387,19 +2580,27 @@ export default function AdminPortal() {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="p-4 border rounded-lg">
                       <p className="text-sm text-muted-foreground">Total Deliveries</p>
-                      <p className="text-2xl font-bold" data-testid="text-total-deliveries">0</p>
+                      <p className="text-2xl font-bold" data-testid="text-total-deliveries">
+                        {((deliveryAnalytics as any)?.totalDeliveries || 0).toLocaleString()}
+                      </p>
                     </div>
                     <div className="p-4 border rounded-lg">
                       <p className="text-sm text-muted-foreground">Success Rate</p>
-                      <p className="text-2xl font-bold text-green-600" data-testid="text-success-rate">0%</p>
+                      <p className="text-2xl font-bold text-green-600" data-testid="text-success-rate">
+                        {((deliveryAnalytics as any)?.successRate || 0).toFixed(1)}%
+                      </p>
                     </div>
                     <div className="p-4 border rounded-lg">
                       <p className="text-sm text-muted-foreground">Avg Distance</p>
-                      <p className="text-2xl font-bold text-blue-600" data-testid="text-avg-distance">0 km</p>
+                      <p className="text-2xl font-bold text-blue-600" data-testid="text-avg-distance">
+                        {((deliveryAnalytics as any)?.averageDistance || 0).toFixed(1)} km
+                      </p>
                     </div>
                     <div className="p-4 border rounded-lg">
                       <p className="text-sm text-muted-foreground">Delivery Fees</p>
-                      <p className="text-2xl font-bold text-green-600" data-testid="text-total-delivery-fees">₱0.00</p>
+                      <p className="text-2xl font-bold text-green-600" data-testid="text-total-delivery-fees">
+                        ₱{((deliveryAnalytics as any)?.totalDeliveryFees || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
                     </div>
                   </div>
 
@@ -2424,11 +2625,15 @@ export default function AdminPortal() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-4 border rounded-lg">
                       <p className="text-sm text-muted-foreground">Total Menu Items</p>
-                      <p className="text-2xl font-bold" data-testid="text-total-menu-items">0</p>
+                      <p className="text-2xl font-bold" data-testid="text-total-menu-items">
+                        {((productAnalytics as any)?.totalMenuItems || 0).toLocaleString()}
+                      </p>
                     </div>
                     <div className="p-4 border rounded-lg">
                       <p className="text-sm text-muted-foreground">Avg Item Price</p>
-                      <p className="text-2xl font-bold text-green-600" data-testid="text-avg-item-price">₱0.00</p>
+                      <p className="text-2xl font-bold text-green-600" data-testid="text-avg-item-price">
+                        ₱{((productAnalytics as any)?.averageItemPrice || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
                     </div>
                   </div>
 
