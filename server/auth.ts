@@ -236,14 +236,14 @@ export function setupAuth(app: Express) {
             isActive: false, // Restaurant closed by default until merchant opens it
             description: null,
             email: user.email,
-            latitude: null,
-            longitude: null,
+            latitude: req.body.latitude || null,
+            longitude: req.body.longitude || null,
             image: null,
             rating: '0',
             markup: '15', // Default 15% markup
             deliveryFee: '0' // Default delivery fee
           });
-          console.log(`Created restaurant profile for merchant ${user.id}: ${user.storeName}`);
+          console.log(`Created restaurant profile for merchant ${user.id}: ${user.storeName} at location (${req.body.latitude}, ${req.body.longitude})`);
         } catch (restaurantError) {
           console.error('Failed to create restaurant profile:', restaurantError);
           // Don't fail registration if restaurant profile creation fails

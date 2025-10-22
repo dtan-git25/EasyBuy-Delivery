@@ -599,6 +599,10 @@ export const merchantRegistrationSchema = z.object({
   storeAddress: z.string().min(1, "Store address is required"),
   storeContactNo: z.string().min(11, "Store contact number must be at least 11 digits"),
   
+  // Store Location (Required for accurate delivery fees and navigation)
+  latitude: z.string().min(1, "Store location is required. Please pin your store location on the map."),
+  longitude: z.string().min(1, "Store location is required. Please pin your store location on the map."),
+  
   // Contact
   email: z.string().email("Invalid email address"),
   
