@@ -2199,6 +2199,54 @@ export default function AdminPortal() {
               <RiderManagement />
             </TabsContent>
 
+            <TabsContent value="management" className="space-y-6">
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold tracking-tight">Management</h2>
+                  <p className="text-muted-foreground">Manage users and entities across your platform</p>
+                </div>
+
+                <Tabs defaultValue="riders" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="riders" data-testid="tab-rider-management">
+                      <Bike className="w-4 h-4 mr-2" />
+                      Rider Management
+                    </TabsTrigger>
+                    <TabsTrigger value="stores" data-testid="tab-store-management">
+                      <Store className="w-4 h-4 mr-2" />
+                      Store Management
+                    </TabsTrigger>
+                    <TabsTrigger value="customers" data-testid="tab-customer-management">
+                      <Users className="w-4 h-4 mr-2" />
+                      Customer Management
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="riders" className="space-y-6 mt-6">
+                    <RiderManagement />
+                  </TabsContent>
+
+                  <TabsContent value="stores" className="space-y-6 mt-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Store className="mr-2 h-5 w-5 text-primary" />
+                          Store Management
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <StoreManagementTable />
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  <TabsContent value="customers" className="space-y-6 mt-6">
+                    <CustomerManagement />
+                  </TabsContent>
+                </Tabs>
+              </div>
+            </TabsContent>
+
             <TabsContent value="reports" className="space-y-6">
               {/* Analytics Dashboard Header */}
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
