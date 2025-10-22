@@ -1,0 +1,72 @@
+Add map pin location feature for Merchant registration and profile:
+
+Implement the same map functionality for merchants as customers have:
+
+1. MERCHANT REGISTRATION FORM:
+   - Add "Store Location" section
+   - Include interactive map for pinning store address
+   - "Use Current Location" button
+   - Draggable marker on map
+   - Auto-fill address fields from pin location
+
+2. MERCHANT PROFILE/SETTINGS:
+   - Allow editing store location
+   - Show current pin location on map
+   - Update store coordinates when pin is moved
+   - Save new location to merchant profile
+
+3. MAP FEATURES FOR MERCHANTS:
+   
+   Same functionality as customer map:
+   - Interactive map (Leaflet or Google Maps)
+   - Click to place pin
+   - Drag pin to adjust location
+   - "Use Current Location" button (GPS)
+   - Reverse geocoding (coordinates → address)
+   - Map height: 400px
+   - Default center: Manila or last known location
+   - Zoom level: 15 (closer zoom for store accuracy)
+
+4. ADDRESS FORM INTEGRATION:
+   
+   When pin is placed/moved:
+   - Capture latitude and longitude
+   - Update address fields automatically:
+     * Street/Building
+     * Barangay
+     * City
+     * Province
+     * Postal Code
+   - Allow manual editing if auto-fill is incorrect
+
+5. STORE DATABASE FIELDS:
+   Add to merchants/stores table:
+   - store_latitude (decimal)
+   - store_longitude (decimal)
+   - store_address_full (text)
+   - store_city (text)
+   - last_location_update (timestamp)
+
+6. USE CASES:
+   
+   For customers:
+   - Calculate accurate distance to store
+   - Show store location on map
+   - Calculate delivery fees based on real distance
+   
+   For riders:
+   - Navigate to exact store location
+   - Multiple store pickups with accurate routing
+
+7. VALIDATION:
+   - Pin location is required during registration
+   - Cannot submit without setting store location
+   - Verify coordinates are within service area (Philippines)
+   - Show warning if location seems unusual
+
+8. DISPLAY STORE LOCATION:
+   - Show store pin on customer's restaurant browsing map
+   - Display distance from customer to each merchant
+   - "View on Map" button in merchant profile
+
+This ensures accurate store locations for distance calculations, delivery fees, and rider navigation.
