@@ -2212,11 +2212,52 @@ export default function AdminPortal() {
                   <p className="text-muted-foreground">Comprehensive insights into your platform performance</p>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" data-testid="button-export-pdf">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      window.print();
+                    }}
+                    data-testid="button-export-pdf"
+                  >
                     <Download className="mr-2 h-4 w-4" />
                     Export PDF
                   </Button>
-                  <Button variant="outline" size="sm" data-testid="button-export-excel">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      const csvData = [];
+                      csvData.push(['Analytics Report', '', '', '']);
+                      csvData.push(['Generated:', new Date().toLocaleDateString(), '', '']);
+                      csvData.push(['', '', '', '']);
+                      
+                      csvData.push(['Revenue Analytics', '', '', '']);
+                      csvData.push(['Total Revenue', `₱${((revenueAnalytics as any)?.totalRevenue || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`, '', '']);
+                      csvData.push(['Delivery Fees', `₱${((revenueAnalytics as any)?.totalDeliveryFees || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`, '', '']);
+                      csvData.push(['Markup Earnings', `₱${((revenueAnalytics as any)?.totalMarkup || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`, '', '']);
+                      csvData.push(['', '', '', '']);
+                      
+                      csvData.push(['Order Analytics', '', '', '']);
+                      csvData.push(['Total Orders', ((orderAnalytics as any)?.totalOrders || 0), '', '']);
+                      csvData.push(['Completed Orders', ((orderAnalytics as any)?.ordersByStatus?.delivered || 0), '', '']);
+                      csvData.push(['Completion Rate', `${formatNumber((orderAnalytics as any)?.completionRate, 1)}%`, '', '']);
+                      csvData.push(['', '', '', '']);
+                      
+                      csvData.push(['Top Merchants', 'Orders', 'Revenue', 'Rating']);
+                      ((userAnalytics as any)?.merchants?.topMerchants || []).forEach((m: any) => {
+                        csvData.push([m.name, m.orderCount, `₱${formatCurrency(m.revenue)}`, formatNumber(m.rating, 1)]);
+                      });
+                      
+                      const csvContent = csvData.map(row => row.join(',')).join('\n');
+                      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                      const link = document.createElement('a');
+                      link.href = URL.createObjectURL(blob);
+                      link.download = `analytics-report-${new Date().toISOString().split('T')[0]}.csv`;
+                      link.click();
+                    }}
+                    data-testid="button-export-excel"
+                  >
                     <FileText className="mr-2 h-4 w-4" />
                     Export Excel
                   </Button>
@@ -2300,46 +2341,24 @@ export default function AdminPortal() {
                   </div>
 
                   <div>
-                    <h3 className="text-sm font-semibold mb-2">Revenue by Payment Method</h3>
-                    <div className="h-[300px] border rounded-lg p-4">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={Object.entries((revenueAnalytics as any)?.revenueByPaymentMethod || {}).map(([name, value]) => ({
-                              name: name.toUpperCase(),
-                              value: Number(value)
-                            }))}
-                            dataKey="value"
-                            nameKey="name"
-                            cx="50%"
-                            cy="50%"
-                            outerRadius={80}
-                            label={({ name, value }) => `${name}: ₱${formatCurrency(value)}`}
-                          >
-                            {Object.keys((revenueAnalytics as any)?.revenueByPaymentMethod || {}).map((_, index) => (
-                              <Cell key={`cell-${index}`} fill={['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6'][index % 4]} />
-                            ))}
-                          </Pie>
-                          <Tooltip formatter={(value: any) => `₱${formatCurrency(value)}`} />
-                          <Legend />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                  <div>
                     <h3 className="text-sm font-semibold mb-2">Top Merchants by Revenue</h3>
                     <div className="h-[300px] border rounded-lg p-4">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={((revenueAnalytics as any)?.revenueByMerchant || []).slice(0, 10)}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-                          <YAxis />
-                          <Tooltip formatter={(value: any) => `₱${formatCurrency(value)}`} />
-                          <Legend />
-                          <Bar dataKey="revenue" fill="#10b981" name="Revenue" />
-                        </BarChart>
-                      </ResponsiveContainer>
+                      {((revenueAnalytics as any)?.revenueByMerchant || []).length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={((revenueAnalytics as any)?.revenueByMerchant || []).slice(0, 10)}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                            <YAxis />
+                            <Tooltip formatter={(value: any) => `₱${formatCurrency(value)}`} />
+                            <Legend />
+                            <Bar dataKey="revenue" fill="#10b981" name="Revenue" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="flex items-center justify-center h-full">
+                          <p className="text-muted-foreground">No merchant data available</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -2593,6 +2612,28 @@ export default function AdminPortal() {
                               )}
                             </tbody>
                           </table>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="text-sm font-semibold mb-2">Top Riders by Orders Completed</h4>
+                        <div className="h-[300px] border rounded-lg p-4">
+                          {((userAnalytics as any)?.riders?.topRiders || []).length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                              <BarChart data={((userAnalytics as any)?.riders?.topRiders || []).slice(0, 10)}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                                <YAxis />
+                                <Tooltip />
+                                <Legend />
+                                <Bar dataKey="deliveryCount" fill="#3b82f6" name="Completed Orders" />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          ) : (
+                            <div className="flex items-center justify-center h-full">
+                              <p className="text-muted-foreground">No rider data available</p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </TabsContent>
