@@ -1,0 +1,48 @@
+Layout was forced before the page was fully loaded. If stylesheets are not yet loaded this may cause a flash of unstyled content. node.js:409:1
+[vite] connecting... client:495:9
+GET
+wss://4480b7ef-5856-4f1a-b984-ae8f384ecb07-00-x8cp1akihxof.spock.replit.dev/?token=-tlbm2LbDtKj
+NS_ERROR_WEBSOCKET_CONNECTION_REFUSED
+
+Firefox can’t establish a connection to the server at wss://4480b7ef-5856-4f1a-b984-ae8f384ecb07-00-x8cp1akihxof.spock.replit.dev/?token=-tlbm2LbDtKj. client:536:19
+Uncaught (in promise) DOMException: An invalid or illegal string was specified
+    setupWebSocket client:536
+    fallback client:509
+    setupWebSocket client:555
+    setupWebSocket client:552
+    <anonymous> client:531
+client:536:1
+Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools react-dom.development.js:29895:17
+WebSocket connected websocket.ts:23:17
+Uncaught TypeError: can't access property "toLocaleString", rider.earnings is undefined
+    children admin-portal.tsx:2554
+    AdminPortal admin-portal.tsx:2550
+    React 3
+admin-portal.tsx:2554:59
+Uncaught TypeError: can't access property "toLocaleString", rider.earnings is undefined
+    children admin-portal.tsx:2554
+    AdminPortal admin-portal.tsx:2550
+    React 3
+admin-portal.tsx:2554:59
+The above error occurred in the <AdminPortal> component:
+
+AdminPortal@https://4480b7ef-5856-4f1a-b984-ae8f384ecb07-00-x8cp1akihxof.spock.replit.dev/src/components/portals/admin-portal.tsx:1824:23
+main
+div
+Dashboard@https://4480b7ef-5856-4f1a-b984-ae8f384ecb07-00-x8cp1akihxof.spock.replit.dev/src/pages/dashboard.tsx:42:36
+ProtectedRoute@https://4480b7ef-5856-4f1a-b984-ae8f384ecb07-00-x8cp1akihxof.spock.replit.dev/src/lib/protected-route.tsx:21:31
+Switch@https://4480b7ef-5856-4f1a-b984-ae8f384ecb07-00-x8cp1akihxof.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=08449531:379:14
+Router
+Provider@https://4480b7ef-5856-4f1a-b984-ae8f384ecb07-00-x8cp1akihxof.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=08449531:38:47
+TooltipProvider@https://4480b7ef-5856-4f1a-b984-ae8f384ecb07-00-x8cp1akihxof.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=08449531:69:7
+CartProvider@https://4480b7ef-5856-4f1a-b984-ae8f384ecb07-00-x8cp1akihxof.spock.replit.dev/src/contexts/cart-context.tsx:21:29
+AuthProvider@https://4480b7ef-5856-4f1a-b984-ae8f384ecb07-00-x8cp1akihxof.spock.replit.dev/src/hooks/use-auth.tsx:26:29
+QueryClientProvider@https://4480b7ef-5856-4f1a-b984-ae8f384ecb07-00-x8cp1akihxof.spock.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=08449531:2804:27
+App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries. react-dom.development.js:18704:15
+Uncaught TypeError: can't access property "toLocaleString", rider.earnings is undefined
+    children admin-portal.tsx:2554
+    AdminPortal admin-portal.tsx:2550
+    React 3

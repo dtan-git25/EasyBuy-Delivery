@@ -30,6 +30,15 @@ const formatNumber = (value: any, decimals: number = 2): string => {
   return (isNaN(num) ? 0 : num).toFixed(decimals);
 };
 
+// Helper function to safely format currency values
+const formatCurrency = (value: any, decimals: number = 2): string => {
+  const num = Number(value);
+  return (isNaN(num) ? 0 : num).toLocaleString('en-PH', { 
+    minimumFractionDigits: decimals, 
+    maximumFractionDigits: decimals 
+  });
+};
+
 const systemAccountSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
   email: z.string().email("Invalid email address"),
@@ -2435,7 +2444,7 @@ export default function AdminPortal() {
                                   <tr key={idx} className="border-t">
                                     <td className="p-3">{customer.name}</td>
                                     <td className="p-3">{customer.orderCount}</td>
-                                    <td className="p-3">₱{customer.totalSpent.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</td>
+                                    <td className="p-3">₱{formatCurrency(customer.totalSpent)}</td>
                                   </tr>
                                 ))
                               ) : (
@@ -2491,7 +2500,7 @@ export default function AdminPortal() {
                                   <tr key={idx} className="border-t">
                                     <td className="p-3">{merchant.name}</td>
                                     <td className="p-3">{merchant.orderCount}</td>
-                                    <td className="p-3">₱{merchant.revenue.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</td>
+                                    <td className="p-3">₱{formatCurrency(merchant.revenue)}</td>
                                     <td className="p-3 flex items-center">
                                       <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 mr-1" />
                                       {formatNumber(merchant.rating, 1)}
@@ -2551,7 +2560,7 @@ export default function AdminPortal() {
                                   <tr key={idx} className="border-t">
                                     <td className="p-3">{rider.name}</td>
                                     <td className="p-3">{rider.deliveryCount}</td>
-                                    <td className="p-3">₱{rider.earnings.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</td>
+                                    <td className="p-3">₱{formatCurrency(rider.earnings)}</td>
                                     <td className="p-3 flex items-center">
                                       <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 mr-1" />
                                       {formatNumber(rider.rating, 1)}
