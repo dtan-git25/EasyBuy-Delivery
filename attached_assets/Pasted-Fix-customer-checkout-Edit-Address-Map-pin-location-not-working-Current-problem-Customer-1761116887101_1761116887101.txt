@@ -1,0 +1,83 @@
+Fix customer checkout "Edit Address" - Map pin location not working:
+
+Current problem:
+- Customer clicks "Edit Address" in checkout modal
+- Map appears but is blank/empty
+- Cannot pin location on map
+- Map not loading properly
+
+Required fixes:
+
+1. MAP INITIALIZATION:
+   - Verify map library is loaded (Leaflet or Google Maps)
+   - Check if map container has proper height/width (not 0px)
+   - Add CSS: map container needs explicit height (e.g., height: 400px)
+   - Initialize map when modal opens, not on page load
+
+2. MAP DISPLAY ISSUES:
+```css
+   .map-container {
+     width: 100%;
+     height: 400px;
+     z-index: 1;
+   }
+```
+   
+   Common issue: Modal z-index conflicts with map
+   Ensure map z-index is lower than modal backdrop
+
+3. DEFAULT MAP CENTER:
+   - Set default center to customer's current location or Philippines center
+   - Default: Manila coordinates (14.5995, 120.9842)
+   - Add zoom level (default: 13)
+
+4. PIN/MARKER FUNCTIONALITY:
+   - Allow clicking anywhere on map to place pin
+   - Show draggable marker that user can move
+   - Update address fields when pin is moved
+   - Get coordinates from pin location (latitude, longitude)
+
+5. "USE CURRENT LOCATION" BUTTON:
+   - Request browser geolocation permission
+   - Center map on user's GPS location
+   - Place pin at current location automatically
+   - Update address form with coordinates
+
+6. REVERSE GEOCODING:
+   - When pin is placed, convert coordinates to address
+   - Auto-fill address fields with street, city, etc.
+   - Use geocoding API (Google Maps Geocoding or Nominatim)
+
+7. SAVE FUNCTIONALITY:
+   - Capture pin coordinates (lat, lng)
+   - Save to delivery address
+   - Update order with new location
+   - Close modal and show updated address
+
+8. ERROR HANDLING:
+   - If map fails to load, show error message
+   - If geolocation denied, show manual entry option
+   - Fallback to text address if map unavailable
+
+9. MODAL TIMING:
+   - Delay map initialization slightly after modal opens
+   - Use setTimeout or modal's onOpen callback
+   - This prevents blank map issues
+
+Example structure:
+```javascript
+// When Edit Address modal opens
+const initMap = () => {
+  const map = L.map('map-container').setView([14.5995, 120.9842], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+  
+  let marker;
+  map.on('click', (e) => {
+    if (marker) map.removeLayer(marker);
+    marker = L.marker(e.latlng, {draggable: true}).addTo(map);
+    updateAddressFromCoordinates(e.latlng.lat, e.latlng.lng);
+  });
+};
+```
+
+The map must be visible, interactive, and allow customers to pin their exact delivery location for accurate orders.

@@ -158,47 +158,119 @@ export function AddressSelector({ value, onChange, disabled }: AddressSelectorPr
 
   // Initialize map when modal opens
   useEffect(() => {
-    if (isModalOpen && mapContainerRef.current && !mapRef.current) {
-      // Get initial coordinates from form or use Philippines default
-      const lat = parseFloat(form.watch("latitude") || "12.8797");
-      const lng = parseFloat(form.watch("longitude") || "121.7740");
-      
-      // Create map instance
-      const map = L.map(mapContainerRef.current).setView([lat, lng], 6);
-      
-      // Add OpenStreetMap tiles
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      }).addTo(map);
-      
-      // Create draggable marker
-      const marker = L.marker([lat, lng], { draggable: true }).addTo(map);
-      
-      // Update coordinates when marker is dragged
-      marker.on("dragend", () => {
-        const position = marker.getLatLng();
-        form.setValue("latitude", position.lat.toFixed(6));
-        form.setValue("longitude", position.lng.toFixed(6));
-      });
-      
-      mapRef.current = map;
-      markerRef.current = marker;
-      
-      // Fix layout after render
-      setTimeout(() => {
-        map.invalidateSize();
-      }, 100);
-    }
-    
-    // Always cleanup map when component unmounts or modal closes
-    return () => {
+    if (!isModalOpen) {
+      // Cleanup map when modal closes
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
         markerRef.current = null;
       }
+      return;
+    }
+
+    // Wait for modal animation and container to be ready
+    const initMap = setTimeout(() => {
+      if (mapContainerRef.current && !mapRef.current) {
+        try {
+          // Get initial coordinates from form or use Philippines default (Manila)
+          const lat = parseFloat(form.watch("latitude") || "14.5995");
+          const lng = parseFloat(form.watch("longitude") || "120.9842");
+          
+          // Create map instance with higher zoom for better view
+          const map = L.map(mapContainerRef.current, {
+            center: [lat, lng],
+            zoom: 15,
+            zoomControl: true,
+          });
+          
+          // Add OpenStreetMap tiles
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19,
+          }).addTo(map);
+          
+          // Create draggable marker
+          const marker = L.marker([lat, lng], { 
+            draggable: true,
+            autoPan: true,
+          }).addTo(map);
+          
+          // Update coordinates when marker is dragged
+          marker.on("dragend", () => {
+            const position = marker.getLatLng();
+            form.setValue("latitude", position.lat.toFixed(6));
+            form.setValue("longitude", position.lng.toFixed(6));
+          });
+          
+          // Allow clicking on map to move marker
+          map.on("click", (e) => {
+            marker.setLatLng(e.latlng);
+            form.setValue("latitude", e.latlng.lat.toFixed(6));
+            form.setValue("longitude", e.latlng.lng.toFixed(6));
+          });
+          
+          mapRef.current = map;
+          markerRef.current = marker;
+          
+          // Fix layout after render - important for proper display
+          setTimeout(() => {
+            map.invalidateSize();
+          }, 250);
+        } catch (error) {
+          console.error("Error initializing map:", error);
+        }
+      }
+    }, 150); // Small delay to ensure modal is fully rendered
+
+    return () => {
+      clearTimeout(initMap);
     };
   }, [isModalOpen, form]);
+
+  // Use current location via browser geolocation
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast({
+        title: "Not Supported",
+        description: "Geolocation is not supported by your browser",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSearchingAddress(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        form.setValue("latitude", latitude.toFixed(6));
+        form.setValue("longitude", longitude.toFixed(6));
+
+        // Update map view and marker position
+        if (mapRef.current && markerRef.current) {
+          mapRef.current.setView([latitude, longitude], 17);
+          markerRef.current.setLatLng([latitude, longitude]);
+        }
+
+        toast({
+          title: "Location Found",
+          description: "Map centered to your current location. Drag the pin to adjust.",
+        });
+        setIsSearchingAddress(false);
+      },
+      (error) => {
+        let message = "Could not get your location. Please enable location access.";
+        if (error.code === error.PERMISSION_DENIED) {
+          message = "Location access denied. Please enable it in your browser settings.";
+        }
+        toast({
+          title: "Location Error",
+          description: message,
+          variant: "destructive",
+        });
+        setIsSearchingAddress(false);
+      }
+    );
+  };
 
   // Search address on map using geocoding
   const handleSearchAddressOnMap = async () => {
@@ -490,25 +562,37 @@ export function AddressSelector({ value, onChange, disabled }: AddressSelectorPr
                 Pin Your Location on Map
               </Label>
               <p className="text-sm text-muted-foreground">
-                Drag the pin to your exact location for accurate delivery fees. Or search your address to auto-center the map.
+                Click anywhere on the map or drag the pin to your exact location for accurate delivery fees.
               </p>
               
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleSearchAddressOnMap}
-                disabled={isSearchingAddress}
-                data-testid="button-search-address-map"
-                className="w-full mb-3"
-              >
-                <Search className="h-4 w-4 mr-2" />
-                {isSearchingAddress ? "Searching..." : "Search Address on Map"}
-              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleUseCurrentLocation}
+                  disabled={isSearchingAddress}
+                  data-testid="button-use-current-location"
+                >
+                  <Navigation className="h-4 w-4 mr-2" />
+                  {isSearchingAddress ? "Getting Location..." : "Use Current Location"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleSearchAddressOnMap}
+                  disabled={isSearchingAddress}
+                  data-testid="button-search-address-map"
+                >
+                  <Search className="h-4 w-4 mr-2" />
+                  {isSearchingAddress ? "Searching..." : "Search Address"}
+                </Button>
+              </div>
               
               {/* Leaflet Map Container */}
               <div 
                 ref={mapContainerRef} 
-                className="h-64 w-full rounded-lg border border-border overflow-hidden"
+                className="h-80 w-full rounded-lg border-2 border-border overflow-hidden"
+                style={{ minHeight: '320px', position: 'relative', zIndex: 1 }}
                 data-testid="map-container"
               />
               
@@ -516,7 +600,7 @@ export function AddressSelector({ value, onChange, disabled }: AddressSelectorPr
               <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
                 <MapPin className="h-4 w-4 text-muted-foreground" />
                 <div className="flex-1 text-sm">
-                  <span className="font-medium">Current Pin Location: </span>
+                  <span className="font-medium">Pin Location: </span>
                   <span className="text-muted-foreground">
                     Lat: {form.watch("latitude")}, Lng: {form.watch("longitude")}
                   </span>
