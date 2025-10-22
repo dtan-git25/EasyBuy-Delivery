@@ -1996,6 +1996,547 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Analytics Routes
+  app.get("/api/admin/analytics/revenue", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'admin') {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const { startDate, endDate } = req.query;
+      const orders = await storage.getOrders();
+      
+      // Filter orders by date range if provided
+      let filteredOrders = orders.filter((o: any) => o.status === 'delivered');
+      if (startDate && endDate) {
+        filteredOrders = filteredOrders.filter((o: any) => {
+          const orderDate = new Date(o.createdAt);
+          return orderDate >= new Date(startDate as string) && orderDate <= new Date(endDate as string);
+        });
+      }
+
+      // Calculate revenue metrics
+      const totalRevenue = filteredOrders.reduce((sum: number, order: any) => 
+        sum + parseFloat(order.total.toString()), 0
+      );
+      const subtotalRevenue = filteredOrders.reduce((sum: number, order: any) => 
+        sum + parseFloat(order.subtotal.toString()), 0
+      );
+      const deliveryFees = filteredOrders.reduce((sum: number, order: any) => 
+        sum + parseFloat(order.deliveryFee.toString()), 0
+      );
+      const markupEarnings = filteredOrders.reduce((sum: number, order: any) => 
+        sum + parseFloat(order.markup.toString()), 0
+      );
+      const merchantFees = filteredOrders.reduce((sum: number, order: any) => 
+        sum + parseFloat(order.merchantFee?.toString() || '0'), 0
+      );
+
+      // Get settings for convenience fee
+      const settings = await storage.getSettings();
+      const convenienceFees = filteredOrders.length * parseFloat(settings?.convenienceFee || '0');
+
+      // Calculate average order value
+      const averageOrderValue = filteredOrders.length > 0 
+        ? totalRevenue / filteredOrders.length 
+        : 0;
+
+      // Revenue by payment method
+      const revenueByPaymentMethod = filteredOrders.reduce((acc: any, order: any) => {
+        const method = order.paymentMethod || 'cash';
+        acc[method] = (acc[method] || 0) + parseFloat(order.total.toString());
+        return acc;
+      }, {});
+
+      // Revenue by merchant (top 10)
+      const revenueByMerchant: any = {};
+      for (const order of filteredOrders) {
+        const restaurantId = order.restaurantId;
+        if (restaurantId) {
+          revenueByMerchant[restaurantId] = (revenueByMerchant[restaurantId] || 0) + 
+            parseFloat(order.total.toString());
+        }
+      }
+
+      // Get restaurant names and sort
+      const restaurants = await storage.getRestaurants();
+      const merchantRevenue = Object.entries(revenueByMerchant)
+        .map(([id, revenue]) => {
+          const restaurant = restaurants.find((r: any) => r.id === id);
+          return {
+            merchantId: id,
+            merchantName: restaurant?.name || 'Unknown',
+            revenue: revenue
+          };
+        })
+        .sort((a, b) => (b.revenue as number) - (a.revenue as number))
+        .slice(0, 10);
+
+      // Daily revenue trends (last 30 days or filtered period)
+      const dailyRevenue: any = {};
+      filteredOrders.forEach((order: any) => {
+        const date = new Date(order.createdAt).toISOString().split('T')[0];
+        dailyRevenue[date] = (dailyRevenue[date] || 0) + parseFloat(order.total.toString());
+      });
+
+      const revenueTrends = Object.entries(dailyRevenue)
+        .map(([date, revenue]) => ({ date, revenue }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+      res.json({
+        totalRevenue,
+        subtotalRevenue,
+        deliveryFees,
+        markupEarnings,
+        merchantFees,
+        convenienceFees,
+        averageOrderValue,
+        revenueByPaymentMethod,
+        merchantRevenue,
+        revenueTrends,
+        breakdown: {
+          subtotal: subtotalRevenue,
+          deliveryFees,
+          markup: markupEarnings,
+          merchantFees,
+          convenienceFees
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching revenue analytics:", error);
+      res.status(500).json({ error: "Failed to fetch revenue analytics" });
+    }
+  });
+
+  app.get("/api/admin/analytics/orders", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'admin') {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const { startDate, endDate } = req.query;
+      const orders = await storage.getOrders();
+      
+      // Filter by date range
+      let filteredOrders = orders;
+      if (startDate && endDate) {
+        filteredOrders = orders.filter((o: any) => {
+          const orderDate = new Date(o.createdAt);
+          return orderDate >= new Date(startDate as string) && orderDate <= new Date(endDate as string);
+        });
+      }
+
+      // Order statistics by status
+      const ordersByStatus = {
+        pending: filteredOrders.filter((o: any) => o.status === 'pending').length,
+        accepted: filteredOrders.filter((o: any) => o.status === 'accepted').length,
+        picked_up: filteredOrders.filter((o: any) => o.status === 'picked_up').length,
+        delivered: filteredOrders.filter((o: any) => o.status === 'delivered').length,
+        cancelled: filteredOrders.filter((o: any) => o.status === 'cancelled').length
+      };
+
+      // Completion rate
+      const completedCount = ordersByStatus.delivered;
+      const totalCount = filteredOrders.length;
+      const completionRate = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+
+      // Cancellation rate
+      const cancelledCount = ordersByStatus.cancelled;
+      const cancellationRate = totalCount > 0 ? (cancelledCount / totalCount) * 100 : 0;
+
+      // Average delivery time (for delivered orders)
+      const deliveredOrders = filteredOrders.filter((o: any) => o.status === 'delivered');
+      const avgDeliveryTime = deliveredOrders.length > 0
+        ? deliveredOrders.reduce((sum: number, o: any) => {
+            const created = new Date(o.createdAt).getTime();
+            const delivered = new Date(o.updatedAt).getTime();
+            return sum + (delivered - created) / (1000 * 60); // minutes
+          }, 0) / deliveredOrders.length
+        : 0;
+
+      // Orders by merchant
+      const ordersByMerchant: any = {};
+      filteredOrders.forEach((order: any) => {
+        const restaurantId = order.restaurantId;
+        if (restaurantId) {
+          ordersByMerchant[restaurantId] = (ordersByMerchant[restaurantId] || 0) + 1;
+        }
+      });
+
+      const restaurants = await storage.getRestaurants();
+      const merchantOrders = Object.entries(ordersByMerchant)
+        .map(([id, count]) => {
+          const restaurant = restaurants.find((r: any) => r.id === id);
+          return {
+            merchantId: id,
+            merchantName: restaurant?.name || 'Unknown',
+            orderCount: count
+          };
+        })
+        .sort((a, b) => (b.orderCount as number) - (a.orderCount as number))
+        .slice(0, 10);
+
+      // Daily order trends
+      const dailyOrders: any = {};
+      filteredOrders.forEach((order: any) => {
+        const date = new Date(order.createdAt).toISOString().split('T')[0];
+        dailyOrders[date] = (dailyOrders[date] || 0) + 1;
+      });
+
+      const orderTrends = Object.entries(dailyOrders)
+        .map(([date, count]) => ({ date, count }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+      // Peak ordering hours
+      const hourlyOrders: any = {};
+      filteredOrders.forEach((order: any) => {
+        const hour = new Date(order.createdAt).getHours();
+        hourlyOrders[hour] = (hourlyOrders[hour] || 0) + 1;
+      });
+
+      res.json({
+        totalOrders: totalCount,
+        ordersByStatus,
+        completionRate,
+        cancellationRate,
+        avgDeliveryTime,
+        merchantOrders,
+        orderTrends,
+        hourlyOrders
+      });
+    } catch (error) {
+      console.error("Error fetching order analytics:", error);
+      res.status(500).json({ error: "Failed to fetch order analytics" });
+    }
+  });
+
+  app.get("/api/admin/analytics/users", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'admin') {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const { startDate, endDate } = req.query;
+      
+      // Get all users by role
+      const customers = await storage.getUsersByRole('customer');
+      const merchants = await storage.getUsersByRole('merchant');
+      const riders = await storage.getRiders();
+      const orders = await storage.getOrders();
+
+      // Filter new users by date range
+      let newCustomers = customers;
+      let newMerchants = merchants;
+      let newRiders = riders;
+
+      if (startDate && endDate) {
+        const start = new Date(startDate as string);
+        const end = new Date(endDate as string);
+        newCustomers = customers.filter((u: any) => {
+          const created = new Date(u.createdAt);
+          return created >= start && created <= end;
+        });
+        newMerchants = merchants.filter((u: any) => {
+          const created = new Date(u.createdAt);
+          return created >= start && created <= end;
+        });
+        newRiders = riders.filter((r: any) => {
+          const created = new Date(r.createdAt);
+          return created >= start && created <= end;
+        });
+      }
+
+      // Active customers (placed orders)
+      const customerOrderCounts: any = {};
+      orders.forEach((order: any) => {
+        if (order.customerId) {
+          customerOrderCounts[order.customerId] = (customerOrderCounts[order.customerId] || 0) + 1;
+        }
+      });
+
+      const activeCustomers = Object.keys(customerOrderCounts).length;
+      
+      // Top customers by order count
+      const topCustomers = Object.entries(customerOrderCounts)
+        .map(([id, count]) => {
+          const customer = customers.find((c: any) => c.id === id);
+          const customerOrders = orders.filter((o: any) => o.customerId === id);
+          const totalSpent = customerOrders.reduce((sum: number, o: any) => 
+            sum + parseFloat(o.total.toString()), 0
+          );
+          return {
+            customerId: id,
+            customerName: customer?.firstName + ' ' + customer?.lastName || 'Unknown',
+            orderCount: count,
+            totalSpent
+          };
+        })
+        .sort((a, b) => (b.orderCount as number) - (a.orderCount as number))
+        .slice(0, 10);
+
+      // Merchant analytics
+      const restaurants = await storage.getRestaurants();
+      const activeMerchants = restaurants.filter((r: any) => r.isActive).length;
+      const merchantRevenue = restaurants.map((restaurant: any) => {
+        const restaurantOrders = orders.filter((o: any) => o.restaurantId === restaurant.id && o.status === 'delivered');
+        const revenue = restaurantOrders.reduce((sum: number, o: any) => 
+          sum + parseFloat(o.total.toString()), 0
+        );
+        return {
+          merchantId: restaurant.id,
+          merchantName: restaurant.name,
+          orderCount: restaurantOrders.length,
+          revenue,
+          rating: restaurant.rating || 0
+        };
+      }).sort((a, b) => b.revenue - a.revenue).slice(0, 10);
+
+      // Rider analytics
+      const activeRiders = riders.filter((r: any) => r.status === 'active').length;
+      const riderDeliveryCounts: any = {};
+      orders.filter((o: any) => o.status === 'delivered').forEach((order: any) => {
+        if (order.riderId) {
+          riderDeliveryCounts[order.riderId] = (riderDeliveryCounts[order.riderId] || 0) + 1;
+        }
+      });
+
+      const topRiders = Object.entries(riderDeliveryCounts)
+        .map(([id, count]) => {
+          const rider = riders.find((r: any) => r.userId === id);
+          const riderOrders = orders.filter((o: any) => o.riderId === id && o.status === 'delivered');
+          const totalEarnings = riderOrders.reduce((sum: number, o: any) => {
+            const deliveryFee = parseFloat(o.deliveryFee?.toString() || '0');
+            const markup = parseFloat(o.markup?.toString() || '0');
+            return sum + (deliveryFee + markup);
+          }, 0);
+
+          return {
+            riderId: id,
+            riderName: rider?.firstName + ' ' + rider?.lastName || 'Unknown',
+            deliveryCount: count,
+            totalEarnings,
+            rating: rider?.rating || 0
+          };
+        })
+        .sort((a, b) => (b.deliveryCount as number) - (a.deliveryCount as number))
+        .slice(0, 10);
+
+      res.json({
+        customers: {
+          total: customers.length,
+          new: newCustomers.length,
+          active: activeCustomers,
+          topCustomers
+        },
+        merchants: {
+          total: merchants.length,
+          new: newMerchants.length,
+          active: activeMerchants,
+          topMerchants: merchantRevenue
+        },
+        riders: {
+          total: riders.length,
+          new: newRiders.length,
+          active: activeRiders,
+          topRiders
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching user analytics:", error);
+      res.status(500).json({ error: "Failed to fetch user analytics" });
+    }
+  });
+
+  app.get("/api/admin/analytics/delivery", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'admin') {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const { startDate, endDate } = req.query;
+      const orders = await storage.getOrders();
+
+      // Filter by date range
+      let filteredOrders = orders;
+      if (startDate && endDate) {
+        filteredOrders = orders.filter((o: any) => {
+          const orderDate = new Date(o.createdAt);
+          return orderDate >= new Date(startDate as string) && orderDate <= new Date(endDate as string);
+        });
+      }
+
+      const deliveredOrders = filteredOrders.filter((o: any) => o.status === 'delivered');
+      
+      // Total deliveries completed
+      const totalDeliveries = deliveredOrders.length;
+
+      // Average delivery time
+      const avgDeliveryTime = deliveredOrders.length > 0
+        ? deliveredOrders.reduce((sum: number, o: any) => {
+            const created = new Date(o.createdAt).getTime();
+            const delivered = new Date(o.updatedAt).getTime();
+            return sum + (delivered - created) / (1000 * 60); // minutes
+          }, 0) / deliveredOrders.length
+        : 0;
+
+      // Average delivery distance
+      const avgDistance = deliveredOrders.length > 0
+        ? deliveredOrders.reduce((sum: number, o: any) => 
+            sum + parseFloat(o.distance?.toString() || '0'), 0
+          ) / deliveredOrders.length
+        : 0;
+
+      // Delivery success rate
+      const totalAttempts = filteredOrders.filter((o: any) => 
+        o.status !== 'pending' && o.status !== 'cancelled'
+      ).length;
+      const successRate = totalAttempts > 0 ? (totalDeliveries / totalAttempts) * 100 : 0;
+
+      // Total delivery fees collected
+      const totalDeliveryFees = deliveredOrders.reduce((sum: number, o: any) => 
+        sum + parseFloat(o.deliveryFee?.toString() || '0'), 0
+      );
+
+      // Deliveries by rider
+      const deliveriesByRider: any = {};
+      deliveredOrders.forEach((order: any) => {
+        if (order.riderId) {
+          deliveriesByRider[order.riderId] = (deliveriesByRider[order.riderId] || 0) + 1;
+        }
+      });
+
+      const riders = await storage.getRiders();
+      const riderDeliveries = Object.entries(deliveriesByRider)
+        .map(([id, count]) => {
+          const rider = riders.find((r: any) => r.userId === id);
+          return {
+            riderId: id,
+            riderName: rider?.firstName + ' ' + rider?.lastName || 'Unknown',
+            deliveryCount: count
+          };
+        })
+        .sort((a, b) => (b.deliveryCount as number) - (a.deliveryCount as number));
+
+      // Distance distribution
+      const distanceRanges = {
+        '0-5km': 0,
+        '5-10km': 0,
+        '10-15km': 0,
+        '15-20km': 0,
+        '20+km': 0
+      };
+
+      deliveredOrders.forEach((order: any) => {
+        const distance = parseFloat(order.distance?.toString() || '0');
+        if (distance < 5) distanceRanges['0-5km']++;
+        else if (distance < 10) distanceRanges['5-10km']++;
+        else if (distance < 15) distanceRanges['10-15km']++;
+        else if (distance < 20) distanceRanges['15-20km']++;
+        else distanceRanges['20+km']++;
+      });
+
+      res.json({
+        totalDeliveries,
+        avgDeliveryTime,
+        avgDistance,
+        successRate,
+        totalDeliveryFees,
+        riderDeliveries,
+        distanceDistribution: distanceRanges
+      });
+    } catch (error) {
+      console.error("Error fetching delivery analytics:", error);
+      res.status(500).json({ error: "Failed to fetch delivery analytics" });
+    }
+  });
+
+  app.get("/api/admin/analytics/products", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'admin') {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const { startDate, endDate } = req.query;
+      const menuItems = await storage.getAllMenuItems();
+      const orders = await storage.getOrders();
+
+      // Filter orders by date range
+      let filteredOrders = orders;
+      if (startDate && endDate) {
+        filteredOrders = orders.filter((o: any) => {
+          const orderDate = new Date(o.createdAt);
+          return orderDate >= new Date(startDate as string) && orderDate <= new Date(endDate as string);
+        });
+      }
+
+      // Count item orders
+      const itemOrderCounts: any = {};
+      filteredOrders.forEach((order: any) => {
+        if (order.items && Array.isArray(order.items)) {
+          order.items.forEach((item: any) => {
+            const itemId = item.menuItemId || item.id;
+            itemOrderCounts[itemId] = (itemOrderCounts[itemId] || 0) + item.quantity;
+          });
+        }
+      });
+
+      // Most ordered items
+      const mostOrdered = Object.entries(itemOrderCounts)
+        .map(([id, count]) => {
+          const item = menuItems.find((m: any) => m.id === id);
+          return {
+            itemId: id,
+            itemName: item?.name || 'Unknown',
+            category: item?.category || 'N/A',
+            orderCount: count,
+            price: parseFloat(item?.price?.toString() || '0'),
+            totalRevenue: (count as number) * parseFloat(item?.price?.toString() || '0')
+          };
+        })
+        .sort((a, b) => (b.orderCount as number) - (a.orderCount as number))
+        .slice(0, 20);
+
+      // Least ordered items (items with at least 1 order)
+      const leastOrdered = Object.entries(itemOrderCounts)
+        .map(([id, count]) => {
+          const item = menuItems.find((m: any) => m.id === id);
+          return {
+            itemId: id,
+            itemName: item?.name || 'Unknown',
+            category: item?.category || 'N/A',
+            orderCount: count
+          };
+        })
+        .sort((a, b) => (a.orderCount as number) - (b.orderCount as number))
+        .slice(0, 20);
+
+      // Items by category
+      const itemsByCategory: any = {};
+      menuItems.forEach((item: any) => {
+        const category = item.category || 'Uncategorized';
+        itemsByCategory[category] = (itemsByCategory[category] || 0) + 1;
+      });
+
+      // Average item price
+      const avgPrice = menuItems.length > 0
+        ? menuItems.reduce((sum: number, item: any) => 
+            sum + parseFloat(item.price?.toString() || '0'), 0
+          ) / menuItems.length
+        : 0;
+
+      res.json({
+        totalMenuItems: menuItems.length,
+        mostOrdered,
+        leastOrdered,
+        itemsByCategory,
+        avgPrice
+      });
+    } catch (error) {
+      console.error("Error fetching product analytics:", error);
+      res.status(500).json({ error: "Failed to fetch product analytics" });
+    }
+  });
+
   // Notification Routes
   app.get("/api/notifications", async (req, res) => {
     if (!req.isAuthenticated()) {

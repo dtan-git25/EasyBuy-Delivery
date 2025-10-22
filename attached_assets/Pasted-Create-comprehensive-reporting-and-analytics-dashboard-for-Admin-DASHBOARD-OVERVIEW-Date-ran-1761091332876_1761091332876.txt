@@ -1,0 +1,149 @@
+Create comprehensive reporting and analytics dashboard for Admin:
+
+DASHBOARD OVERVIEW:
+- Date range filter (Today, Yesterday, This Week, This Month, Custom Range)
+- Export options (PDF, Excel, CSV)
+- Real-time data updates
+
+1. REVENUE REPORTS:
+
+Sales Overview:
+- Total Revenue (with trend comparison vs previous period)
+- Total Orders Count
+- Average Order Value
+- Revenue by payment method
+- Revenue breakdown: Order subtotal, Delivery fees, Convenience fees, Merchant fees, Markup earnings
+
+Revenue Charts:
+- Line chart: Daily/Weekly/Monthly revenue trends
+- Bar chart: Revenue by merchant (top 10)
+- Pie chart: Revenue distribution (delivery fees, markups, convenience fees, etc.)
+- Area chart: Revenue growth over time
+
+2. ORDER REPORTS:
+
+Order Statistics:
+- Total orders by status (Pending, Active, Completed, Cancelled)
+- Order completion rate (%)
+- Average delivery time
+- Cancellation rate and reasons
+- Peak ordering hours (heatmap or bar chart)
+
+Order Charts:
+- Line chart: Orders per day/week/month
+- Bar chart: Orders by merchant
+- Pie chart: Order status distribution
+
+3. USER REPORTS:
+
+Customer Analytics:
+- Total customers registered
+- New customers (by date range)
+- Active customers (placed orders)
+- Customer retention rate
+- Top customers by order count/spending
+
+Merchant Analytics:
+- Total merchants (active/inactive)
+- New merchant registrations
+- Top performing merchants by revenue
+- Top performing merchants by order count
+- Average merchant rating
+- Merchant earnings breakdown
+
+Rider Analytics:
+- Total riders (active/inactive)
+- New rider registrations
+- Top performing riders by delivery count
+- Average delivery time per rider
+- Rider earnings
+- Rider availability rates
+
+4. DELIVERY REPORTS:
+
+Delivery Metrics:
+- Total deliveries completed
+- Average delivery time
+- Average delivery distance
+- Delivery success rate
+- Failed delivery reasons
+- Delivery fee collected
+
+Delivery Charts:
+- Line chart: Delivery time trends
+- Bar chart: Deliveries by rider
+- Column chart: Distance distribution
+
+5. FINANCIAL REPORTS:
+
+Income Statement:
+- Total gross revenue
+- Platform earnings (markups + convenience fees + merchant fees)
+- Rider commissions paid
+- Merchant payouts
+- Net revenue
+
+Transaction Reports:
+- All transactions list with filters
+- Payment method breakdown
+- Refunds and cancellations
+- Pending settlements
+- Completed settlements
+
+Expense Tracking:
+- Operating expenses
+- Marketing expenses
+- System maintenance
+- Other expenses
+- Expense categories breakdown
+
+6. PRODUCT REPORTS:
+
+Menu Analytics:
+- Total menu items across platform
+- Most ordered items (top 20)
+- Least ordered items
+- Items by category
+- Average item price
+
+7. COMPARISON REPORTS:
+
+Period Comparison:
+- Compare current vs previous period
+- Year over year comparison
+- Month over month comparison
+- Percentage changes with up/down indicators
+
+8. EXPORT & SCHEDULING:
+
+Export Options:
+- PDF reports with charts
+- Excel spreadsheets with raw data
+- CSV for custom analysis
+- Automated daily/weekly/monthly email reports
+
+9. INTERACTIVE FEATURES:
+
+Filters:
+- Date range picker
+- Merchant filter
+- Rider filter
+- Customer filter
+- Order status filter
+- Category filter
+- Location filter
+
+Drill-down capability:
+- Click charts to see detailed data
+- View individual transactions
+- Filter and sort all tables
+
+Visual Elements:
+- Use modern chart library (Chart.js or Recharts)
+- Color-coded metrics (green for positive, red for negative)
+- Progress bars for percentages
+- Trend indicators (↑↓)
+- Responsive tables with pagination
+- Loading states for data fetching
+
+Make all reports visually appealing with professional charts, graphs, and tables that update in real-time.
