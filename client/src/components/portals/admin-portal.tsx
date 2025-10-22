@@ -40,6 +40,12 @@ const formatCurrency = (value: any, decimals: number = 2): string => {
   });
 };
 
+// Helper function to format currency for CSV export (no special characters)
+const formatCurrencyForCSV = (value: any): string => {
+  const num = Number(value);
+  return (isNaN(num) ? '0.00' : num.toFixed(2));
+};
+
 const systemAccountSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
   email: z.string().email("Invalid email address"),
@@ -2221,29 +2227,155 @@ export default function AdminPortal() {
                     size="sm" 
                     onClick={() => {
                       const csvData = [];
-                      csvData.push(['Analytics Report', '', '', '']);
-                      csvData.push(['Generated:', new Date().toLocaleDateString(), '', '']);
-                      csvData.push(['', '', '', '']);
+                      const dateRange = analyticsDateFilter === 'today' ? 'Today' : 
+                                       analyticsDateFilter === 'week' ? 'This Week' :
+                                       analyticsDateFilter === 'month' ? 'This Month' : 'All Time';
                       
-                      csvData.push(['Revenue Analytics', '', '', '']);
-                      csvData.push(['Total Revenue', `₱${((revenueAnalytics as any)?.totalRevenue || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`, '', '']);
-                      csvData.push(['Delivery Fees', `₱${((revenueAnalytics as any)?.totalDeliveryFees || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`, '', '']);
-                      csvData.push(['Markup Earnings', `₱${((revenueAnalytics as any)?.totalMarkup || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`, '', '']);
-                      csvData.push(['', '', '', '']);
+                      // Header Section
+                      csvData.push(['ANALYTICS REPORT']);
+                      csvData.push(['Date Range:', dateRange]);
+                      csvData.push(['Generated:', new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })]);
+                      csvData.push([]);
+                      csvData.push(['='.repeat(80)]);
+                      csvData.push([]);
                       
-                      csvData.push(['Order Analytics', '', '', '']);
-                      csvData.push(['Total Orders', ((orderAnalytics as any)?.totalOrders || 0), '', '']);
-                      csvData.push(['Completed Orders', ((orderAnalytics as any)?.ordersByStatus?.delivered || 0), '', '']);
-                      csvData.push(['Completion Rate', `${formatNumber((orderAnalytics as any)?.completionRate, 1)}%`, '', '']);
-                      csvData.push(['', '', '', '']);
+                      // REVENUE ANALYTICS Section
+                      csvData.push(['REVENUE ANALYTICS']);
+                      csvData.push(['-'.repeat(80)]);
+                      csvData.push(['Metric', 'Amount (PHP)']);
+                      csvData.push(['Total Revenue', formatCurrencyForCSV((revenueAnalytics as any)?.totalRevenue || 0)]);
+                      csvData.push(['Subtotal Revenue', formatCurrencyForCSV((revenueAnalytics as any)?.subtotalRevenue || 0)]);
+                      csvData.push(['Delivery Fees', formatCurrencyForCSV((revenueAnalytics as any)?.deliveryFees || 0)]);
+                      csvData.push(['Markup Earnings', formatCurrencyForCSV((revenueAnalytics as any)?.markupEarnings || 0)]);
+                      csvData.push(['Merchant Fees', formatCurrencyForCSV((revenueAnalytics as any)?.merchantFees || 0)]);
+                      csvData.push(['Convenience Fees', formatCurrencyForCSV((revenueAnalytics as any)?.convenienceFees || 0)]);
+                      csvData.push(['Average Order Value', formatCurrencyForCSV((revenueAnalytics as any)?.averageOrderValue || 0)]);
+                      csvData.push([]);
                       
-                      csvData.push(['Top Merchants', 'Orders', 'Revenue', 'Rating']);
-                      ((userAnalytics as any)?.merchants?.topMerchants || []).forEach((m: any) => {
-                        csvData.push([m.name, m.orderCount, `₱${formatCurrency(m.revenue)}`, formatNumber(m.rating, 1)]);
-                      });
+                      // ORDER ANALYTICS Section
+                      csvData.push(['ORDER ANALYTICS']);
+                      csvData.push(['-'.repeat(80)]);
+                      csvData.push(['Metric', 'Value']);
+                      csvData.push(['Total Orders', ((orderAnalytics as any)?.totalOrders || 0).toString()]);
+                      csvData.push(['Pending Orders', ((orderAnalytics as any)?.pendingOrders || 0).toString()]);
+                      csvData.push(['Active Orders', ((orderAnalytics as any)?.activeOrders || 0).toString()]);
+                      csvData.push(['Completed Orders', ((orderAnalytics as any)?.completedOrders || 0).toString()]);
+                      csvData.push(['Cancelled Orders', ((orderAnalytics as any)?.cancelledOrders || 0).toString()]);
+                      csvData.push(['Completion Rate', formatNumber((orderAnalytics as any)?.completionRate || 0, 2) + '%']);
+                      csvData.push(['Cancellation Rate', formatNumber((orderAnalytics as any)?.cancellationRate || 0, 2) + '%']);
+                      csvData.push(['Average Delivery Time (min)', formatNumber((orderAnalytics as any)?.averageDeliveryTime || 0, 0)]);
+                      csvData.push([]);
                       
-                      const csvContent = csvData.map(row => row.join(',')).join('\n');
-                      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                      // TOP MERCHANTS Section
+                      csvData.push(['TOP MERCHANTS BY REVENUE']);
+                      csvData.push(['-'.repeat(80)]);
+                      csvData.push(['Restaurant Name', 'Total Orders', 'Total Revenue (PHP)', 'Avg Rating']);
+                      const topMerchants = ((userAnalytics as any)?.merchants?.topMerchants || []).slice(0, 10);
+                      if (topMerchants.length > 0) {
+                        topMerchants.forEach((m: any) => {
+                          csvData.push([
+                            m.name || 'Unknown',
+                            (m.orderCount || 0).toString(),
+                            formatCurrencyForCSV(m.revenue || 0),
+                            formatNumber(m.rating || 0, 1)
+                          ]);
+                        });
+                      } else {
+                        csvData.push(['No data available']);
+                      }
+                      csvData.push([]);
+                      
+                      // TOP CUSTOMERS Section
+                      csvData.push(['TOP CUSTOMERS']);
+                      csvData.push(['-'.repeat(80)]);
+                      csvData.push(['Customer Name', 'Total Orders', 'Total Spent (PHP)']);
+                      const topCustomers = ((userAnalytics as any)?.customers?.topCustomers || []).slice(0, 10);
+                      if (topCustomers.length > 0) {
+                        topCustomers.forEach((c: any) => {
+                          csvData.push([
+                            c.name || 'Unknown',
+                            (c.orderCount || 0).toString(),
+                            formatCurrencyForCSV(c.totalSpent || 0)
+                          ]);
+                        });
+                      } else {
+                        csvData.push(['No data available']);
+                      }
+                      csvData.push([]);
+                      
+                      // TOP RIDERS Section
+                      csvData.push(['TOP RIDERS BY DELIVERIES']);
+                      csvData.push(['-'.repeat(80)]);
+                      csvData.push(['Rider Name', 'Deliveries', 'Earnings (PHP)', 'Avg Rating']);
+                      const topRiders = ((userAnalytics as any)?.riders?.topRiders || []).slice(0, 10);
+                      if (topRiders.length > 0) {
+                        topRiders.forEach((r: any) => {
+                          csvData.push([
+                            r.name || 'Unknown',
+                            (r.deliveryCount || 0).toString(),
+                            formatCurrencyForCSV(r.earnings || 0),
+                            formatNumber(r.rating || 0, 1)
+                          ]);
+                        });
+                      } else {
+                        csvData.push(['No data available']);
+                      }
+                      csvData.push([]);
+                      
+                      // DELIVERY METRICS Section
+                      csvData.push(['DELIVERY METRICS']);
+                      csvData.push(['-'.repeat(80)]);
+                      csvData.push(['Metric', 'Value']);
+                      csvData.push(['Total Deliveries', ((deliveryAnalytics as any)?.totalDeliveries || 0).toString()]);
+                      csvData.push(['Successful Deliveries', ((deliveryAnalytics as any)?.successfulDeliveries || 0).toString()]);
+                      csvData.push(['Success Rate', formatNumber((deliveryAnalytics as any)?.successRate || 0, 2) + '%']);
+                      csvData.push(['Average Distance (km)', formatNumber((deliveryAnalytics as any)?.averageDistance || 0, 2)]);
+                      csvData.push(['Total Delivery Fees (PHP)', formatCurrencyForCSV((deliveryAnalytics as any)?.totalDeliveryFees || 0)]);
+                      csvData.push([]);
+                      
+                      // PRODUCT ANALYTICS Section
+                      csvData.push(['PRODUCT ANALYTICS']);
+                      csvData.push(['-'.repeat(80)]);
+                      csvData.push(['Total Menu Items', ((productAnalytics as any)?.totalMenuItems || 0).toString()]);
+                      csvData.push(['Average Item Price (PHP)', formatCurrencyForCSV((productAnalytics as any)?.averageItemPrice || 0)]);
+                      csvData.push([]);
+                      
+                      // Most Ordered Items
+                      csvData.push(['MOST ORDERED ITEMS (TOP 10)']);
+                      csvData.push(['-'.repeat(80)]);
+                      csvData.push(['Item Name', 'Category', 'Order Count', 'Total Revenue (PHP)']);
+                      const mostOrdered = ((productAnalytics as any)?.mostOrdered || []).slice(0, 10);
+                      if (mostOrdered.length > 0) {
+                        mostOrdered.forEach((item: any) => {
+                          csvData.push([
+                            item.itemName || 'Unknown',
+                            item.category || 'N/A',
+                            (item.orderCount || 0).toString(),
+                            formatCurrencyForCSV(item.totalRevenue || 0)
+                          ]);
+                        });
+                      } else {
+                        csvData.push(['No data available']);
+                      }
+                      csvData.push([]);
+                      csvData.push(['='.repeat(80)]);
+                      csvData.push(['End of Report']);
+                      
+                      // Convert to CSV with proper escaping
+                      const csvContent = csvData.map(row => 
+                        row.map(cell => {
+                          const cellStr = String(cell);
+                          // Escape quotes and wrap in quotes if contains comma, quote, or newline
+                          if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+                            return `"${cellStr.replace(/"/g, '""')}"`;
+                          }
+                          return cellStr;
+                        }).join(',')
+                      ).join('\n');
+                      
+                      // Add UTF-8 BOM for Excel compatibility
+                      const BOM = '\uFEFF';
+                      const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
                       const link = document.createElement('a');
                       link.href = URL.createObjectURL(blob);
                       link.download = `analytics-report-${new Date().toISOString().split('T')[0]}.csv`;
