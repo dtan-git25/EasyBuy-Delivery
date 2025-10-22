@@ -61,6 +61,14 @@ Preferred communication style: Simple, everyday language.
   - Set default address for quick checkout
   - Edit, delete, and manage multiple saved addresses
   - Address dropdown selector in checkout
+- **Merchant Store Location (Map Pin)**: Interactive Leaflet map integration for merchants to set and update exact store location:
+  - **Registration**: During signup, merchants can optionally set their store location via interactive map with click-to-place pin, drag marker, GPS geolocation, and address search (geocoding)
+  - **Profile Management**: Merchants can update store location in My Account tab when editing profile - map only appears in edit mode
+  - **Features**: Click anywhere to place pin, drag pin to adjust, "Use Current Location" button (GPS), "Search Address" button (geocodes store address), real-time coordinate display
+  - **Storage**: Coordinates saved to `restaurants.latitude` and `restaurants.longitude` in database
+  - **Default Center**: Manila (14.5995, 120.9842) at zoom 15 for street-level view
+  - **Map Lifecycle**: 150ms initialization delay for UI readiness, automatic cleanup when exiting edit mode or on save success
+  - **Backend**: Registration via POST `/api/auth/register/merchant` and profile updates via PATCH `/api/merchant/profile` handle coordinate persistence
 - **Rider Delivery View**: Enhanced rider portal displays delivery addresses with "View on Map" button when coordinates are available, opening OpenStreetMap for navigation.
 
 ### Business Logic
