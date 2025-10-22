@@ -1271,16 +1271,9 @@ export default function AdminPortal() {
               <h2 className="text-2xl font-bold text-foreground">Admin Dashboard</h2>
               <p className="text-muted-foreground">Manage your delivery platform operations</p>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <span className="text-sm text-muted-foreground">System Status: Online</span>
-              </div>
-              <NotificationDropdown />
-              <Button data-testid="button-export-reports">
-                <Download className="mr-2 h-4 w-4" />
-                Export Reports
-              </Button>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+              <span className="text-sm text-muted-foreground">System Status: Online</span>
             </div>
           </div>
         </div>
