@@ -23,8 +23,8 @@ const addressSchema = z.object({
   cityMunicipality: z.string().min(1, "City/Municipality is required"),
   province: z.string().min(1, "Province is required"),
   landmark: z.string().optional(),
-  latitude: z.string().optional(),
-  longitude: z.string().optional(),
+  latitude: z.string().min(1, "Please pin your location on the map"),
+  longitude: z.string().min(1, "Please pin your location on the map"),
 });
 
 type AddressFormData = z.infer<typeof addressSchema>;

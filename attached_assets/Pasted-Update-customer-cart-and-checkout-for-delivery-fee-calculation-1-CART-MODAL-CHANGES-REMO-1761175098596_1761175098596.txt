@@ -1,0 +1,127 @@
+Update customer cart and checkout for delivery fee calculation:
+
+1. CART MODAL CHANGES:
+   - REMOVE "Delivery Fee" line from cart modal
+   - Cart modal should only show:
+     * Item list with prices
+     * Subtotal
+     * "Proceed to Checkout" button
+   - Do NOT calculate or display delivery fee in cart
+
+2. CHECKOUT MODAL REQUIREMENTS:
+   
+   Customer MUST have pin location set:
+   - Check if customer has saved address with coordinates (lat, lng)
+   - If NO pin location:
+     * Show warning: "Please set your delivery location to continue"
+     * Display "Set Pin Location" button
+     * Open map modal to pin location
+     * Cannot proceed to payment without pin location
+   - If pin location exists:
+     * Allow checkout to proceed
+     * Calculate delivery fee
+
+3. DELIVERY FEE CALCULATION IN CHECKOUT:
+   
+   When checkout modal opens:
+   - Get customer coordinates (latitude, longitude)
+   - Get merchant coordinates (latitude, longitude)
+   - Calculate distance using Haversine formula
+   - Get admin settings (base_rate, succeeding_rate)
+   - Calculate delivery fee:
+```
+     roundedDistance = Math.ceil(distance)
+     if (roundedDistance <= 1):
+       fee = baseRate
+     else:
+       fee = baseRate + ((roundedDistance - 1) × succeedingRate)
+```
+   - Display calculated fee in checkout
+
+4. CHECKOUT MODAL DISPLAY:
+   
+   Delivery Address:
+   [Customer's saved address]
+   Distance: 3.2 km
+   [Edit Address] button
+   
+   Order Summary:
+   Subtotal: ₱500.00
+   Delivery Fee (4 km): ₱80.00
+   Merchant Fee: ₱20.00
+   Convenience Fee: ₱15.00
+   Markup: ₱50.00
+   ─────────────────────
+   TOTAL: ₱665.00
+   
+   Payment Method:
+   ○ Cash on Delivery
+   ○ GCash
+   ○ Maya
+   
+   [Place Order] button
+
+5. ADDRESS VALIDATION:
+   
+   Before showing checkout:
+   - Check if customer.address_latitude exists
+   - Check if customer.address_longitude exists
+   - If missing, block checkout:
+```
+     Alert: "Delivery location required"
+     Message: "Please pin your exact delivery location on the map to calculate delivery fee and proceed with checkout."
+     [Set Location Now] button
+```
+
+6. EDIT ADDRESS IN CHECKOUT:
+   
+   If customer clicks "Edit Address":
+   - Open map modal with current pin
+   - Allow moving pin to new location
+   - On save:
+     * Update customer address coordinates
+     * Recalculate distance
+     * Recalculate delivery fee
+     * Update checkout total
+     * Close map modal
+     * Show updated fee immediately
+
+7. MULTIPLE MERCHANTS (if applicable):
+   
+   If cart has items from multiple merchants:
+   - Calculate distance to EACH merchant
+   - Calculate separate delivery fee for each
+   - Display breakdown:
+     * Delivery Fee (Store A - 3km): ₱70.00
+     * Delivery Fee (Store B - 5km): ₱90.00
+     * Total Delivery: ₱160.00
+
+8. REAL-TIME UPDATES:
+   
+   Any address change triggers:
+   - Immediate distance recalculation
+   - Immediate delivery fee update
+   - Total amount update
+   - No page refresh needed
+
+9. SAVE TO ORDER:
+   
+   When order is placed, save:
+   - customer_delivery_lat
+   - customer_delivery_lng
+   - merchant_store_lat
+   - merchant_store_lng
+   - delivery_distance_km (e.g., 3.7)
+   - delivery_distance_rounded (e.g., 4)
+   - delivery_fee_calculated (e.g., 80.00)
+   - base_rate_used (e.g., 50.00)
+   - succeeding_rate_used (e.g., 10.00)
+
+10. ERROR HANDLING:
+    
+    - If merchant has no coordinates: Show error "Store location not available"
+    - If customer has no coordinates: Require pin location first
+    - If distance calculation fails: Show error, prevent checkout
+    - If distance > max delivery radius: "Outside delivery area"
+
+This ensures accurate delivery fee calculation based on real GPS distances only at checkout time, not in the cart.

@@ -1,0 +1,111 @@
+Make pin location REQUIRED when customer adds delivery address in checkout modal:
+
+IMPLEMENTATION:
+
+1. ADD DELIVERY ADDRESS MODAL:
+   
+   Required fields:
+   - Full Name (text input)
+   - Phone Number (text input)
+   - Address Line 1 (text input)
+   - City (text input)
+   - Barangay (text input)
+   - Landmark (optional, text input)
+   - PIN LOCATION (REQUIRED - map interaction)
+
+2. MAP INTEGRATION:
+   
+   - Display interactive map in the address form
+   - Map height: 300-400px
+   - Show instruction: "Click on the map to pin your exact delivery location"
+   - Map must show a marker/pin
+   - Pin must be placed before saving address
+   
+3. VALIDATION:
+   
+   Before allowing "Save Address":
+   - Check if pin has been placed on map
+   - Check if latitude and longitude values exist
+   - If NO pin location:
+     * Show error: "Please pin your exact location on the map"
+     * Highlight map area in red border
+     * Disable "Save Address" button OR show error on click
+   - If pin location exists:
+     * Allow saving address
+     * Store coordinates with address
+
+4. UI/UX FLOW:
+   
+   Step 1: Customer clicks "Add New Address" in checkout
+   Step 2: Modal opens with form + map
+   Step 3: Customer fills in address details
+   Step 4: Customer clicks on map to pin location (REQUIRED)
+   Step 5: Pin appears on map, coordinates captured
+   Step 6: Customer clicks "Save Address"
+   Step 7: Validate: all fields + pin location exist
+   Step 8: Save address with coordinates to database
+   Step 9: Close modal, select this address for delivery
+   Step 10: Calculate delivery fee based on pin location
+
+5. MAP FEATURES:
+   
+   - "Use Current Location" button (GPS)
+   - Search address bar (optional, helps user find location)
+   - Draggable marker (user can adjust pin position)
+   - Zoom controls
+   - Default center: Manila or last known location
+   - Click anywhere to place/move pin
+   - Show coordinates below map (optional): "Lat: 14.5995, Lng: 120.9842"
+
+6. VISUAL INDICATORS:
+   
+   Before pin is placed:
+   - Map with instruction text overlay
+   - "Save Address" button disabled or grayed out
+   - Required indicator (*) next to "Pin Location" label
+   
+   After pin is placed:
+   - Marker visible on map
+   - "Save Address" button enabled and highlighted
+   - Show green checkmark: "✓ Location pinned"
+
+7. DATABASE STORAGE:
+   
+   Save to customer_addresses table:
+   - address_id
+   - customer_id
+   - full_name
+   - phone_number
+   - address_line1
+   - city
+   - barangay
+   - landmark
+   - latitude (decimal, REQUIRED)
+   - longitude (decimal, REQUIRED)
+   - is_default (boolean)
+   - created_at
+
+8. EDIT ADDRESS:
+   
+   When editing existing address:
+   - Show map with current pin location
+   - Allow moving pin to update coordinates
+   - Require pin location even when editing
+   - Update delivery fee if coordinates change
+
+9. ERROR MESSAGES:
+   
+   If trying to save without pin:
+   "⚠️ Pin Location Required
+   Please click on the map to mark your exact delivery location. This helps our riders find you easily and calculates accurate delivery fees."
+   
+   If map fails to load:
+   "⚠️ Map Loading Error
+   Please check your internet connection and try again. Pin location is required to proceed."
+
+10. FIRST-TIME USER HELP:
+    
+    Show helpful tooltip on first address add:
+    "📍 Tap anywhere on the map to pin your exact delivery location. You can drag the pin to adjust it."
+
+This ensures every delivery address has accurate GPS coordinates, enabling precise delivery fee calculation and helping riders find customers easily.
