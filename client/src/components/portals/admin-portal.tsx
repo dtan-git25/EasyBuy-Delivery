@@ -2403,38 +2403,6 @@ export default function AdminPortal() {
                       </p>
                     </div>
                   </div>
-
-                  <div>
-                    <h3 className="text-sm font-semibold mb-2">Daily Order Trends</h3>
-                    <div className="h-[300px] border rounded-lg p-4">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={(orderAnalytics as any)?.dailyTrends || []}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="date" />
-                          <YAxis />
-                          <Tooltip />
-                          <Legend />
-                          <Line type="monotone" dataKey="orderCount" stroke="#3b82f6" strokeWidth={2} name="Orders" />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-semibold mb-2">Peak Ordering Hours</h3>
-                    <div className="h-[250px] border rounded-lg p-4">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={(orderAnalytics as any)?.peakHours || []}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="hour" label={{ value: 'Hour of Day', position: 'insideBottom', offset: -5 }} />
-                          <YAxis />
-                          <Tooltip />
-                          <Legend />
-                          <Bar dataKey="orderCount" fill="#f59e0b" name="Orders" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
 
