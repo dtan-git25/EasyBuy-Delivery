@@ -1437,9 +1437,9 @@ export default function AdminPortal() {
           </div>
 
           {/* Admin Navigation Tabs */}
-          <Tabs defaultValue="dashboard" className="w-full">
-            <TabsList className={`grid w-full ${isOwner ? 'grid-cols-8' : 'grid-cols-7'}`}>
-              <TabsTrigger value="dashboard" data-testid="tab-dashboard">Dashboard</TabsTrigger>
+          <Tabs defaultValue="reports" className="w-full">
+            <TabsList className={`grid w-full ${isOwner ? 'grid-cols-7' : 'grid-cols-6'}`}>
+              <TabsTrigger value="reports" data-testid="tab-reports">Reports</TabsTrigger>
               <TabsTrigger value="management" data-testid="tab-management">
                 <Users className="w-4 h-4 mr-2" />
                 Management
@@ -1457,7 +1457,6 @@ export default function AdminPortal() {
                 Menu Settings
               </TabsTrigger>
               <TabsTrigger value="settings" data-testid="tab-settings">Settings</TabsTrigger>
-              <TabsTrigger value="reports" data-testid="tab-reports">Reports</TabsTrigger>
               <TabsTrigger value="profile" data-testid="tab-profile">
                 My Account
               </TabsTrigger>
