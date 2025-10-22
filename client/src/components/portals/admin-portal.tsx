@@ -1930,18 +1930,6 @@ export default function AdminPortal() {
                   </CardContent>
                 </Card>
 
-                {/* Store Management - Enhanced Table View */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Store className="mr-2 h-5 w-5 text-primary" />
-                      Store Management
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <StoreManagementTable />
-                  </CardContent>
-                </Card>
 
                 {/* Multi-Merchant Checkout Settings */}
                 <Card>
@@ -2192,11 +2180,6 @@ export default function AdminPortal() {
                 </Card>
               </div>
 
-              {/* Customer Management - Full Width Section */}
-              <CustomerManagement />
-
-              {/* Rider Management - Full Width Section */}
-              <RiderManagement />
             </TabsContent>
 
             <TabsContent value="management" className="space-y-6">
