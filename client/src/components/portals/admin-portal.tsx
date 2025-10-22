@@ -2635,25 +2635,6 @@ export default function AdminPortal() {
                       </p>
                     </div>
                   </div>
-
-                  <div>
-                    <h3 className="text-sm font-semibold mb-2">Distance Distribution</h3>
-                    <div className="h-[250px] border rounded-lg p-4">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={Object.entries((deliveryAnalytics as any)?.distanceDistribution || {}).map(([range, count]) => ({
-                          range,
-                          count: Number(count)
-                        }))}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="range" />
-                          <YAxis />
-                          <Tooltip />
-                          <Legend />
-                          <Bar dataKey="count" fill="#f97316" name="Deliveries" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
 
@@ -2701,34 +2682,6 @@ export default function AdminPortal() {
                           </tr>
                         </tbody>
                       </table>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-semibold mb-2">Items by Category</h3>
-                    <div className="h-[250px] border rounded-lg p-4">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={Object.entries((productAnalytics as any)?.itemsByCategory || {}).map(([name, value]) => ({
-                              name,
-                              value: Number(value)
-                            }))}
-                            dataKey="value"
-                            nameKey="name"
-                            cx="50%"
-                            cy="50%"
-                            outerRadius={70}
-                            label={({ name, value }) => `${name}: ${value}`}
-                          >
-                            {Object.keys((productAnalytics as any)?.itemsByCategory || {}).map((_, index) => (
-                              <Cell key={`cell-${index}`} fill={['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'][index % 6]} />
-                            ))}
-                          </Pie>
-                          <Tooltip />
-                          <Legend />
-                        </PieChart>
-                      </ResponsiveContainer>
                     </div>
                   </div>
                 </CardContent>
