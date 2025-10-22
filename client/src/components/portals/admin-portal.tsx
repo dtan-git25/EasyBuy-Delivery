@@ -17,7 +17,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ShoppingCart, DollarSign, Bike, Store, Download, Eye, Check, X, Clock, Users, TrendingUp, FileText, AlertCircle, Crown, UserPlus, Trash2, Mail, Phone, MapPin, Calendar, CheckCircle, Utensils, Star, ImageIcon, CreditCard } from "lucide-react";
+import { ShoppingCart, DollarSign, Bike, Store, Download, Eye, Check, X, Clock, Users, TrendingUp, FileText, AlertCircle, Crown, UserPlus, Trash2, Mail, Phone, MapPin, Calendar, CheckCircle, Utensils, Star, ImageIcon, CreditCard, BarChart3, Settings as SettingsIcon, User } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { CustomerManagement } from "@/components/customer-management";
@@ -1439,7 +1439,10 @@ export default function AdminPortal() {
           {/* Admin Navigation Tabs */}
           <Tabs defaultValue="reports" className="w-full">
             <TabsList className={`grid w-full ${isOwner ? 'grid-cols-7' : 'grid-cols-6'}`}>
-              <TabsTrigger value="reports" data-testid="tab-reports">Reports</TabsTrigger>
+              <TabsTrigger value="reports" data-testid="tab-reports">
+                <BarChart3 className="w-4 h-4 mr-2" />
+                Reports
+              </TabsTrigger>
               <TabsTrigger value="management" data-testid="tab-management">
                 <Users className="w-4 h-4 mr-2" />
                 Management
@@ -1454,10 +1457,15 @@ export default function AdminPortal() {
                 )}
               </TabsTrigger>
               <TabsTrigger value="menu-settings" data-testid="tab-menu-settings">
+                <Utensils className="w-4 h-4 mr-2" />
                 Menu Settings
               </TabsTrigger>
-              <TabsTrigger value="settings" data-testid="tab-settings">Settings</TabsTrigger>
+              <TabsTrigger value="settings" data-testid="tab-settings">
+                <SettingsIcon className="w-4 h-4 mr-2" />
+                Settings
+              </TabsTrigger>
               <TabsTrigger value="profile" data-testid="tab-profile">
+                <User className="w-4 h-4 mr-2" />
                 My Account
               </TabsTrigger>
               {isOwner && (

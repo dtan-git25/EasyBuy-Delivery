@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Bike, Wallet, Clock, Star, MapPin, Phone, User, Upload, FileText, CheckCircle, XCircle, AlertCircle, Map, Users, Download, Eye, Package, DollarSign } from "lucide-react";
+import { Bike, Wallet, Clock, Star, MapPin, Phone, User, Upload, FileText, CheckCircle, XCircle, AlertCircle, Map, Users, Download, Eye, Package, DollarSign, ClipboardList, History } from "lucide-react";
 import { apiRequest, queryClient as globalQueryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useWebSocket } from "@/lib/websocket";
@@ -755,18 +755,23 @@ export default function RiderPortal() {
           <Tabs defaultValue="pending" className="w-full">
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="pending" data-testid="tab-pending">
+                <ClipboardList className="w-4 h-4 mr-2" />
                 Pending Orders 
                 {pendingOrders.length > 0 && (
                   <Badge className="ml-2">{pendingOrders.length}</Badge>
                 )}
               </TabsTrigger>
               <TabsTrigger value="active" data-testid="tab-active">
+                <Package className="w-4 h-4 mr-2" />
                 Active Orders
                 {activeOrders.length > 0 && (
                   <Badge className="ml-2">{activeOrders.length}</Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="history" data-testid="tab-history">Order History</TabsTrigger>
+              <TabsTrigger value="history" data-testid="tab-history">
+                <History className="w-4 h-4 mr-2" />
+                Order History
+              </TabsTrigger>
               <TabsTrigger value="documents" data-testid="tab-documents">
                 <FileText className="w-4 h-4 mr-2" />
                 Documents

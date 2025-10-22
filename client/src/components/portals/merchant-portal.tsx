@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Store, MapPin, Star, Clock, User, Phone, MessageCircle, Edit, Plus, AlertCircle, CheckCircle, XCircle, Power, Trash2, Camera, Utensils, X } from "lucide-react";
+import { Store, MapPin, Star, Clock, User, Phone, MessageCircle, Edit, Plus, AlertCircle, CheckCircle, XCircle, Power, Trash2, Camera, Utensils, X, Package, History, BarChart3 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -1175,17 +1175,28 @@ export default function MerchantPortal() {
           <Tabs defaultValue="orders" className="w-full">
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="orders" data-testid="tab-orders">
+                <Package className="w-4 h-4 mr-2" />
                 Active Orders
                 {activeOrders.length > 0 && (
                   <Badge className="ml-2">{activeOrders.length}</Badge>
                 )}
               </TabsTrigger>
               <TabsTrigger value="menu" data-testid="tab-menu" disabled={user?.approvalStatus !== 'approved'}>
+                <Utensils className="w-4 h-4 mr-2" />
                 Menu Management
               </TabsTrigger>
-              <TabsTrigger value="history" data-testid="tab-history">Order History</TabsTrigger>
-              <TabsTrigger value="analytics" data-testid="tab-analytics">Analytics</TabsTrigger>
-              <TabsTrigger value="profile" data-testid="tab-profile">My Account</TabsTrigger>
+              <TabsTrigger value="history" data-testid="tab-history">
+                <History className="w-4 h-4 mr-2" />
+                Order History
+              </TabsTrigger>
+              <TabsTrigger value="analytics" data-testid="tab-analytics">
+                <BarChart3 className="w-4 h-4 mr-2" />
+                Analytics
+              </TabsTrigger>
+              <TabsTrigger value="profile" data-testid="tab-profile">
+                <User className="w-4 h-4 mr-2" />
+                My Account
+              </TabsTrigger>
             </TabsList>
 
             {/* Active Orders */}
