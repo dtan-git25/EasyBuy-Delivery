@@ -58,8 +58,8 @@ export function AddressSelector({ value, onChange, disabled }: AddressSelectorPr
       cityMunicipality: "",
       province: "",
       landmark: "",
-      latitude: "12.8797",
-      longitude: "121.7740",
+      latitude: "",
+      longitude: "",
     },
   });
 
@@ -173,8 +173,10 @@ export function AddressSelector({ value, onChange, disabled }: AddressSelectorPr
       if (mapContainerRef.current && !mapRef.current) {
         try {
           // Get initial coordinates from form or use Philippines default (Manila)
-          const lat = parseFloat(form.watch("latitude") || "14.5995");
-          const lng = parseFloat(form.watch("longitude") || "120.9842");
+          const latValue = form.watch("latitude");
+          const lngValue = form.watch("longitude");
+          const lat = latValue && latValue.trim() ? parseFloat(latValue) : 14.5995;
+          const lng = lngValue && lngValue.trim() ? parseFloat(lngValue) : 120.9842;
           
           // Create map instance with higher zoom for better view
           const map = L.map(mapContainerRef.current, {
@@ -189,22 +191,45 @@ export function AddressSelector({ value, onChange, disabled }: AddressSelectorPr
             maxZoom: 19,
           }).addTo(map);
           
-          // Create draggable marker
-          const marker = L.marker([lat, lng], { 
-            draggable: true,
-            autoPan: true,
-          }).addTo(map);
+          // Create draggable marker only if coordinates exist
+          let marker: L.Marker | null = null;
+          if (latValue && lngValue && latValue.trim() && lngValue.trim()) {
+            marker = L.marker([lat, lng], { 
+              draggable: true,
+              autoPan: true,
+            }).addTo(map);
+            
+            // Update coordinates when marker is dragged
+            marker.on("dragend", () => {
+              const position = marker!.getLatLng();
+              form.setValue("latitude", position.lat.toFixed(6));
+              form.setValue("longitude", position.lng.toFixed(6));
+            });
+          }
           
-          // Update coordinates when marker is dragged
-          marker.on("dragend", () => {
-            const position = marker.getLatLng();
-            form.setValue("latitude", position.lat.toFixed(6));
-            form.setValue("longitude", position.lng.toFixed(6));
-          });
-          
-          // Allow clicking on map to move marker
+          // Allow clicking on map to place/move marker
           map.on("click", (e) => {
-            marker.setLatLng(e.latlng);
+            if (!marker) {
+              // Create marker if it doesn't exist
+              marker = L.marker(e.latlng, { 
+                draggable: true,
+                autoPan: true,
+              }).addTo(map);
+              
+              // Add drag listener
+              marker.on("dragend", () => {
+                const position = marker!.getLatLng();
+                form.setValue("latitude", position.lat.toFixed(6));
+                form.setValue("longitude", position.lng.toFixed(6));
+              });
+              
+              markerRef.current = marker;
+            } else {
+              // Move existing marker
+              marker.setLatLng(e.latlng);
+            }
+            
+            // Update form values
             form.setValue("latitude", e.latlng.lat.toFixed(6));
             form.setValue("longitude", e.latlng.lng.toFixed(6));
           });
@@ -246,9 +271,27 @@ export function AddressSelector({ value, onChange, disabled }: AddressSelectorPr
         form.setValue("longitude", longitude.toFixed(6));
 
         // Update map view and marker position
-        if (mapRef.current && markerRef.current) {
+        if (mapRef.current) {
           mapRef.current.setView([latitude, longitude], 17);
-          markerRef.current.setLatLng([latitude, longitude]);
+          
+          if (markerRef.current) {
+            // Update existing marker
+            markerRef.current.setLatLng([latitude, longitude]);
+          } else {
+            // Create new marker if it doesn't exist
+            const marker = L.marker([latitude, longitude], {
+              draggable: true,
+              autoPan: true,
+            }).addTo(mapRef.current);
+            
+            marker.on("dragend", () => {
+              const position = marker.getLatLng();
+              form.setValue("latitude", position.lat.toFixed(6));
+              form.setValue("longitude", position.lng.toFixed(6));
+            });
+            
+            markerRef.current = marker;
+          }
         }
 
         toast({
@@ -296,9 +339,29 @@ export function AddressSelector({ value, onChange, disabled }: AddressSelectorPr
         form.setValue("longitude", longitude);
         
         // Update map view and marker position
-        if (mapRef.current && markerRef.current) {
-          mapRef.current.setView([parseFloat(latitude), parseFloat(longitude)], 15);
-          markerRef.current.setLatLng([parseFloat(latitude), parseFloat(longitude)]);
+        if (mapRef.current) {
+          const lat = parseFloat(latitude);
+          const lng = parseFloat(longitude);
+          mapRef.current.setView([lat, lng], 15);
+          
+          if (markerRef.current) {
+            // Update existing marker
+            markerRef.current.setLatLng([lat, lng]);
+          } else {
+            // Create new marker if it doesn't exist
+            const marker = L.marker([lat, lng], {
+              draggable: true,
+              autoPan: true,
+            }).addTo(mapRef.current);
+            
+            marker.on("dragend", () => {
+              const position = marker.getLatLng();
+              form.setValue("latitude", position.lat.toFixed(6));
+              form.setValue("longitude", position.lng.toFixed(6));
+            });
+            
+            markerRef.current = marker;
+          }
         }
         
         toast({
@@ -334,8 +397,8 @@ export function AddressSelector({ value, onChange, disabled }: AddressSelectorPr
         cityMunicipality: address.cityMunicipality,
         province: address.province,
         landmark: address.landmark || "",
-        latitude: address.latitude || "12.8797",
-        longitude: address.longitude || "121.7740",
+        latitude: address.latitude || "",
+        longitude: address.longitude || "",
       });
     } else {
       setEditingAddress(null);
@@ -347,8 +410,8 @@ export function AddressSelector({ value, onChange, disabled }: AddressSelectorPr
         cityMunicipality: "",
         province: "",
         landmark: "",
-        latitude: "12.8797",
-        longitude: "121.7740",
+        latitude: "",
+        longitude: "",
       });
     }
     setIsModalOpen(true);
@@ -558,11 +621,11 @@ export function AddressSelector({ value, onChange, disabled }: AddressSelectorPr
 
             <div className="space-y-3">
               <Label className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                Pin Your Location on Map
+                <MapPin className="h-4 w-4 text-primary" />
+                Pin Your Location on Map *
               </Label>
               <p className="text-sm text-muted-foreground">
-                Click anywhere on the map or drag the pin to your exact location for accurate delivery fees.
+                <strong>Required:</strong> Click anywhere on the map or drag the pin to your exact location for accurate delivery fees.
               </p>
               
               <div className="grid grid-cols-2 gap-2">
@@ -597,15 +660,30 @@ export function AddressSelector({ value, onChange, disabled }: AddressSelectorPr
               />
               
               {/* Display current coordinates */}
-              <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center gap-2 p-3 bg-muted rounded-md border">
+                <MapPin className="h-4 w-4 text-primary" />
                 <div className="flex-1 text-sm">
-                  <span className="font-medium">Pin Location: </span>
-                  <span className="text-muted-foreground">
-                    Lat: {form.watch("latitude")}, Lng: {form.watch("longitude")}
-                  </span>
+                  {form.watch("latitude") && form.watch("longitude") ? (
+                    <>
+                      <span className="font-medium">Pin Location: </span>
+                      <span className="text-muted-foreground">
+                        Lat: {form.watch("latitude")}, Lng: {form.watch("longitude")}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground italic">
+                      No location pinned yet. Click the map or use the buttons above to set your location.
+                    </span>
+                  )}
                 </div>
               </div>
+              
+              {/* Validation error display */}
+              {(form.formState.errors.latitude || form.formState.errors.longitude) && (
+                <p className="text-sm text-destructive font-medium">
+                  {form.formState.errors.latitude?.message || form.formState.errors.longitude?.message}
+                </p>
+              )}
             </div>
 
             <div className="flex justify-end gap-2">
