@@ -24,6 +24,12 @@ import { CustomerManagement } from "@/components/customer-management";
 import { RiderManagement } from "@/components/rider-management";
 import { NotificationDropdown } from "@/components/NotificationDropdown";
 
+// Helper function to safely format numbers with .toFixed()
+const formatNumber = (value: any, decimals: number = 2): string => {
+  const num = Number(value);
+  return (isNaN(num) ? 0 : num).toFixed(decimals);
+};
+
 const systemAccountSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
   email: z.string().email("Invalid email address"),
@@ -519,7 +525,7 @@ function MerchantRatingCell({ merchantId }: { merchantId?: string }) {
   return (
     <div className="flex items-center gap-1">
       <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-      <span className="text-sm font-medium">{avgRating.toFixed(1)}</span>
+      <span className="text-sm font-medium">{formatNumber(avgRating, 1)}</span>
       <span className="text-xs text-muted-foreground">({count})</span>
     </div>
   );
@@ -2347,7 +2353,7 @@ export default function AdminPortal() {
                     <div className="p-4 border rounded-lg">
                       <p className="text-sm text-muted-foreground mb-1">Completion Rate</p>
                       <p className="text-3xl font-bold text-green-600" data-testid="text-completion-rate">
-                        {((orderAnalytics as any)?.completionRate || 0).toFixed(1)}%
+                        {formatNumber((orderAnalytics as any)?.completionRate, 1)}%
                       </p>
                     </div>
                     <div className="p-4 border rounded-lg">
@@ -2462,7 +2468,7 @@ export default function AdminPortal() {
                         <div className="p-4 border rounded-lg">
                           <p className="text-sm text-muted-foreground">Avg Rating</p>
                           <p className="text-2xl font-bold text-yellow-600" data-testid="text-avg-merchant-rating">
-                            {((userAnalytics as any)?.merchants?.averageRating || 0).toFixed(1)}
+                            {formatNumber((userAnalytics as any)?.merchants?.averageRating, 1)}
                           </p>
                         </div>
                       </div>
@@ -2488,7 +2494,7 @@ export default function AdminPortal() {
                                     <td className="p-3">₱{merchant.revenue.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</td>
                                     <td className="p-3 flex items-center">
                                       <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 mr-1" />
-                                      {(merchant.rating || 0).toFixed(1)}
+                                      {formatNumber(merchant.rating, 1)}
                                     </td>
                                   </tr>
                                 ))
@@ -2522,7 +2528,7 @@ export default function AdminPortal() {
                         <div className="p-4 border rounded-lg">
                           <p className="text-sm text-muted-foreground">Avg Rating</p>
                           <p className="text-2xl font-bold text-yellow-600" data-testid="text-avg-rider-rating">
-                            {((userAnalytics as any)?.riders?.averageRating || 0).toFixed(1)}
+                            {formatNumber((userAnalytics as any)?.riders?.averageRating, 1)}
                           </p>
                         </div>
                       </div>
@@ -2548,7 +2554,7 @@ export default function AdminPortal() {
                                     <td className="p-3">₱{rider.earnings.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</td>
                                     <td className="p-3 flex items-center">
                                       <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 mr-1" />
-                                      {(rider.rating || 0).toFixed(1)}
+                                      {formatNumber(rider.rating, 1)}
                                     </td>
                                   </tr>
                                 ))
@@ -2587,13 +2593,13 @@ export default function AdminPortal() {
                     <div className="p-4 border rounded-lg">
                       <p className="text-sm text-muted-foreground">Success Rate</p>
                       <p className="text-2xl font-bold text-green-600" data-testid="text-success-rate">
-                        {((deliveryAnalytics as any)?.successRate || 0).toFixed(1)}%
+                        {formatNumber((deliveryAnalytics as any)?.successRate, 1)}%
                       </p>
                     </div>
                     <div className="p-4 border rounded-lg">
                       <p className="text-sm text-muted-foreground">Avg Distance</p>
                       <p className="text-2xl font-bold text-blue-600" data-testid="text-avg-distance">
-                        {((deliveryAnalytics as any)?.averageDistance || 0).toFixed(1)} km
+                        {formatNumber((deliveryAnalytics as any)?.averageDistance, 1)} km
                       </p>
                     </div>
                     <div className="p-4 border rounded-lg">
