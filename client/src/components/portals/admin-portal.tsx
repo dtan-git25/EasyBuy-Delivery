@@ -2709,11 +2709,22 @@ export default function AdminPortal() {
                           </tr>
                         </thead>
                         <tbody>
-                          <tr>
-                            <td colSpan={4} className="text-center p-8 text-muted-foreground">
-                              No data available
-                            </td>
-                          </tr>
+                          {((productAnalytics as any)?.mostOrdered || []).length > 0 ? (
+                            ((productAnalytics as any)?.mostOrdered || []).slice(0, 10).map((item: any, idx: number) => (
+                              <tr key={idx} className="border-t">
+                                <td className="p-3">{item.itemName}</td>
+                                <td className="p-3">{item.category}</td>
+                                <td className="p-3">{item.orderCount}</td>
+                                <td className="p-3">₱{formatCurrency(item.totalRevenue)}</td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan={4} className="text-center p-8 text-muted-foreground">
+                                No data available
+                              </td>
+                            </tr>
+                          )}
                         </tbody>
                       </table>
                     </div>

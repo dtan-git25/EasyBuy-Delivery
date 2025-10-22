@@ -2066,7 +2066,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const restaurant = restaurants.find((r: any) => r.id === id);
           return {
             merchantId: id,
-            merchantName: restaurant?.name || 'Unknown',
+            name: restaurant?.name || 'Unknown',
             revenue: revenue
           };
         })
@@ -2093,7 +2093,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         convenienceFees,
         averageOrderValue,
         revenueByPaymentMethod,
-        merchantRevenue,
+        revenueByMerchant: merchantRevenue,
         revenueTrends,
         breakdown: {
           subtotal: subtotalRevenue,
@@ -2530,7 +2530,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mostOrdered,
         leastOrdered,
         itemsByCategory,
-        avgPrice
+        averageItemPrice: avgPrice
       });
     } catch (error) {
       console.error("Error fetching product analytics:", error);
