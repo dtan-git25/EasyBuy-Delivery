@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { CustomerManagement } from "@/components/customer-management";
 import { RiderManagement } from "@/components/rider-management";
 import { NotificationDropdown } from "@/components/NotificationDropdown";
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 // Helper function to safely format numbers with .toFixed()
 const formatNumber = (value: any, decimals: number = 2): string => {
@@ -2299,16 +2300,46 @@ export default function AdminPortal() {
                   </div>
 
                   <div>
-                    <h3 className="text-sm font-semibold mb-2">Revenue Breakdown</h3>
-                    <div className="h-[300px] flex items-center justify-center border rounded-lg bg-muted/10">
-                      <p className="text-muted-foreground">Revenue chart will display here</p>
+                    <h3 className="text-sm font-semibold mb-2">Revenue by Payment Method</h3>
+                    <div className="h-[300px] border rounded-lg p-4">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={Object.entries((revenueAnalytics as any)?.revenueByPaymentMethod || {}).map(([name, value]) => ({
+                              name: name.toUpperCase(),
+                              value: Number(value)
+                            }))}
+                            dataKey="value"
+                            nameKey="name"
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={80}
+                            label={({ name, value }) => `${name}: ₱${formatCurrency(value)}`}
+                          >
+                            {Object.keys((revenueAnalytics as any)?.revenueByPaymentMethod || {}).map((_, index) => (
+                              <Cell key={`cell-${index}`} fill={['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6'][index % 4]} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(value: any) => `₱${formatCurrency(value)}`} />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
                     </div>
                   </div>
 
                   <div>
                     <h3 className="text-sm font-semibold mb-2">Top Merchants by Revenue</h3>
-                    <div className="h-[300px] flex items-center justify-center border rounded-lg bg-muted/10">
-                      <p className="text-muted-foreground">Merchant revenue chart will display here</p>
+                    <div className="h-[300px] border rounded-lg p-4">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={((revenueAnalytics as any)?.revenueByMerchant || []).slice(0, 10)}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                          <YAxis />
+                          <Tooltip formatter={(value: any) => `₱${formatCurrency(value)}`} />
+                          <Legend />
+                          <Bar dataKey="revenue" fill="#10b981" name="Revenue" />
+                        </BarChart>
+                      </ResponsiveContainer>
                     </div>
                   </div>
                 </CardContent>
@@ -2374,16 +2405,34 @@ export default function AdminPortal() {
                   </div>
 
                   <div>
-                    <h3 className="text-sm font-semibold mb-2">Order Trends</h3>
-                    <div className="h-[300px] flex items-center justify-center border rounded-lg bg-muted/10">
-                      <p className="text-muted-foreground">Order trends chart will display here</p>
+                    <h3 className="text-sm font-semibold mb-2">Daily Order Trends</h3>
+                    <div className="h-[300px] border rounded-lg p-4">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={(orderAnalytics as any)?.dailyTrends || []}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="date" />
+                          <YAxis />
+                          <Tooltip />
+                          <Legend />
+                          <Line type="monotone" dataKey="orderCount" stroke="#3b82f6" strokeWidth={2} name="Orders" />
+                        </LineChart>
+                      </ResponsiveContainer>
                     </div>
                   </div>
 
                   <div>
                     <h3 className="text-sm font-semibold mb-2">Peak Ordering Hours</h3>
-                    <div className="h-[200px] flex items-center justify-center border rounded-lg bg-muted/10">
-                      <p className="text-muted-foreground">Peak hours chart will display here</p>
+                    <div className="h-[250px] border rounded-lg p-4">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={(orderAnalytics as any)?.peakHours || []}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="hour" label={{ value: 'Hour of Day', position: 'insideBottom', offset: -5 }} />
+                          <YAxis />
+                          <Tooltip />
+                          <Legend />
+                          <Bar dataKey="orderCount" fill="#f59e0b" name="Orders" />
+                        </BarChart>
+                      </ResponsiveContainer>
                     </div>
                   </div>
                 </CardContent>
@@ -2621,8 +2670,20 @@ export default function AdminPortal() {
 
                   <div>
                     <h3 className="text-sm font-semibold mb-2">Distance Distribution</h3>
-                    <div className="h-[200px] flex items-center justify-center border rounded-lg bg-muted/10">
-                      <p className="text-muted-foreground">Distance distribution chart will display here</p>
+                    <div className="h-[250px] border rounded-lg p-4">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={Object.entries((deliveryAnalytics as any)?.distanceDistribution || {}).map(([range, count]) => ({
+                          range,
+                          count: Number(count)
+                        }))}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="range" />
+                          <YAxis />
+                          <Tooltip />
+                          <Legend />
+                          <Bar dataKey="count" fill="#f97316" name="Deliveries" />
+                        </BarChart>
+                      </ResponsiveContainer>
                     </div>
                   </div>
                 </CardContent>
@@ -2677,8 +2738,29 @@ export default function AdminPortal() {
 
                   <div>
                     <h3 className="text-sm font-semibold mb-2">Items by Category</h3>
-                    <div className="h-[200px] flex items-center justify-center border rounded-lg bg-muted/10">
-                      <p className="text-muted-foreground">Category distribution chart will display here</p>
+                    <div className="h-[250px] border rounded-lg p-4">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={Object.entries((productAnalytics as any)?.itemsByCategory || {}).map(([name, value]) => ({
+                              name,
+                              value: Number(value)
+                            }))}
+                            dataKey="value"
+                            nameKey="name"
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={70}
+                            label={({ name, value }) => `${name}: ${value}`}
+                          >
+                            {Object.keys((productAnalytics as any)?.itemsByCategory || {}).map((_, index) => (
+                              <Cell key={`cell-${index}`} fill={['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'][index % 6]} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
                     </div>
                   </div>
                 </CardContent>
