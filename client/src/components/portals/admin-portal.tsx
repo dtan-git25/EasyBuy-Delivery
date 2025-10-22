@@ -2565,7 +2565,7 @@ export default function AdminPortal() {
                               {((userAnalytics as any)?.customers?.topCustomers || []).length > 0 ? (
                                 ((userAnalytics as any)?.customers?.topCustomers || []).map((customer: any, idx: number) => (
                                   <tr key={idx} className="border-t">
-                                    <td className="p-3">{customer.name}</td>
+                                    <td className="p-3">{customer.customerName}</td>
                                     <td className="p-3">{customer.orderCount}</td>
                                     <td className="p-3">₱{formatCurrency(customer.totalSpent)}</td>
                                   </tr>
