@@ -173,67 +173,21 @@ function OptionTypeManagement() {
   };
 
   return (
-    <div className="grid lg:grid-cols-2 gap-6">
-      <Card>
-        <CardHeader>
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
           <CardTitle>Option Types List</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {optionTypes.map((optionType: any) => (
-              <div key={optionType.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <div>
-                  <p className="font-medium text-foreground" data-testid={`text-option-type-name-${optionType.id}`}>{optionType.name}</p>
-                  {optionType.description && (
-                    <p className="text-sm text-muted-foreground" data-testid={`text-option-type-description-${optionType.id}`}>{optionType.description}</p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={optionType.isActive}
-                    onCheckedChange={(checked) => toggleActiveMutation.mutate({ id: optionType.id, isActive: checked })}
-                    data-testid={`toggle-option-type-${optionType.id}`}
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => startEdit(optionType)}
-                    data-testid={`edit-option-type-${optionType.id}`}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => {
-                      if (confirm("Are you sure you want to delete this option type?")) {
-                        deleteOptionTypeMutation.mutate(optionType.id);
-                      }
-                    }}
-                    data-testid={`delete-option-type-${optionType.id}`}
-                  >
-                    Delete
-                  </Button>
-                </div>
-              </div>
-            ))}
-            {optionTypes.length === 0 && (
-              <p className="text-center text-muted-foreground py-8">No option types found. Create one to get started!</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{editingOptionType ? "Edit Option Type" : "Create New Option Type"}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {!isCreating ? (
-            <Button onClick={() => setIsCreating(true)} className="w-full" data-testid="button-create-option-type">
+          {!isCreating && (
+            <Button onClick={() => setIsCreating(true)} data-testid="button-create-option-type">
               Create New Option Type
             </Button>
-          ) : (
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {isCreating && (
+          <div className="p-4 border rounded-lg bg-muted/50">
+            <h4 className="font-semibold mb-4">{editingOptionType ? "Edit Option Type" : "Create New Option Type"}</h4>
             <Form {...optionTypeForm}>
               <form onSubmit={optionTypeForm.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
@@ -281,10 +235,53 @@ function OptionTypeManagement() {
                 </div>
               </form>
             </Form>
+          </div>
+        )}
+        
+        <div className="space-y-3">
+          {optionTypes.map((optionType: any) => (
+            <div key={optionType.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+              <div>
+                <p className="font-medium text-foreground" data-testid={`text-option-type-name-${optionType.id}`}>{optionType.name}</p>
+                {optionType.description && (
+                  <p className="text-sm text-muted-foreground" data-testid={`text-option-type-description-${optionType.id}`}>{optionType.description}</p>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={optionType.isActive}
+                  onCheckedChange={(checked) => toggleActiveMutation.mutate({ id: optionType.id, isActive: checked })}
+                  data-testid={`toggle-option-type-${optionType.id}`}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => startEdit(optionType)}
+                  data-testid={`edit-option-type-${optionType.id}`}
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    if (confirm("Are you sure you want to delete this option type?")) {
+                      deleteOptionTypeMutation.mutate(optionType.id);
+                    }
+                  }}
+                  data-testid={`delete-option-type-${optionType.id}`}
+                >
+                  Delete
+                </Button>
+              </div>
+            </div>
+          ))}
+          {optionTypes.length === 0 && (
+            <p className="text-center text-muted-foreground py-8">No option types found. Create one to get started!</p>
           )}
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -389,70 +386,21 @@ function CategoryManagement() {
   };
 
   return (
-    <div className="grid lg:grid-cols-2 gap-6">
-      <Card>
-        <CardHeader>
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
           <CardTitle>Categories List</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {categories.map((category: any) => (
-              <div key={category.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <div className="flex items-center gap-3">
-                  {category.icon && <span className="text-2xl">{category.icon}</span>}
-                  <div>
-                    <p className="font-medium text-foreground">{category.name}</p>
-                    {category.description && (
-                      <p className="text-sm text-muted-foreground">{category.description}</p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={category.isActive}
-                    onCheckedChange={(checked) => toggleActiveMutation.mutate({ id: category.id, isActive: checked })}
-                    data-testid={`toggle-category-${category.id}`}
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => startEdit(category)}
-                    data-testid={`edit-category-${category.id}`}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => {
-                      if (confirm("Are you sure you want to delete this category?")) {
-                        deleteCategoryMutation.mutate(category.id);
-                      }
-                    }}
-                    data-testid={`delete-category-${category.id}`}
-                  >
-                    Delete
-                  </Button>
-                </div>
-              </div>
-            ))}
-            {categories.length === 0 && (
-              <p className="text-center text-muted-foreground py-8">No categories found. Create one to get started!</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{editingCategory ? "Edit Category" : "Create New Category"}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {!isCreating ? (
-            <Button onClick={() => setIsCreating(true)} className="w-full" data-testid="button-create-category">
+          {!isCreating && (
+            <Button onClick={() => setIsCreating(true)} data-testid="button-create-category">
               Create New Category
             </Button>
-          ) : (
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {isCreating && (
+          <div className="p-4 border rounded-lg bg-muted/50">
+            <h4 className="font-semibold mb-4">{editingCategory ? "Edit Category" : "Create New Category"}</h4>
             <Form {...categoryForm}>
               <form onSubmit={categoryForm.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
@@ -513,10 +461,56 @@ function CategoryManagement() {
                 </div>
               </form>
             </Form>
+          </div>
+        )}
+        
+        <div className="space-y-3">
+          {categories.map((category: any) => (
+            <div key={category.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+              <div className="flex items-center gap-3">
+                {category.icon && <span className="text-2xl">{category.icon}</span>}
+                <div>
+                  <p className="font-medium text-foreground">{category.name}</p>
+                  {category.description && (
+                    <p className="text-sm text-muted-foreground">{category.description}</p>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={category.isActive}
+                  onCheckedChange={(checked) => toggleActiveMutation.mutate({ id: category.id, isActive: checked })}
+                  data-testid={`toggle-category-${category.id}`}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => startEdit(category)}
+                  data-testid={`edit-category-${category.id}`}
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    if (confirm("Are you sure you want to delete this category?")) {
+                      deleteCategoryMutation.mutate(category.id);
+                    }
+                  }}
+                  data-testid={`delete-category-${category.id}`}
+                >
+                  Delete
+                </Button>
+              </div>
+            </div>
+          ))}
+          {categories.length === 0 && (
+            <p className="text-center text-muted-foreground py-8">No categories found. Create one to get started!</p>
           )}
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -1456,7 +1450,6 @@ export default function AdminPortal() {
                 )}
               </TabsTrigger>
               <TabsTrigger value="menu-settings" data-testid="tab-menu-settings">
-                <Utensils className="w-4 h-4 mr-2" />
                 Menu Settings
               </TabsTrigger>
               <TabsTrigger value="settings" data-testid="tab-settings">Settings</TabsTrigger>
