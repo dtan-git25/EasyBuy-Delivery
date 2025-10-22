@@ -1438,8 +1438,12 @@ export default function AdminPortal() {
 
           {/* Admin Navigation Tabs */}
           <Tabs defaultValue="dashboard" className="w-full">
-            <TabsList className={`grid w-full ${isOwner ? 'grid-cols-7' : 'grid-cols-6'}`}>
+            <TabsList className={`grid w-full ${isOwner ? 'grid-cols-8' : 'grid-cols-7'}`}>
               <TabsTrigger value="dashboard" data-testid="tab-dashboard">Dashboard</TabsTrigger>
+              <TabsTrigger value="management" data-testid="tab-management">
+                <Users className="w-4 h-4 mr-2" />
+                Management
+              </TabsTrigger>
               <TabsTrigger value="approvals" data-testid="tab-approvals">
                 <CheckCircle className="w-4 h-4 mr-2" />
                 Approvals
@@ -1455,7 +1459,6 @@ export default function AdminPortal() {
               <TabsTrigger value="settings" data-testid="tab-settings">Settings</TabsTrigger>
               <TabsTrigger value="reports" data-testid="tab-reports">Reports</TabsTrigger>
               <TabsTrigger value="profile" data-testid="tab-profile">
-                <Users className="w-4 h-4 mr-2" />
                 My Account
               </TabsTrigger>
               {isOwner && (
