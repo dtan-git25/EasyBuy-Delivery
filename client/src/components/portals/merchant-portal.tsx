@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useWebSocket } from "@/lib/websocket";
@@ -14,9 +14,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Store, MapPin, Star, Clock, User, Phone, MessageCircle, Edit, Plus, AlertCircle, CheckCircle, XCircle, Power, Trash2, Camera, Utensils, X, Package, History, BarChart3 } from "lucide-react";
+import { Store, MapPin, Star, Clock, User, Phone, MessageCircle, Edit, Plus, AlertCircle, CheckCircle, XCircle, Power, Trash2, Camera, Utensils, X, Package, History, BarChart3, Navigation, Search } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
 interface Order {
   id: string;
@@ -181,6 +183,14 @@ export default function MerchantPortal() {
   const [editedStoreName, setEditedStoreName] = useState("");
   const [editedStoreContact, setEditedStoreContact] = useState("");
   const [editedEmail, setEditedEmail] = useState("");
+  const [editedLatitude, setEditedLatitude] = useState("");
+  const [editedLongitude, setEditedLongitude] = useState("");
+  
+  // Map refs for profile editing
+  const profileMapContainerRef = useRef<HTMLDivElement | null>(null);
+  const profileMapRef = useRef<L.Map | null>(null);
+  const profileMarkerRef = useRef<L.Marker | null>(null);
+  const [isGeolocating, setIsGeolocating] = useState(false);
   
   // Track approval notification dismissal using localStorage
   const [isApprovalNotificationDismissed, setIsApprovalNotificationDismissed] = useState(() => {
@@ -704,12 +714,18 @@ export default function MerchantPortal() {
   });
 
   const updateProfileMutation = useMutation({
-    mutationFn: async (data: { storeName?: string; storeContact?: string; email?: string }) => {
+    mutationFn: async (data: { storeName?: string; storeContact?: string; email?: string; latitude?: string; longitude?: string }) => {
       const response = await apiRequest("PATCH", "/api/merchant/profile", data);
       return response.json();
     },
     onSuccess: () => {
       setIsEditingProfile(false);
+      // Cleanup map
+      if (profileMapRef.current) {
+        profileMapRef.current.remove();
+        profileMapRef.current = null;
+        profileMarkerRef.current = null;
+      }
       toast({
         title: "Profile updated",
         description: "Your profile has been updated successfully.",
@@ -726,14 +742,172 @@ export default function MerchantPortal() {
     }
   });
 
+  // Use current location for profile editing
+  const handleProfileUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast({
+        title: "Not Supported",
+        description: "Geolocation is not supported by your browser",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGeolocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setEditedLatitude(latitude.toFixed(6));
+        setEditedLongitude(longitude.toFixed(6));
+
+        if (profileMapRef.current && profileMarkerRef.current) {
+          profileMapRef.current.setView([latitude, longitude], 17);
+          profileMarkerRef.current.setLatLng([latitude, longitude]);
+        }
+
+        toast({
+          title: "Location Found",
+          description: "Map centered to your current location. Drag the pin to adjust.",
+        });
+        setIsGeolocating(false);
+      },
+      (error) => {
+        let message = "Could not get your location. Please enable location access.";
+        if (error.code === error.PERMISSION_DENIED) {
+          message = "Location access denied. Please enable it in your browser settings.";
+        }
+        toast({
+          title: "Location Error",
+          description: message,
+          variant: "destructive",
+        });
+        setIsGeolocating(false);
+      }
+    );
+  };
+
+  // Search address for profile editing
+  const handleProfileSearchAddress = async () => {
+    const address = userRestaurant?.address;
+
+    if (!address?.trim()) {
+      toast({
+        title: "No Address",
+        description: "Please add a store address first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGeolocating(true);
+    try {
+      const response = await fetch(`/api/geocode?address=${encodeURIComponent(address)}`);
+      const data = await response.json();
+
+      if (data.coordinates) {
+        const { latitude, longitude } = data.coordinates;
+        setEditedLatitude(latitude);
+        setEditedLongitude(longitude);
+
+        if (profileMapRef.current && profileMarkerRef.current) {
+          profileMapRef.current.setView([parseFloat(latitude), parseFloat(longitude)], 15);
+          profileMarkerRef.current.setLatLng([parseFloat(latitude), parseFloat(longitude)]);
+        }
+
+        toast({
+          title: "Address Found",
+          description: "Map centered to your store address. Drag the pin to adjust.",
+        });
+      } else {
+        toast({
+          title: "Address Not Found",
+          description: "Could not find location. Please drag the pin manually.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Search Error",
+        description: "Failed to search address. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeolocating(false);
+    }
+  };
+
   // Initialize profile edit form when entering edit mode
   useEffect(() => {
     if (isEditingProfile && userRestaurant && user) {
       setEditedStoreName(userRestaurant.name || "");
       setEditedStoreContact(userRestaurant.phone || "");
       setEditedEmail(user.email || "");
+      setEditedLatitude(userRestaurant.latitude || "14.5995");
+      setEditedLongitude(userRestaurant.longitude || "120.9842");
     }
   }, [isEditingProfile, userRestaurant, user]);
+
+  // Initialize map when editing profile
+  useEffect(() => {
+    if (isEditingProfile && profileMapContainerRef.current && !profileMapRef.current) {
+      const initMap = setTimeout(() => {
+        if (profileMapContainerRef.current && !profileMapRef.current) {
+          try {
+            const lat = parseFloat(editedLatitude || "14.5995");
+            const lng = parseFloat(editedLongitude || "120.9842");
+
+            const map = L.map(profileMapContainerRef.current, {
+              center: [lat, lng],
+              zoom: 15,
+              zoomControl: true,
+            });
+
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+              attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+              maxZoom: 19,
+            }).addTo(map);
+
+            const marker = L.marker([lat, lng], {
+              draggable: true,
+              autoPan: true,
+            }).addTo(map);
+
+            marker.on("dragend", () => {
+              const position = marker.getLatLng();
+              setEditedLatitude(position.lat.toFixed(6));
+              setEditedLongitude(position.lng.toFixed(6));
+            });
+
+            map.on("click", (e) => {
+              marker.setLatLng(e.latlng);
+              setEditedLatitude(e.latlng.lat.toFixed(6));
+              setEditedLongitude(e.latlng.lng.toFixed(6));
+            });
+
+            profileMapRef.current = map;
+            profileMarkerRef.current = marker;
+
+            setTimeout(() => {
+              map.invalidateSize();
+            }, 250);
+          } catch (error) {
+            console.error("Error initializing profile map:", error);
+          }
+        }
+      }, 150);
+
+      return () => {
+        clearTimeout(initMap);
+      };
+    } else if (!isEditingProfile) {
+      // Cleanup map when exiting edit mode
+      if (profileMapRef.current) {
+        profileMapRef.current.remove();
+        profileMapRef.current = null;
+        profileMarkerRef.current = null;
+      }
+    }
+  }, [isEditingProfile, editedLatitude, editedLongitude]);
 
   const { data: menuItems = [] } = useQuery({
     queryKey: ["/api/menu-items", userRestaurant?.id],
@@ -1939,7 +2113,9 @@ export default function MerchantPortal() {
                             updateProfileMutation.mutate({
                               storeName: editedStoreName,
                               storeContact: editedStoreContact,
-                              email: editedEmail
+                              email: editedEmail,
+                              latitude: editedLatitude,
+                              longitude: editedLongitude
                             });
                           }}
                           disabled={updateProfileMutation.isPending}
@@ -1987,10 +2163,85 @@ export default function MerchantPortal() {
                             </p>
                           )}
                         </div>
-                        <div>
+                        <div className="md:col-span-2">
                           <label className="text-sm text-muted-foreground">Store Address</label>
                           <p className="text-base font-medium" data-testid="text-store-address">
                             {userRestaurant?.address || "-"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Store Location Map - Only show when editing */}
+                      {isEditingProfile && (
+                        <div className="mt-6 space-y-3 p-4 bg-muted/50 rounded-lg border-2 border-primary/20">
+                          <Label className="flex items-center gap-2 text-base font-semibold">
+                            <MapPin className="h-5 w-5 text-primary" />
+                            Update Store Location on Map
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            Click anywhere on the map or drag the pin to update your exact store location for accurate delivery calculations.
+                          </p>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={handleProfileUseCurrentLocation}
+                              disabled={isGeolocating}
+                              data-testid="button-profile-use-location"
+                            >
+                              <Navigation className="h-4 w-4 mr-2" />
+                              {isGeolocating ? "Getting Location..." : "Use Current Location"}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={handleProfileSearchAddress}
+                              disabled={isGeolocating}
+                              data-testid="button-profile-search-address"
+                            >
+                              <Search className="h-4 w-4 mr-2" />
+                              {isGeolocating ? "Searching..." : "Search Address"}
+                            </Button>
+                          </div>
+
+                          {/* Map Container */}
+                          <div
+                            ref={profileMapContainerRef}
+                            className="h-80 w-full rounded-lg border-2 border-border overflow-hidden"
+                            style={{ minHeight: '320px', position: 'relative', zIndex: 1 }}
+                            data-testid="profile-map-container"
+                          />
+
+                          {/* Display coordinates */}
+                          <div className="flex items-center gap-2 p-3 bg-background rounded-md border">
+                            <MapPin className="h-4 w-4 text-primary" />
+                            <div className="flex-1 text-sm">
+                              <span className="font-medium">Store Pin Location: </span>
+                              <span className="text-muted-foreground">
+                                Lat: {editedLatitude}, Lng: {editedLongitude}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <Separator />
+
+                    {/* Rating Information */}
+                    <MerchantRatingDisplay merchantId={user?.id} />
+
+                    <Separator />
+
+                    {/* Owner Information */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Owner Information</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm text-muted-foreground">Owner Name</label>
+                          <p className="text-base font-medium" data-testid="text-owner-name">
+                            {user?.firstName} {user?.middleName} {user?.lastName}
                           </p>
                         </div>
                         <div>
