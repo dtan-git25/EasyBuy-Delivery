@@ -2033,7 +2033,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       // Get settings for convenience fee
-      const settings = await storage.getSettings();
+      const settingsRows = await db.select().from(systemSettings).limit(1);
+      const settings = settingsRows[0];
       const convenienceFees = filteredOrders.length * parseFloat(settings?.convenienceFee || '0');
 
       // Calculate average order value
@@ -2457,7 +2458,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const { startDate, endDate } = req.query;
-      const menuItems = await storage.getAllMenuItems();
+      const menuItems = await db.select().from(menuItemsTable);
       const orders = await storage.getOrders();
 
       // Filter orders by date range

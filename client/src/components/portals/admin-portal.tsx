@@ -2488,7 +2488,7 @@ export default function AdminPortal() {
                                     <td className="p-3">₱{merchant.revenue.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</td>
                                     <td className="p-3 flex items-center">
                                       <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 mr-1" />
-                                      {merchant.rating.toFixed(1)}
+                                      {(merchant.rating || 0).toFixed(1)}
                                     </td>
                                   </tr>
                                 ))
@@ -2548,7 +2548,7 @@ export default function AdminPortal() {
                                     <td className="p-3">₱{rider.earnings.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</td>
                                     <td className="p-3 flex items-center">
                                       <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 mr-1" />
-                                      {rider.rating.toFixed(1)}
+                                      {(rider.rating || 0).toFixed(1)}
                                     </td>
                                   </tr>
                                 ))
