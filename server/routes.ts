@@ -7,7 +7,7 @@ interface ExtendedWebSocket extends WebSocket {
 }
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertRestaurantSchema, insertMenuItemSchema, insertCategorySchema, insertOrderSchema, insertChatMessageSchema, insertRiderSchema, insertWalletTransactionSchema, insertOptionTypeSchema, insertMenuItemOptionValueSchema, type Order, walletTransactions } from "@shared/schema";
+import { insertRestaurantSchema, insertMenuItemSchema, insertCategorySchema, insertOrderSchema, insertChatMessageSchema, insertRiderSchema, insertWalletTransactionSchema, insertOptionTypeSchema, insertMenuItemOptionValueSchema, type Order, walletTransactions, systemSettings, menuItems } from "@shared/schema";
 import { z } from "zod";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
@@ -2035,7 +2035,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get settings for convenience fee
       const settingsRows = await db.select().from(systemSettings).limit(1);
       const settings = settingsRows[0];
-      const convenienceFees = filteredOrders.length * parseFloat(settings?.convenienceFee || '0');
+      const convenienceFees = filteredOrders.length * parseFloat(settings?.convenienceFee?.toString() || '0');
 
       // Calculate average order value
       const averageOrderValue = filteredOrders.length > 0 
@@ -2458,7 +2458,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const { startDate, endDate } = req.query;
-      const menuItems = await db.select().from(menuItemsTable);
+      const allMenuItems = await db.select().from(menuItems);
       const orders = await storage.getOrders();
 
       // Filter orders by date range
@@ -2484,7 +2484,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Most ordered items
       const mostOrdered = Object.entries(itemOrderCounts)
         .map(([id, count]) => {
-          const item = menuItems.find((m: any) => m.id === id);
+          const item = allMenuItems.find((m: any) => m.id === id);
           return {
             itemId: id,
             itemName: item?.name || 'Unknown',
@@ -2500,7 +2500,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Least ordered items (items with at least 1 order)
       const leastOrdered = Object.entries(itemOrderCounts)
         .map(([id, count]) => {
-          const item = menuItems.find((m: any) => m.id === id);
+          const item = allMenuItems.find((m: any) => m.id === id);
           return {
             itemId: id,
             itemName: item?.name || 'Unknown',
@@ -2513,20 +2513,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Items by category
       const itemsByCategory: any = {};
-      menuItems.forEach((item: any) => {
+      allMenuItems.forEach((item: any) => {
         const category = item.category || 'Uncategorized';
         itemsByCategory[category] = (itemsByCategory[category] || 0) + 1;
       });
 
       // Average item price
-      const avgPrice = menuItems.length > 0
-        ? menuItems.reduce((sum: number, item: any) => 
+      const avgPrice = allMenuItems.length > 0
+        ? allMenuItems.reduce((sum: number, item: any) => 
             sum + parseFloat(item.price?.toString() || '0'), 0
-          ) / menuItems.length
+          ) / allMenuItems.length
         : 0;
 
       res.json({
-        totalMenuItems: menuItems.length,
+        totalMenuItems: allMenuItems.length,
         mostOrdered,
         leastOrdered,
         itemsByCategory,

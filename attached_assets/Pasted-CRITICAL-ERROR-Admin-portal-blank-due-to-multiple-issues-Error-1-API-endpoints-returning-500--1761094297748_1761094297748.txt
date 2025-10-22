@@ -1,0 +1,87 @@
+CRITICAL ERROR - Admin portal blank due to multiple issues:
+
+Error 1: API endpoints returning 500 errors
+- /api/admin/analytics/revenue - 500 Internal Server Error
+- /api/admin/analytics/products - 500 Internal Server Error
+
+Error 2: JavaScript error in admin-portal.tsx line 2491
+- "toFixed is not a function"
+- Trying to call .toFixed() on a value that is not a number
+
+IMMEDIATE FIXES:
+
+1. FIX THE JAVASCRIPT ERROR (line 2491 in admin-portal.tsx):
+   
+   Problem: Code is trying to format a non-number value
+   
+   Find code like:
+   someValue.toFixed(2)
+   
+   Replace with safe version:
+   (someValue || 0).toFixed(2)
+   
+   OR better:
+   (Number(someValue) || 0).toFixed(2)
+   
+   This handles cases where the value is:
+   - undefined
+   - null
+   - empty string
+   - non-numeric
+
+2. FIX THE BACKEND API ERRORS:
+   
+   Check backend logs for the actual error on these endpoints:
+   - /api/admin/analytics/revenue
+   - /api/admin/analytics/products
+   
+   Common causes:
+   - Database query syntax error
+   - Missing database connection
+   - Undefined variables in query
+   - Wrong table/column names
+   - Missing await on async functions
+   
+   Add try-catch blocks and error logging:
+```
+   try {
+     const data = await db.query(...);
+     res.json(data);
+   } catch (error) {
+     console.error('Analytics error:', error);
+     res.status(500).json({ error: error.message });
+   }
+```
+
+3. ADD NULL CHECKS throughout admin-portal.tsx:
+   
+   Before using any API data, check if it exists:
+```
+   const revenue = revenueData?.total || 0;
+   const averageOrder = (revenue / orderCount) || 0;
+```
+
+4. TEMPORARY WORKAROUND while fixing APIs:
+   
+   In admin-portal.tsx, add default/fallback data:
+```
+   const [revenueData, setRevenueData] = useState({ 
+     total: 0, 
+     orderCount: 0,
+     averageOrder: 0 
+   });
+```
+   
+   This prevents the page from crashing while APIs are broken.
+
+5. CHECK BACKEND CONSOLE/LOGS:
+   Look for the actual error messages from the 500 errors
+   Share those error messages so we can fix the root cause
+
+PRIORITY ORDER:
+1. Fix the .toFixed() error (line 2491) - this is breaking the entire page
+2. Add null checks for all data that might be undefined
+3. Fix the backend API 500 errors
+4. Test with real data
+
+The admin page will load once we fix the .toFixed() error. Then we can see what data is missing and fix the API issues.
