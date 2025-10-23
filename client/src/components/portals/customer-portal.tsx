@@ -541,10 +541,12 @@ export default function CustomerPortal() {
   const handleAddToCartWithOptions = (quantity: number, selectedOptions: any[], totalPrice: number) => {
     if (!selectedRestaurant || !selectedMenuItemForOptions) return;
     
-    // Convert selected options to variants format for cart
+    // Convert selected options to variants format for cart, filtering out "None" selections
     const variants: Record<string, string> = {};
     selectedOptions.forEach(opt => {
-      variants[opt.optionTypeName] = opt.valueName;
+      if (opt.valueName !== "None" && opt.price > 0) {
+        variants[opt.optionTypeName] = opt.valueName;
+      }
     });
 
     // Calculate price per item (including options but not quantity)
@@ -568,8 +570,10 @@ export default function CustomerPortal() {
       });
     }
     
-    const optionsText = selectedOptions.length > 0 
-      ? ` with ${selectedOptions.map(opt => opt.valueName).join(', ')}`
+    // Filter "None" options from toast message
+    const nonNoneOptions = selectedOptions.filter(opt => opt.valueName !== "None" && opt.price > 0);
+    const optionsText = nonNoneOptions.length > 0 
+      ? ` with ${nonNoneOptions.map(opt => opt.valueName).join(', ')}`
       : '';
     
     toast({
@@ -821,22 +825,9 @@ export default function CustomerPortal() {
                   <Separator />
                   
                   <div className="space-y-2">
-                    <div className="flex justify-between">
+                    <div className="flex justify-between font-semibold text-lg">
                       <span>Subtotal:</span>
                       <span>₱{cart.getSubtotal().toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Markup ({cart.markup}%):</span>
-                      <span>₱{cart.getMarkupAmount().toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Delivery Fee:</span>
-                      <span>₱{cart.getDeliveryFee().toFixed(2)}</span>
-                    </div>
-                    <Separator />
-                    <div className="flex justify-between font-semibold text-lg">
-                      <span>Total:</span>
-                      <span>₱{cart.getTotal().toFixed(2)}</span>
                     </div>
                   </div>
                   
@@ -917,21 +908,9 @@ export default function CustomerPortal() {
                       <Separator />
                       
                       <div className="space-y-1 text-sm">
-                        <div className="flex justify-between">
+                        <div className="flex justify-between font-semibold text-base">
                           <span>Subtotal:</span>
                           <span>₱{subtotal.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Markup ({restaurantCart.markup}%):</span>
-                          <span>₱{markupAmount.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Delivery Fee:</span>
-                          <span>₱{restaurantCart.deliveryFee.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between font-semibold text-base pt-2">
-                          <span>Total:</span>
-                          <span>₱{total.toFixed(2)}</span>
                         </div>
                       </div>
                       
