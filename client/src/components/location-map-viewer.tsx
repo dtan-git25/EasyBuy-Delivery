@@ -37,16 +37,17 @@ export function LocationMapViewer({ locations, className = "" }: LocationMapView
         const avgLat = locations.reduce((sum, loc) => sum + loc.lat, 0) / locations.length;
         const avgLng = locations.reduce((sum, loc) => sum + loc.lng, 0) / locations.length;
 
-        // Create map instance (READ-ONLY mode - no interactive markers)
+        // Create map instance (READ-ONLY mode - no user interaction)
         const map = L.map(mapContainerRef.current, {
           center: [avgLat, avgLng],
           zoom: 13,
-          zoomControl: true,
-          dragging: true,
-          touchZoom: true,
-          scrollWheelZoom: true,
-          doubleClickZoom: true,
-          boxZoom: true,
+          zoomControl: true, // Keep zoom buttons for viewing
+          dragging: false, // Disable dragging
+          touchZoom: false, // Disable touch zoom
+          scrollWheelZoom: false, // Disable scroll wheel zoom
+          doubleClickZoom: false, // Disable double-click zoom
+          boxZoom: false, // Disable box zoom
+          keyboard: false, // Disable keyboard navigation
         });
 
         // Add OpenStreetMap tiles (same as existing implementation)
