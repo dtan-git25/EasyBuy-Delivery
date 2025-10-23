@@ -393,16 +393,25 @@ export default function CustomerPortal() {
 
   // Calculate delivery fees based on distance when address changes
   useEffect(() => {
-    if (!selectedAddress?.latitude || !selectedAddress?.longitude || !settings) {
+    if (!settings) {
+      return;
+    }
+
+    const baseRate = parseFloat(settings.baseDeliveryRate || '50');
+    const succeedingRate = parseFloat(settings.deliveryRatePerKm || '10');
+    const fees: Record<string, number> = {};
+
+    // If customer coordinates are missing, use base rate fallback for all restaurants
+    if (!selectedAddress?.latitude || !selectedAddress?.longitude) {
+      Object.values(cart.allCarts).forEach((restaurantCart) => {
+        fees[restaurantCart.restaurantId] = baseRate;
+      });
+      setCalculatedDeliveryFees(fees);
       return;
     }
 
     const customerLat = parseFloat(selectedAddress.latitude);
     const customerLng = parseFloat(selectedAddress.longitude);
-    const baseRate = parseFloat(settings.baseDeliveryRate || '50');
-    const succeedingRate = parseFloat(settings.deliveryRatePerKm || '10');
-
-    const fees: Record<string, number> = {};
 
     // Calculate delivery fee for each restaurant in the cart
     Object.values(cart.allCarts).forEach((restaurantCart) => {
@@ -425,7 +434,7 @@ export default function CustomerPortal() {
         const deliveryFee = calculateDeliveryFee(distance, baseRate, succeedingRate);
         fees[restaurantCart.restaurantId] = deliveryFee;
       } else {
-        // Fallback to default delivery fee if coordinates not available
+        // Fallback to default delivery fee if restaurant coordinates not available
         fees[restaurantCart.restaurantId] = baseRate;
       }
     });
