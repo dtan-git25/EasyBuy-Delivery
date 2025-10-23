@@ -408,24 +408,9 @@ export default function Dashboard() {
                       <Separator />
                       
                       <div className="space-y-1 text-sm">
-                        <div className="flex justify-between">
+                        <div className="flex justify-between font-semibold text-base">
                           <span>Total:</span>
                           <span>₱{(subtotal + markupAmount).toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Delivery Fee:</span>
-                          <span>₱{deliveryFee.toFixed(2)}</span>
-                        </div>
-                        {settings?.showConvenienceFee && (
-                          <div className="flex justify-between">
-                            <span>Convenience Fee:</span>
-                            <span>₱{parseFloat(settings.convenienceFee || '0').toFixed(2)}</span>
-                          </div>
-                        )}
-                        <Separator className="my-2" />
-                        <div className="flex justify-between font-semibold text-base">
-                          <span>Grand Total:</span>
-                          <span>₱{(total + (settings?.showConvenienceFee ? parseFloat(settings.convenienceFee || '0') : 0)).toFixed(2)}</span>
                         </div>
                       </div>
                       
@@ -568,18 +553,9 @@ export default function Dashboard() {
                   <Separator />
                   
                   <div className="space-y-2">
-                    <div className="flex justify-between">
+                    <div className="flex justify-between font-semibold text-lg">
                       <span>Total:</span>
                       <span>₱{(cart.getSubtotal() + cart.getMarkupAmount()).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Delivery Fee:</span>
-                      <span>₱{cart.getDeliveryFee().toFixed(2)}</span>
-                    </div>
-                    <Separator />
-                    <div className="flex justify-between font-semibold text-lg">
-                      <span>Grand Total:</span>
-                      <span>₱{cart.getTotal().toFixed(2)}</span>
                     </div>
                   </div>
                   
@@ -687,17 +663,9 @@ export default function Dashboard() {
                       </div>
                       <Separator />
                       <div className="space-y-1 text-sm">
-                        <div className="flex justify-between">
-                          <span>Total:</span>
+                        <div className="flex justify-between font-semibold">
+                          <span>Subtotal:</span>
                           <span>₱{(subtotal + markupAmount).toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Delivery Fee:</span>
-                          <span>₱{deliveryFee.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between font-semibold pt-1 border-t mt-1">
-                          <span>Restaurant Total:</span>
-                          <span>₱{total.toFixed(2)}</span>
                         </div>
                       </div>
                     </div>
@@ -705,16 +673,43 @@ export default function Dashboard() {
                 })}
                 
                 <Separator />
-                {settings?.showConvenienceFee && (
-                  <div className="flex justify-between text-sm">
-                    <span>Convenience Fee ({cart.getAllCartsCount()} order{cart.getAllCartsCount() > 1 ? 's' : ''}):</span>
-                    <span>₱{(parseFloat(settings.convenienceFee || '0') * cart.getAllCartsCount()).toFixed(2)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between items-center pt-2">
-                  <span className="font-bold">Grand Total:</span>
-                  <span className="text-xl font-bold">₱{(cart.getAllCartsTotal() + (settings?.showConvenienceFee ? parseFloat(settings.convenienceFee || '0') * cart.getAllCartsCount() : 0)).toFixed(2)}</span>
-                </div>
+                
+                {/* Calculate totals for checkout */}
+                {(() => {
+                  const itemsSubtotal = cart.getAllCartsTotal();
+                  const totalDeliveryFees = Object.values(cart.allCarts).reduce((sum, restaurantCart) => {
+                    return sum + parseFloat(restaurantCart.deliveryFee.toString());
+                  }, 0);
+                  const convenienceFee = settings?.convenienceFee ? parseFloat(settings.convenienceFee) * cart.getAllCartsCount() : 0;
+                  const showConvenienceFee = settings?.showConvenienceFee !== false;
+                  const grandTotal = itemsSubtotal + totalDeliveryFees + (showConvenienceFee ? convenienceFee : 0);
+                  
+                  return (
+                    <>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span>Items Subtotal:</span>
+                          <span>₱{itemsSubtotal.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Delivery Fee:</span>
+                          <span>₱{totalDeliveryFees.toFixed(2)}</span>
+                        </div>
+                        {showConvenienceFee && convenienceFee > 0 && (
+                          <div className="flex justify-between">
+                            <span>Convenience Fee:</span>
+                            <span>₱{convenienceFee.toFixed(2)}</span>
+                          </div>
+                        )}
+                      </div>
+                      <Separator />
+                      <div className="flex justify-between items-center pt-2">
+                        <span className="font-bold">Total Amount:</span>
+                        <span className="text-xl font-bold">₱{grandTotal.toFixed(2)}</span>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
               
               <div className="flex space-x-2 pt-4">
