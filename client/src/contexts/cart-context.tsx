@@ -298,7 +298,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return Object.values(allCarts).reduce((total, cart) => {
       const subtotal = cart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       const markupAmount = subtotal * (cart.markup / 100);
-      return total + subtotal + markupAmount + cart.deliveryFee;
+      return total + subtotal + markupAmount;
     }, 0);
   };
 
@@ -316,7 +316,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const getTotal = () => {
-    return getSubtotal() + getMarkupAmount() + getDeliveryFee();
+    return getSubtotal() + getMarkupAmount();
   };
 
   const getItemCount = () => {

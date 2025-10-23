@@ -948,7 +948,6 @@ export default function CustomerPortal() {
                 const isActive = cart.activeRestaurantId === restaurantCart.restaurantId;
                 const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
                 const markupAmount = subtotal * (restaurantCart.markup / 100);
-                const total = subtotal + markupAmount + restaurantCart.deliveryFee;
                 const itemCount = restaurantCart.items.reduce((sum, item) => sum + item.quantity, 0);
                 
                 return (
