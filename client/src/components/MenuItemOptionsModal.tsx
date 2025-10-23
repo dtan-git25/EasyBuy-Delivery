@@ -54,15 +54,7 @@ export function MenuItemOptionsModal({ isOpen, onClose, menuItem, onAddToCart }:
     enabled: !!menuItem?.id && isOpen,
   });
 
-  // Reset state when modal opens with new item
-  useEffect(() => {
-    if (isOpen && menuItem) {
-      setQuantity(1);
-      setSelectedOptions([]);
-    }
-  }, [isOpen, menuItem]);
-
-  // Group options by option type
+  // Group options by option type and add "None" option to each
   const optionsByType = optionValues.reduce((acc, option) => {
     const typeName = option.optionType.name;
     if (!acc[typeName]) {
@@ -70,7 +62,14 @@ export function MenuItemOptionsModal({ isOpen, onClose, menuItem, onAddToCart }:
         typeId: option.optionTypeId,
         typeName: typeName,
         typeDescription: option.optionType.description,
-        values: []
+        values: [
+          // Add "None" as the first option with ₱0 price
+          {
+            id: `none-${option.optionTypeId}`,
+            value: "None",
+            price: 0
+          }
+        ]
       };
     }
     acc[typeName].values.push({
@@ -80,6 +79,22 @@ export function MenuItemOptionsModal({ isOpen, onClose, menuItem, onAddToCart }:
     });
     return acc;
   }, {} as Record<string, { typeId: string; typeName: string; typeDescription: string; values: { id: string; value: string; price: number }[] }>);
+
+  // Reset state when modal opens with new item and pre-select "None" for all options
+  useEffect(() => {
+    if (isOpen && menuItem && !isLoading) {
+      setQuantity(1);
+      // Pre-select "None" for all option types
+      const noneOptions: SelectedOption[] = Object.values(optionsByType).map(optionType => ({
+        optionTypeId: optionType.typeId,
+        optionTypeName: optionType.typeName,
+        valueId: `none-${optionType.typeId}`,
+        valueName: "None",
+        price: 0
+      }));
+      setSelectedOptions(noneOptions);
+    }
+  }, [isOpen, menuItem, isLoading]);
 
   const handleOptionSelect = (optionTypeId: string, optionTypeName: string, valueId: string, valueName: string, price: number) => {
     setSelectedOptions(prev => {
@@ -178,7 +193,11 @@ export function MenuItemOptionsModal({ isOpen, onClose, menuItem, onAddToCart }:
                           <RadioGroupItem value={value.id} id={value.id} />
                           <Label htmlFor={value.id} className="flex-1 flex justify-between items-center cursor-pointer">
                             <span>{value.value}</span>
-                            <span className="font-semibold text-green-600">+₱{value.price.toFixed(2)}</span>
+                            {value.price === 0 ? (
+                              <span className="font-semibold text-muted-foreground">(₱0)</span>
+                            ) : (
+                              <span className="font-semibold text-green-600">+₱{value.price.toFixed(2)}</span>
+                            )}
                           </Label>
                         </div>
                       ))}
@@ -228,9 +247,9 @@ export function MenuItemOptionsModal({ isOpen, onClose, menuItem, onAddToCart }:
               <span>Base Price × {quantity}:</span>
               <span data-testid="text-base-total">₱{(basePrice * quantity).toFixed(2)}</span>
             </div>
-            {selectedOptions.length > 0 && (
+            {selectedOptions.filter(opt => opt.valueName !== "None" && opt.price > 0).length > 0 && (
               <>
-                {selectedOptions.map((opt) => (
+                {selectedOptions.filter(opt => opt.valueName !== "None" && opt.price > 0).map((opt) => (
                   <div key={opt.valueId} className="flex justify-between text-sm">
                     <span>{opt.valueName} × {quantity}:</span>
                     <span data-testid={`text-option-price-${opt.valueName.toLowerCase().replace(/\s+/g, '-')}`}>₱{(opt.price * quantity).toFixed(2)}</span>
