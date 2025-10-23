@@ -1,0 +1,92 @@
+CRITICAL ERROR - React Hooks violation in auth-page.tsx:
+
+Main Error: "Rendered more hooks than during the previous render"
+Location: auth-page.tsx line 46
+
+This is a SEVERE React error - hooks are being called conditionally or inconsistently.
+
+ROOT CAUSE:
+The AuthPage component is calling a different number of hooks between renders. React detected 80 hooks in one render, then 81 hooks in the next render (added a useEffect at position 81).
+
+RULES OF HOOKS VIOLATION:
+- Hooks must ALWAYS be called in the same order
+- NEVER call hooks inside conditions, loops, or nested functions
+- NEVER add/remove hooks conditionally
+
+IMMEDIATE FIX:
+
+1. Open auth-page.tsx file
+
+2. Find any code that looks like this (WRONG):
+```javascript
+// BAD - Conditional hook
+if (someCondition) {
+  useEffect(() => {...}, []);
+}
+
+// BAD - Hook in loop
+for (let i = 0; i < items.length; i++) {
+  useState(false);
+}
+
+// BAD - Hook after early return
+if (error) return null;
+useEffect(() => {...}, []); // This hook may not run every time
+```
+
+3. Fix by moving ALL hooks to the top of the component:
+```javascript
+// GOOD - All hooks at the top, unconditional
+function AuthPage() {
+  const [state1, setState1] = useState(false);
+  const [state2, setState2] = useState('');
+  useEffect(() => {...}, []);
+  useEffect(() => {...}, []);
+  
+  // Then do your conditional logic
+  if (error) return <ErrorView />;
+  if (loading) return <LoadingView />;
+  
+  return <MainView />;
+}
+```
+
+4. CHECK FOR RECENT CHANGES:
+   - What was recently modified in auth-page.tsx?
+   - Was a hook added inside a conditional?
+   - Was a hook added after an early return?
+   - Was the component structure changed?
+
+5. COMMON MISTAKES TO LOOK FOR:
+```javascript
+// WRONG
+const AuthPage = () => {
+  if (!user) {
+    const [loading, setLoading] = useState(false); // Hook inside condition!
+  }
+  
+  // CORRECT
+  const [loading, setLoading] = useState(false); // Hook at top
+  if (!user) {
+    // use loading here
+  }
+}
+```
+
+6. TEMPORARY FIX:
+   - Comment out the LAST hook that was added (position 81)
+   - This should restore the hook count to 80
+   - Find where the extra hook was added in recent changes
+
+7. ROLLBACK IF NEEDED:
+   - If auth-page.tsx was recently modified, revert those changes
+   - Get the app working first
+   - Then carefully re-add features without violating hooks rules
+
+SECONDARY ISSUES (fix after hooks error):
+- 401 Unauthorized on /api/settings and /api/user (authentication issue)
+- WebSocket connection refused (network issue)
+
+But FIRST fix the hooks error - that's blocking everything.
+
+The app cannot render anything until this hooks violation is fixed in auth-page.tsx.

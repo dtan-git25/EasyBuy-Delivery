@@ -155,47 +155,6 @@ export default function AuthPage() {
     },
   });
 
-  // Show loading state during auth transitions or while redirecting
-  if (isLoading || user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-            <Bike className="text-primary-foreground text-2xl animate-pulse" />
-          </div>
-          <p className="text-muted-foreground">{user ? "Redirecting to dashboard..." : "Loading..."}</p>
-        </div>
-      </div>
-    );
-  }
-
-  const onLogin = (data: LoginForm) => {
-    loginMutation.mutate(data);
-  };
-
-  const onForgotPassword = (data: { email: string }) => {
-    forgotPasswordMutation.mutate(data);
-  };
-
-  const onRegister = async (data: CustomerRegistration | RiderRegistration | MerchantRegistration) => {
-    try {
-      // Add role to registration data and handle date conversion
-      const registrationData: any = {
-        ...data,
-        role: registerRole,
-      };
-      
-      // Convert licenseValidityDate string to Date if it exists (for rider registration)
-      if ('licenseValidityDate' in data && data.licenseValidityDate) {
-        registrationData.licenseValidityDate = new Date(data.licenseValidityDate);
-      }
-      
-      await registerMutation.mutateAsync(registrationData);
-    } catch (error) {
-      console.error("Registration failed:", error);
-    }
-  };
-
   // Initialize merchant map when merchant tab is selected
   useEffect(() => {
     if (activeTab === "register" && registerRole === "merchant") {
@@ -257,7 +216,48 @@ export default function AuthPage() {
         merchantMarkerRef.current = null;
       }
     }
-  }, [activeTab, registerRole, merchantForm]);
+  }, [activeTab, registerRole]);
+
+  // Show loading state during auth transitions or while redirecting
+  if (isLoading || user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+            <Bike className="text-primary-foreground text-2xl animate-pulse" />
+          </div>
+          <p className="text-muted-foreground">{user ? "Redirecting to dashboard..." : "Loading..."}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const onLogin = (data: LoginForm) => {
+    loginMutation.mutate(data);
+  };
+
+  const onForgotPassword = (data: { email: string }) => {
+    forgotPasswordMutation.mutate(data);
+  };
+
+  const onRegister = async (data: CustomerRegistration | RiderRegistration | MerchantRegistration) => {
+    try {
+      // Add role to registration data and handle date conversion
+      const registrationData: any = {
+        ...data,
+        role: registerRole,
+      };
+      
+      // Convert licenseValidityDate string to Date if it exists (for rider registration)
+      if ('licenseValidityDate' in data && data.licenseValidityDate) {
+        registrationData.licenseValidityDate = new Date(data.licenseValidityDate);
+      }
+      
+      await registerMutation.mutateAsync(registrationData);
+    } catch (error) {
+      console.error("Registration failed:", error);
+    }
+  };
 
   // Use current location for merchant registration
   const handleMerchantUseCurrentLocation = () => {
