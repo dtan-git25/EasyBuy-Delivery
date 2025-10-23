@@ -578,6 +578,8 @@ export class DatabaseStorage implements IStorage {
       customerName: row.users ? `${row.users.firstName || ''} ${row.users.lastName || ''}`.trim() || 'Unknown Customer' : 'Unknown Customer',
       restaurantName: row.restaurants?.name || 'Unknown Restaurant',
       restaurantAddress: row.restaurants?.address || 'Unknown Address',
+      restaurantLatitude: row.restaurants?.latitude,
+      restaurantLongitude: row.restaurants?.longitude,
     }));
   }
 
