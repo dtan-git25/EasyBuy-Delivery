@@ -449,7 +449,7 @@ export default function Dashboard() {
                       <p className="font-semibold text-lg">Total for All Carts</p>
                       <p className="text-sm text-muted-foreground">{cart.getAllCartsCount()} restaurant{cart.getAllCartsCount() > 1 ? 's' : ''}</p>
                     </div>
-                    <p className="text-2xl font-bold">₱{(cart.getAllCartsTotal() + (settings?.showConvenienceFee ? parseFloat(settings.convenienceFee || '0') * cart.getAllCartsCount() : 0)).toFixed(2)}</p>
+                    <p className="text-2xl font-bold">₱{cart.getAllCartsTotal().toFixed(2)}</p>
                   </div>
                   
                   <div className="flex gap-2 pt-2">
