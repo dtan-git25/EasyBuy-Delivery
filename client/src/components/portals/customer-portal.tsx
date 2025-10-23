@@ -1678,22 +1678,9 @@ export default function CustomerPortal() {
               <Separator />
 
               <div className="space-y-2">
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between font-semibold text-lg">
                   <span>Subtotal:</span>
                   <span>₱{cart.getSubtotal().toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Markup:</span>
-                  <span>₱{cart.getMarkupAmount().toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Delivery Fee:</span>
-                  <span>₱{cart.getDeliveryFee().toFixed(2)}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between text-lg font-semibold">
-                  <span>Total:</span>
-                  <span>₱{cart.getTotal().toFixed(2)}</span>
                 </div>
               </div>
 
