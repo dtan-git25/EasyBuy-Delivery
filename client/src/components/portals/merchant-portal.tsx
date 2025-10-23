@@ -1202,16 +1202,6 @@ export default function MerchantPortal() {
                     {user?.approvalStatus === 'approved' && userRestaurant?.isActive ? "Open" : "Closed"}
                   </Badge>
                   <InlineMerchantRating merchantId={user?.id} />
-                  <Button 
-                    variant="link" 
-                    size="sm" 
-                    className="text-primary p-0 h-auto"
-                    onClick={handleUseCurrentLocation}
-                    data-testid="button-update-location"
-                  >
-                    <MapPin className="mr-1 h-4 w-4" />
-                    Update Location
-                  </Button>
                 </div>
               </div>
             </div>
