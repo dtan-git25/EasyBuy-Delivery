@@ -653,6 +653,10 @@ export default function CustomerPortal() {
     createOrderMutation.mutate(ordersData);
   };
 
+  // Extract restaurant values for use in modals (outside if block scope)
+  const restaurantMarkupForModal = selectedRestaurant?.markup ?? 0;
+  const restaurantNameForModal = selectedRestaurant?.name ?? '';
+
   // Restaurant Detail View with Real Menu Items
   if (selectedRestaurant) {
     // Extract values to avoid TypeScript narrowing issues
@@ -785,17 +789,19 @@ export default function CustomerPortal() {
               ) : (
                 <>
                   <div className="space-y-3">
-                    {cart.items.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div className="flex-1">
-                          <h4 className="font-medium">{item.name}</h4>
-                          {item.variants && Object.keys(item.variants).length > 0 && (
-                            <p className="text-xs text-muted-foreground">
-                              {Object.entries(item.variants).map(([key, value]) => `${key}: ${value}`).join(', ')}
-                            </p>
-                          )}
-                          <p className="text-sm text-muted-foreground">₱{Number(item.price).toFixed(2)} each</p>
-                        </div>
+                    {cart.items.map((item) => {
+                      const markedUpPrice = Number(item.price) * (1 + selectedRestaurant.markup / 100);
+                      return (
+                        <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex-1">
+                            <h4 className="font-medium">{item.name}</h4>
+                            {item.variants && Object.keys(item.variants).length > 0 && (
+                              <p className="text-xs text-muted-foreground">
+                                {Object.entries(item.variants).map(([key, value]) => `${key}: ${value}`).join(', ')}
+                              </p>
+                            )}
+                            <p className="text-sm text-muted-foreground">₱{markedUpPrice.toFixed(2)} each</p>
+                          </div>
                         <div className="flex items-center space-x-2">
                           <Button
                             variant="outline"
@@ -824,7 +830,8 @@ export default function CustomerPortal() {
                           </Button>
                         </div>
                       </div>
-                    ))}
+                    );
+                    })}
                   </div>
                   
                   <Separator />
@@ -1088,6 +1095,7 @@ export default function CustomerPortal() {
           onClose={() => setShowOptionsModal(false)}
           menuItem={selectedMenuItemForOptions}
           onAddToCart={handleAddToCartWithOptions}
+          restaurantMarkup={restaurantMarkup}
         />
       </div>
     );
@@ -1812,7 +1820,7 @@ export default function CustomerPortal() {
         onClose={() => setShowOptionsModal(false)}
         menuItem={selectedMenuItemForOptions}
         onAddToCart={handleAddToCartWithOptions}
-        restaurantMarkup={selectedRestaurant?.markup || 0}
+        restaurantMarkup={restaurantMarkupForModal}
       />
 
       {/* Replace Cart Confirmation Dialog */}
@@ -1823,7 +1831,7 @@ export default function CustomerPortal() {
             <AlertDialogDescription className="text-sm">
               {(() => {
                 const currentRestaurants = Object.values(cart.allCarts).map((c) => c.restaurantName).join(', ');
-                const newRestaurantName = selectedRestaurant?.name || '';
+                const newRestaurantName = restaurantNameForModal;
                 const oldestRestaurantName = Object.values(cart.allCarts)[0]?.restaurantName || '';
                 
                 if (replacementScenario === 'single-merchant') {
