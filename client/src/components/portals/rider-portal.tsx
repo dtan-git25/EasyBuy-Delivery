@@ -953,63 +953,44 @@ export default function RiderPortal() {
                             </div>
                             <div className="flex justify-between items-start">
                               <span className="text-muted-foreground">Delivery Address:</span>
-                              <div className="flex-1 text-right flex flex-col items-end gap-1">
-                                <div className="flex items-center gap-2">
-                                  <div className="font-medium">{order.deliveryAddress}</div>
-                                  {order.deliveryLatitude && order.deliveryLongitude && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 w-6 p-0"
-                                      onClick={() => {
-                                        setSelectedOrderForMap(order);
-                                        setShowMapViewer(true);
-                                      }}
-                                      data-testid={`button-view-pin-${order.id}`}
-                                      title="View on map"
-                                    >
-                                      <MapPin className="h-4 w-4 text-primary" />
-                                    </Button>
-                                  )}
-                                </div>
+                              <div className="flex items-center gap-2 flex-1 justify-end">
+                                <span className="font-medium text-right">{order.deliveryAddress}</span>
                                 {order.deliveryLatitude && order.deliveryLongitude && (
                                   <Button
-                                    variant="link"
+                                    variant="ghost"
                                     size="sm"
-                                    className="h-auto p-0 text-xs text-primary hover:underline"
-                                    onClick={() => window.open(
-                                      `https://www.openstreetmap.org/?mlat=${order.deliveryLatitude}&mlon=${order.deliveryLongitude}#map=17/${order.deliveryLatitude}/${order.deliveryLongitude}`,
-                                      '_blank'
-                                    )}
-                                    data-testid={`button-view-map-active-${order.id}`}
+                                    className="h-6 w-6 p-0 shrink-0"
+                                    onClick={() => {
+                                      setSelectedOrderForMap(order);
+                                      setShowMapViewer(true);
+                                    }}
+                                    data-testid={`button-view-pin-${order.id}`}
+                                    title="View on map"
                                   >
-                                    <Map className="h-3 w-3 mr-1" />
-                                    View on Map
+                                    <MapPin className="h-4 w-4 text-primary" />
                                   </Button>
                                 )}
                               </div>
                             </div>
                             <div className="flex justify-between items-start">
                               <span className="text-muted-foreground">Pickup Location:</span>
-                              <div className="flex-1 text-right flex flex-col items-end gap-1">
-                                <div className="flex items-center gap-2">
-                                  <div className="font-medium">{order.restaurantAddress}</div>
-                                  {order.restaurantLatitude && order.restaurantLongitude && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 w-6 p-0"
-                                      onClick={() => {
-                                        setSelectedOrderForMap(order);
-                                        setShowMapViewer(true);
-                                      }}
-                                      data-testid={`button-view-pin-pickup-${order.id}`}
-                                      title="View on map"
-                                    >
-                                      <MapPin className="h-4 w-4 text-green-600" />
-                                    </Button>
-                                  )}
-                                </div>
+                              <div className="flex items-center gap-2 flex-1 justify-end">
+                                <span className="font-medium text-right">{order.restaurantAddress}</span>
+                                {order.restaurantLatitude && order.restaurantLongitude && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0 shrink-0"
+                                    onClick={() => {
+                                      setSelectedOrderForMap(order);
+                                      setShowMapViewer(true);
+                                    }}
+                                    data-testid={`button-view-pin-pickup-${order.id}`}
+                                    title="View on map"
+                                  >
+                                    <MapPin className="h-4 w-4 text-green-600" />
+                                  </Button>
+                                )}
                               </div>
                             </div>
                             <div className="flex justify-between">
