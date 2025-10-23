@@ -1871,7 +1871,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const { storeName, storeContact, email, latitude, longitude } = req.body;
+      const { storeName, storeContact, storeAddress, email, latitude, longitude } = req.body;
       
       // Update user email if provided
       if (email !== undefined) {
@@ -1882,9 +1882,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const restaurants = await storage.getRestaurantsByOwner(req.user.id);
       if (restaurants && restaurants.length > 0) {
         const restaurant = restaurants[0]; // Merchant has one restaurant
-        const restaurantUpdateData: { name?: string; phone?: string; latitude?: string; longitude?: string } = {};
+        const restaurantUpdateData: { name?: string; phone?: string; address?: string; latitude?: string; longitude?: string } = {};
         if (storeName !== undefined) restaurantUpdateData.name = storeName;
         if (storeContact !== undefined) restaurantUpdateData.phone = storeContact;
+        if (storeAddress !== undefined) restaurantUpdateData.address = storeAddress;
         if (latitude !== undefined) restaurantUpdateData.latitude = latitude;
         if (longitude !== undefined) restaurantUpdateData.longitude = longitude;
         

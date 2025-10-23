@@ -182,6 +182,7 @@ export default function MerchantPortal() {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editedStoreName, setEditedStoreName] = useState("");
   const [editedStoreContact, setEditedStoreContact] = useState("");
+  const [editedStoreAddress, setEditedStoreAddress] = useState("");
   const [editedEmail, setEditedEmail] = useState("");
   const [editedLatitude, setEditedLatitude] = useState("");
   const [editedLongitude, setEditedLongitude] = useState("");
@@ -714,7 +715,7 @@ export default function MerchantPortal() {
   });
 
   const updateProfileMutation = useMutation({
-    mutationFn: async (data: { storeName?: string; storeContact?: string; email?: string; latitude?: string; longitude?: string }) => {
+    mutationFn: async (data: { storeName?: string; storeContact?: string; storeAddress?: string; email?: string; latitude?: string; longitude?: string }) => {
       const response = await apiRequest("PATCH", "/api/merchant/profile", data);
       return response.json();
     },
@@ -841,6 +842,7 @@ export default function MerchantPortal() {
     if (isEditingProfile && userRestaurant && user) {
       setEditedStoreName(userRestaurant.name || "");
       setEditedStoreContact(userRestaurant.phone || "");
+      setEditedStoreAddress(userRestaurant.address || "");
       setEditedEmail(user.email || "");
       setEditedLatitude(userRestaurant.latitude || "14.5995");
       setEditedLongitude(userRestaurant.longitude || "120.9842");
@@ -2113,6 +2115,7 @@ export default function MerchantPortal() {
                             updateProfileMutation.mutate({
                               storeName: editedStoreName,
                               storeContact: editedStoreContact,
+                              storeAddress: editedStoreAddress,
                               email: editedEmail,
                               latitude: editedLatitude,
                               longitude: editedLongitude
@@ -2165,9 +2168,18 @@ export default function MerchantPortal() {
                         </div>
                         <div className="md:col-span-2">
                           <label className="text-sm text-muted-foreground">Store Address</label>
-                          <p className="text-base font-medium" data-testid="text-store-address">
-                            {userRestaurant?.address || "-"}
-                          </p>
+                          {isEditingProfile ? (
+                            <Input
+                              value={editedStoreAddress}
+                              onChange={(e) => setEditedStoreAddress(e.target.value)}
+                              placeholder="Enter store address"
+                              data-testid="input-edit-store-address"
+                            />
+                          ) : (
+                            <p className="text-base font-medium" data-testid="text-store-address">
+                              {userRestaurant?.address || "-"}
+                            </p>
+                          )}
                         </div>
                       </div>
 
