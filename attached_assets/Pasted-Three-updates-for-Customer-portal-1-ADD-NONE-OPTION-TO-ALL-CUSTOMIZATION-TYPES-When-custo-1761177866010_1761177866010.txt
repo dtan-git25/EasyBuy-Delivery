@@ -1,0 +1,117 @@
+Three updates for Customer portal:
+
+1. ADD "NONE" OPTION TO ALL CUSTOMIZATION TYPES:
+
+When customer customizes menu item order:
+- For EVERY option type that merchant added (Size, Flavor, Add-ons, etc.)
+- Automatically include "None" as the first option
+- Customer can choose to skip that customization
+
+Example:
+Merchant added for Fries:
+- Size: Small (₱50), Large (₱75)
+- Add-ons: Extra Cheese (₱20), Bacon (₱25)
+
+Customer sees:
+Size:
+○ None (₱0)
+○ Small (₱50)
+○ Large (₱75)
+
+Add-ons:
+□ None (₱0)
+□ Extra Cheese (₱20)
+□ Bacon (₱25)
+
+Implementation:
+- "None" option should have ₱0 price
+- "None" should be pre-selected by default for optional customizations
+- If customization is required (merchant marked as required), "None" can be disabled or hidden
+- For radio button options (single choice): "None" is first option
+- For checkboxes (multiple choice): "None" checkbox available
+
+Price calculation:
+- If customer selects "None", add ₱0 to item price
+- If customer selects actual option, add that option's price
+- Display total: Base price + selected options
+
+2. REMOVE DELIVERY FEE FROM CART MODAL:
+
+Cart Modal should show:
+✓ Item list with quantities and prices
+✓ Item customizations (if any)
+✓ Subtotal (items only)
+✓ "Proceed to Checkout" button
+✗ NO Delivery Fee line
+✗ NO Merchant Fee line
+✗ NO Convenience Fee line
+✗ NO Total with fees
+
+Keep cart simple - just items and subtotal.
+
+3. DELIVERY FEE CALCULATION IN CHECKOUT MODAL:
+
+Checkout Modal Requirements:
+- Customer MUST have delivery address with pin location (lat, lng)
+- If no pin location saved:
+  * Show alert: "Please set your delivery location first"
+  * Show "Add/Edit Address" button
+  * Require map pin placement
+  * Cannot proceed without pin location
+
+Calculate delivery fee when checkout opens:
+- Get customer coordinates (from selected delivery address)
+- Get merchant coordinates (from store location)
+- Use Haversine formula to calculate distance in km
+- Get admin settings: base_rate (first km), succeeding_rate (per km)
+- Apply formula:
+```
+  roundedDistance = Math.ceil(actualDistance)
+  if (roundedDistance <= 1):
+    deliveryFee = baseRate
+  else:
+    deliveryFee = baseRate + ((roundedDistance - 1) × succeedingRate)
+```
+
+Checkout Modal Display:
+
+Delivery Address:
+[Customer Address]
+📍 Distance: 3.2 km (4 km rounded)
+[Edit Address]
+
+Order Summary:
+Items Subtotal: ₱500.00
+Delivery Fee (4 km): ₱80.00
+  └─ Base (1km): ₱50.00
+  └─ Additional (3km): ₱30.00
+Merchant Fee: ₱20.00
+Convenience Fee: ₱15.00
+Markup: ₱50.00
+─────────────────────
+TOTAL: ₱665.00
+
+Payment Method:
+○ Cash on Delivery
+○ GCash  
+○ Maya
+
+[Place Order]
+
+Real-time updates:
+- If customer edits address/changes pin location
+- Recalculate distance immediately
+- Update delivery fee
+- Update total
+- No page refresh needed
+
+Save to order:
+- delivery_distance_km (actual: 3.2)
+- delivery_distance_rounded (4)
+- delivery_fee (80.00)
+- customer_lat, customer_lng
+- merchant_lat, merchant_lng
+- base_rate_applied (50.00)
+- succeeding_rate_applied (10.00)
+
+These three changes improve customization flexibility, simplify cart view, and ensure accurate delivery fee calculation based on real GPS coordinates.

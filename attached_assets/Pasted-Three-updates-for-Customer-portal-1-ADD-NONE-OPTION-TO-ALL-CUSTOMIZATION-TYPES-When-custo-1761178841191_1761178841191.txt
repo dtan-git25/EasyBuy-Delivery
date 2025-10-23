@@ -1,0 +1,66 @@
+Three updates for Customer portal:
+
+1. ADD "NONE" OPTION TO ALL CUSTOMIZATION TYPES:
+
+When customer customizes menu item order:
+- For EVERY option type that merchant added (Size, Flavor, Add-ons, etc.)
+- Automatically include "None" as the first option
+- Customer can choose to skip that customization
+
+Example:
+Merchant added for Fries:
+- Size: Small (₱50), Large (₱75)
+- Add-ons: Extra Cheese (₱20), Bacon (₱25)
+
+Customer sees:
+Size:
+- None (₱0)
+- Small (₱50)
+- Large (₱75)
+
+Add-ons:
+- None (₱0)
+- Extra Cheese (₱20)
+- Bacon (₱25)
+
+Implementation:
+- "None" option should have ₱0 price
+- "None" should be pre-selected by default for optional customizations
+- If customization is required (merchant marked as required), "None" can be disabled or hidden
+- For radio button options (single choice): "None" is first option
+- For checkboxes (multiple choice): "None" checkbox available
+
+Price calculation:
+- If customer selects "None", add ₱0 to item price
+- If customer selects actual option, add that option's price
+- Display total: Base price + selected options
+
+2. REMOVE DELIVERY FEE AND CONVINIECE FEE FROM CART MODAL:
+
+Keep cart simple - just items and subtotal.
+
+3. DELIVERY FEE CALCULATION IN CHECKOUT MODAL:
+
+Calculate delivery fee when checkout opens:
+- Get customer coordinates (from selected delivery address)
+- Get merchant coordinates (from store location)
+- Use Haversine formula to calculate distance in km
+- Get admin settings: base_rate (first km), succeeding_rate (per km)
+- Apply formula:
+```
+  roundedDistance = Math.ceil(actualDistance)
+  if (roundedDistance <= 1):
+    deliveryFee = baseRate
+  else:
+    deliveryFee = baseRate + ((roundedDistance - 1) × succeedingRate)
+```
+
+Real-time updates:
+- If customer edits address/changes pin location
+- Recalculate distance immediately
+- Update delivery fee
+- Update total
+- No page refresh needed
+
+
+These three changes improve customization flexibility, simplify cart view, and ensure accurate delivery fee calculation based on real GPS coordinates.
