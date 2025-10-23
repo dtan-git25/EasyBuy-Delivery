@@ -1,0 +1,78 @@
+Add Rider details (name and phone) in chatbox when order is accepted:
+
+IMPLEMENTATION:
+
+1. TRIGGER - Show rider details in chatbox:
+   - When rider accepts the order
+   - Rider details appear in the chat interface
+   - Available to customer, merchant, and admin
+
+2. CHATBOX HEADER/INFO SECTION:
+
+Add rider information display at the top of chat conversation:
+
+When chat is opened, show:
+- Order number
+- Order status
+- Rider details section (appears only after rider accepts)
+
+Rider Details Section shows:
+- Rider's name
+- Phone icon with rider's phone number (clickable to call)
+
+3. DISPLAY FORMAT:
+
+At the top of chatbox, add:
+
+Order #12345 - In Transit
+
+Rider Information:
+Name: Juan Dela Cruz
+Phone: [📞] 0917-123-4567
+
+Then below that, the chat messages area.
+
+4. PHONE NUMBER FUNCTIONALITY:
+
+Make phone number clickable:
+- Click phone icon or number opens phone dialer
+- Use tel: link format
+- On mobile: opens phone app to call
+- On desktop: shows option to call if capable
+
+5. VISIBILITY RULES:
+
+Show rider details when:
+- Rider has accepted the order (status: accepted, picked_up, in_transit, delivered)
+- Hide if no rider assigned yet (pending orders)
+
+Display to:
+- Customer (can see and call rider)
+- Merchant (can see and call rider)
+- Admin (can see and call rider)
+- Rider themselves (see their own info, but no need to call themselves)
+
+6. DATA SOURCE:
+
+Fetch rider details from order:
+- rider_id
+- rider_name
+- rider_phone
+- Include in chat context when order is loaded
+
+7. UPDATE IN REAL-TIME:
+
+When rider accepts order:
+- Broadcast rider assignment to all chat participants
+- Update chatbox to show rider info immediately
+- No page refresh needed
+
+8. STYLING:
+
+Make rider details section:
+- Clear and prominent
+- Separated from chat messages
+- Easy to find phone number
+- Clickable phone icon/number in distinct color
+
+This helps customers and merchants easily contact the rider during delivery without leaving the chat interface.

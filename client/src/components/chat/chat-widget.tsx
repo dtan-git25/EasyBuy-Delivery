@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, X, Send, User } from "lucide-react";
+import { MessageCircle, X, Send, User, Phone } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useWebSocket } from "@/lib/websocket";
 
@@ -349,6 +349,41 @@ export default function ChatWidget() {
             </div>
           ) : (
             <>
+              {/* Rider Information Section */}
+              {(() => {
+                const selectedOrder = chatableOrders.find((o: any) => o.id === selectedOrderId);
+                const hasRider = selectedOrder && (selectedOrder as any).riderName;
+                
+                if (hasRider) {
+                  return (
+                    <div className="border-b border-border bg-muted/30 px-4 py-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm font-medium" data-testid="text-rider-name-chat">
+                              {(selectedOrder as any).riderName}
+                            </p>
+                            <p className="text-xs text-muted-foreground">Delivery Rider</p>
+                          </div>
+                        </div>
+                        {(selectedOrder as any).riderPhone && (
+                          <a
+                            href={`tel:${(selectedOrder as any).riderPhone}`}
+                            className="flex items-center space-x-1 text-sm text-primary hover:underline"
+                            data-testid="link-rider-phone-chat"
+                          >
+                            <Phone className="h-4 w-4" />
+                            <span>{(selectedOrder as any).riderPhone}</span>
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
               {/* Messages Area */}
               <div className="flex-1 overflow-y-auto px-4 py-2 space-y-3">
                 {messages.length === 0 ? (

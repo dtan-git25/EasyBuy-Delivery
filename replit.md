@@ -48,7 +48,9 @@ Preferred communication style: Simple, everyday language.
 - Custom WebSocket server for live updates.
 - Order-specific chat between all user types.
 - Real-time order status tracking and notifications.
-- **Rider Information Visibility**: When a rider accepts an order, their name and phone number are displayed to the customer in the order details section for direct communication and transparency.
+- **Rider Information Visibility**: When a rider accepts an order, their name and phone number are displayed to customers, merchants, and admins in:
+  - **Order Details Section**: Dedicated "Rider Information" box showing rider name and phone
+  - **Chatbox Header**: Rider details appear at the top of the chat interface with clickable phone number (tel: link) for direct calling on mobile devices
 
 ### Location Services
 - **Browser Geolocation API**: Optional "Share Location" button for customers to provide precise coordinates for accurate delivery fee calculation.
