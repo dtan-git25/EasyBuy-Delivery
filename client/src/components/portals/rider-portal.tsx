@@ -13,6 +13,7 @@ import { apiRequest, queryClient as globalQueryClient } from "@/lib/queryClient"
 import { useToast } from "@/hooks/use-toast";
 import { useWebSocket } from "@/lib/websocket";
 import { Input } from "@/components/ui/input";
+import { LocationMapViewer } from "@/components/location-map-viewer";
 
 interface PendingOrder {
   id: string;
@@ -160,6 +161,8 @@ export default function RiderPortal() {
   const [editedPhone, setEditedPhone] = useState("");
   const [isDocumentsDialogOpen, setIsDocumentsDialogOpen] = useState(false);
   const [fullSizeImage, setFullSizeImage] = useState<string | null>(null);
+  const [showMapViewer, setShowMapViewer] = useState(false);
+  const [selectedOrderForMap, setSelectedOrderForMap] = useState<any | null>(null);
 
   const { data: wallet } = useQuery({
     queryKey: ["/api/wallet"],
@@ -950,13 +953,30 @@ export default function RiderPortal() {
                             </div>
                             <div className="flex justify-between items-start">
                               <span className="text-muted-foreground">Delivery Address:</span>
-                              <div className="flex-1 text-right">
-                                <div className="font-medium">{order.deliveryAddress}</div>
+                              <div className="flex-1 text-right flex flex-col items-end gap-1">
+                                <div className="flex items-center gap-2">
+                                  <div className="font-medium">{order.deliveryAddress}</div>
+                                  {order.deliveryLatitude && order.deliveryLongitude && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0"
+                                      onClick={() => {
+                                        setSelectedOrderForMap(order);
+                                        setShowMapViewer(true);
+                                      }}
+                                      data-testid={`button-view-pin-${order.id}`}
+                                      title="View on map"
+                                    >
+                                      <MapPin className="h-4 w-4 text-primary" />
+                                    </Button>
+                                  )}
+                                </div>
                                 {order.deliveryLatitude && order.deliveryLongitude && (
                                   <Button
                                     variant="link"
                                     size="sm"
-                                    className="h-auto p-0 text-xs text-primary hover:underline mt-1"
+                                    className="h-auto p-0 text-xs text-primary hover:underline"
                                     onClick={() => window.open(
                                       `https://www.openstreetmap.org/?mlat=${order.deliveryLatitude}&mlon=${order.deliveryLongitude}#map=17/${order.deliveryLatitude}/${order.deliveryLongitude}`,
                                       '_blank'
@@ -969,9 +989,28 @@ export default function RiderPortal() {
                                 )}
                               </div>
                             </div>
-                            <div className="flex justify-between">
+                            <div className="flex justify-between items-start">
                               <span className="text-muted-foreground">Pickup Location:</span>
-                              <span className="font-medium">{order.restaurantAddress}</span>
+                              <div className="flex-1 text-right flex flex-col items-end gap-1">
+                                <div className="flex items-center gap-2">
+                                  <div className="font-medium">{order.restaurantAddress}</div>
+                                  {order.restaurantLatitude && order.restaurantLongitude && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0"
+                                      onClick={() => {
+                                        setSelectedOrderForMap(order);
+                                        setShowMapViewer(true);
+                                      }}
+                                      data-testid={`button-view-pin-pickup-${order.id}`}
+                                      title="View on map"
+                                    >
+                                      <MapPin className="h-4 w-4 text-green-600" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Payment Method:</span>
@@ -1895,6 +1934,66 @@ export default function RiderPortal() {
               Close
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Location Map Viewer */}
+      <Dialog open={showMapViewer} onOpenChange={setShowMapViewer}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Delivery Locations</DialogTitle>
+            <DialogDescription>
+              View the pickup location (restaurant) and delivery address on the map
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedOrderForMap && (
+            <div className="space-y-4">
+              <LocationMapViewer
+                locations={[
+                  ...(selectedOrderForMap.restaurantLatitude && selectedOrderForMap.restaurantLongitude ? [{
+                    lat: parseFloat(selectedOrderForMap.restaurantLatitude),
+                    lng: parseFloat(selectedOrderForMap.restaurantLongitude),
+                    label: `Pickup: ${selectedOrderForMap.restaurantName}`,
+                    color: "#10b981", // green for restaurant/pickup
+                  }] : []),
+                  ...(selectedOrderForMap.deliveryLatitude && selectedOrderForMap.deliveryLongitude ? [{
+                    lat: parseFloat(selectedOrderForMap.deliveryLatitude),
+                    lng: parseFloat(selectedOrderForMap.deliveryLongitude),
+                    label: `Delivery: ${selectedOrderForMap.customerName}`,
+                    color: "#3b82f6", // blue for customer/delivery
+                  }] : []),
+                ]}
+              />
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                <div className="p-3 border rounded-lg bg-green-50 dark:bg-green-950">
+                  <h4 className="font-semibold text-sm flex items-center gap-2 mb-2">
+                    <MapPin className="h-4 w-4 text-green-600" />
+                    Pickup Location
+                  </h4>
+                  <p className="text-sm font-medium">{selectedOrderForMap.restaurantName}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{selectedOrderForMap.restaurantAddress}</p>
+                </div>
+                
+                <div className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-950">
+                  <h4 className="font-semibold text-sm flex items-center gap-2 mb-2">
+                    <MapPin className="h-4 w-4 text-blue-600" />
+                    Delivery Address
+                  </h4>
+                  <p className="text-sm font-medium">{selectedOrderForMap.customerName}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{selectedOrderForMap.deliveryAddress}</p>
+                  {selectedOrderForMap.phoneNumber && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Contact: <a href={`tel:${selectedOrderForMap.phoneNumber}`} className="text-primary hover:underline">
+                        {selectedOrderForMap.phoneNumber}
+                      </a>
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
