@@ -1,0 +1,117 @@
+Fix customer pricing - Show markup price instead of base price:
+
+PROBLEM:
+Customer sees base/original price instead of marked-up price in:
+- Merchant menu page (product listings)
+- Cart modal (items in cart)
+
+SOLUTION:
+
+1. MERCHANT MENU PAGE:
+
+When displaying menu items to customer:
+- DO NOT show merchant's base price
+- Calculate and show marked-up price
+- Formula: displayPrice = basePrice + (basePrice × markupPercentage / 100)
+
+Example:
+- Base price: ₱100
+- Markup: 20%
+- Customer sees: ₱120
+
+Implementation:
+```javascript
+const calculateMarkupPrice = (basePrice, markupPercent) => {
+  const markupAmount = basePrice * (markupPercent / 100);
+  return basePrice + markupAmount;
+};
+
+// Display
+const displayPrice = calculateMarkupPrice(item.price, merchant.markup_percentage);
+```
+
+Show on menu:
+Burger King Whopper
+₱120.00 (this is base ₱100 + 20% markup)
+
+2. CART MODAL:
+
+When showing items in cart:
+- Display marked-up price per item
+- Calculate subtotal using marked-up prices
+- Store both prices in cart for transparency
+
+Cart display:
+Item Name                    Qty    Price
+Whopper                      2      ₱240.00
+  (₱120.00 each)
+Fries                        1      ₱60.00
+─────────────────────────────────────────
+Subtotal:                           ₱300.00
+
+3. ITEM CUSTOMIZATION:
+
+When adding customizations:
+- Base item price: use marked-up price
+- Customization options: use merchant's option prices (no additional markup on options)
+
+Example:
+Burger (base ₱100, markup 20% = ₱120)
++ Size Large (₱20)
++ Extra Cheese (₱15)
+Total for item: ₱120 + ₱20 + ₱15 = ₱155
+
+4. DATABASE STRUCTURE:
+
+Ensure cart stores:
+- item_base_price (merchant's original price)
+- item_markup_percentage (merchant's markup %)
+- item_display_price (calculated markup price)
+- item_options_total (sum of customizations)
+- item_final_price (display_price + options_total)
+
+5. CHECKOUT CALCULATION:
+
+Order breakdown should show:
+Items Subtotal: ₱300.00 (all marked-up prices)
+Delivery Fee: ₱80.00
+Merchant Fee: ₱20.00
+Convenience Fee: ₱15.00
+Additional Markup: ₱0.00 (already included in item prices)
+─────────────────────
+TOTAL: ₱415.00
+
+6. WHERE TO GET MARKUP PERCENTAGE:
+
+Get from merchants table:
+- Each merchant has markup_percentage field
+- Admin sets this per merchant
+- Apply to ALL menu items from that merchant
+
+Query example:
+```sql
+SELECT 
+  menu_items.*,
+  merchants.markup_percentage,
+  (menu_items.price + (menu_items.price * merchants.markup_percentage / 100)) as display_price
+FROM menu_items
+JOIN merchants ON menu_items.merchant_id = merchants.id
+WHERE merchants.id = ?
+```
+
+7. MERCHANT SHOULD NEVER SEE MARKUP:
+
+Important distinction:
+- Customer sees: marked-up prices
+- Merchant sees: base prices (their original prices)
+- Admin sees: both base and marked-up prices
+
+8. ORDER CONFIRMATION:
+
+When order is placed, save:
+- item_base_price
+- markup_percentage_applied
+- item_display_price
+- This ensures pricing is locked even if markup changes later
+
+Customer should ALWAYS see marked-up prices throughout their entire journey - browsing, cart, checkout, order confirmation.
