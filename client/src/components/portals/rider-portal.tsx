@@ -163,6 +163,7 @@ export default function RiderPortal() {
   const [fullSizeImage, setFullSizeImage] = useState<string | null>(null);
   const [showMapViewer, setShowMapViewer] = useState(false);
   const [selectedOrderForMap, setSelectedOrderForMap] = useState<any | null>(null);
+  const [mapLocationType, setMapLocationType] = useState<'delivery' | 'pickup'>('delivery');
 
   const { data: wallet } = useQuery({
     queryKey: ["/api/wallet"],
@@ -962,6 +963,7 @@ export default function RiderPortal() {
                                     className="h-6 w-6 p-0 shrink-0"
                                     onClick={() => {
                                       setSelectedOrderForMap(order);
+                                      setMapLocationType('delivery');
                                       setShowMapViewer(true);
                                     }}
                                     data-testid={`button-view-pin-${order.id}`}
@@ -983,6 +985,7 @@ export default function RiderPortal() {
                                     className="h-6 w-6 p-0 shrink-0"
                                     onClick={() => {
                                       setSelectedOrderForMap(order);
+                                      setMapLocationType('pickup');
                                       setShowMapViewer(true);
                                     }}
                                     data-testid={`button-view-pin-pickup-${order.id}`}
@@ -1922,41 +1925,37 @@ export default function RiderPortal() {
       <Dialog open={showMapViewer} onOpenChange={setShowMapViewer}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Delivery Locations</DialogTitle>
+            <DialogTitle>
+              {mapLocationType === 'delivery' ? 'Delivery Address' : 'Pickup Location'}
+            </DialogTitle>
             <DialogDescription>
-              View the pickup location (restaurant) and delivery address on the map
+              {mapLocationType === 'delivery' 
+                ? 'View the customer delivery address on the map'
+                : 'View the restaurant pickup location on the map'}
             </DialogDescription>
           </DialogHeader>
           
           {selectedOrderForMap && (
             <div className="space-y-4">
               <LocationMapViewer
-                locations={[
-                  ...(selectedOrderForMap.restaurantLatitude && selectedOrderForMap.restaurantLongitude ? [{
-                    lat: parseFloat(selectedOrderForMap.restaurantLatitude),
-                    lng: parseFloat(selectedOrderForMap.restaurantLongitude),
-                    label: `Pickup: ${selectedOrderForMap.restaurantName}`,
-                    color: "#10b981", // green for restaurant/pickup
-                  }] : []),
-                  ...(selectedOrderForMap.deliveryLatitude && selectedOrderForMap.deliveryLongitude ? [{
-                    lat: parseFloat(selectedOrderForMap.deliveryLatitude),
-                    lng: parseFloat(selectedOrderForMap.deliveryLongitude),
-                    label: `Delivery: ${selectedOrderForMap.customerName}`,
-                    color: "#3b82f6", // blue for customer/delivery
-                  }] : []),
-                ]}
+                locations={
+                  mapLocationType === 'delivery' 
+                    ? (selectedOrderForMap.deliveryLatitude && selectedOrderForMap.deliveryLongitude ? [{
+                        lat: parseFloat(selectedOrderForMap.deliveryLatitude),
+                        lng: parseFloat(selectedOrderForMap.deliveryLongitude),
+                        label: `Delivery: ${selectedOrderForMap.customerName}`,
+                        color: "#3b82f6", // blue for customer/delivery
+                      }] : [])
+                    : (selectedOrderForMap.restaurantLatitude && selectedOrderForMap.restaurantLongitude ? [{
+                        lat: parseFloat(selectedOrderForMap.restaurantLatitude),
+                        lng: parseFloat(selectedOrderForMap.restaurantLongitude),
+                        label: `Pickup: ${selectedOrderForMap.restaurantName}`,
+                        color: "#10b981", // green for restaurant/pickup
+                      }] : [])
+                }
               />
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                <div className="p-3 border rounded-lg bg-green-50 dark:bg-green-950">
-                  <h4 className="font-semibold text-sm flex items-center gap-2 mb-2">
-                    <MapPin className="h-4 w-4 text-green-600" />
-                    Pickup Location
-                  </h4>
-                  <p className="text-sm font-medium">{selectedOrderForMap.restaurantName}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{selectedOrderForMap.restaurantAddress}</p>
-                </div>
-                
+              {mapLocationType === 'delivery' ? (
                 <div className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-950">
                   <h4 className="font-semibold text-sm flex items-center gap-2 mb-2">
                     <MapPin className="h-4 w-4 text-blue-600" />
@@ -1964,6 +1963,11 @@ export default function RiderPortal() {
                   </h4>
                   <p className="text-sm font-medium">{selectedOrderForMap.customerName}</p>
                   <p className="text-xs text-muted-foreground mt-1">{selectedOrderForMap.deliveryAddress}</p>
+                  {selectedOrderForMap.deliveryLatitude && selectedOrderForMap.deliveryLongitude && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Coordinates: {selectedOrderForMap.deliveryLatitude}, {selectedOrderForMap.deliveryLongitude}
+                    </p>
+                  )}
                   {selectedOrderForMap.phoneNumber && (
                     <p className="text-xs text-muted-foreground mt-1">
                       Contact: <a href={`tel:${selectedOrderForMap.phoneNumber}`} className="text-primary hover:underline">
@@ -1972,7 +1976,21 @@ export default function RiderPortal() {
                     </p>
                   )}
                 </div>
-              </div>
+              ) : (
+                <div className="p-3 border rounded-lg bg-green-50 dark:bg-green-950">
+                  <h4 className="font-semibold text-sm flex items-center gap-2 mb-2">
+                    <MapPin className="h-4 w-4 text-green-600" />
+                    Pickup Location
+                  </h4>
+                  <p className="text-sm font-medium">{selectedOrderForMap.restaurantName}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{selectedOrderForMap.restaurantAddress}</p>
+                  {selectedOrderForMap.restaurantLatitude && selectedOrderForMap.restaurantLongitude && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Coordinates: {selectedOrderForMap.restaurantLatitude}, {selectedOrderForMap.restaurantLongitude}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
