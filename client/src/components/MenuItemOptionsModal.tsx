@@ -82,12 +82,6 @@ export function MenuItemOptionsModal({ isOpen, onClose, menuItem, onAddToCart }:
   }, {} as Record<string, { typeId: string; typeName: string; typeDescription: string; values: { id: string; value: string; price: number }[] }>);
 
   const handleOptionSelect = (optionTypeId: string, optionTypeName: string, valueId: string, valueName: string, price: number) => {
-    // If "None" is selected, remove this option type from selections
-    if (valueId.startsWith('none-')) {
-      setSelectedOptions(prev => prev.filter(opt => opt.optionTypeId !== optionTypeId));
-      return;
-    }
-    
     setSelectedOptions(prev => {
       // Remove any previous selection for this option type
       const filtered = prev.filter(opt => opt.optionTypeId !== optionTypeId);
@@ -166,31 +160,15 @@ export function MenuItemOptionsModal({ isOpen, onClose, menuItem, onAddToCart }:
                     )}
                   </div>
                   <RadioGroup
-                    value={selectedOptions.find(opt => opt.optionTypeId === optionType.typeId)?.valueId || `none-${optionType.typeId}`}
+                    value={selectedOptions.find(opt => opt.optionTypeId === optionType.typeId)?.valueId || ""}
                     onValueChange={(valueId) => {
-                      if (valueId.startsWith('none-')) {
-                        handleOptionSelect(optionType.typeId, optionType.typeName, valueId, "None", 0);
-                      } else {
-                        const value = optionType.values.find(v => v.id === valueId);
-                        if (value) {
-                          handleOptionSelect(optionType.typeId, optionType.typeName, valueId, value.value, value.price);
-                        }
+                      const value = optionType.values.find(v => v.id === valueId);
+                      if (value) {
+                        handleOptionSelect(optionType.typeId, optionType.typeName, valueId, value.value, value.price);
                       }
                     }}
                   >
                     <div className="space-y-2">
-                      {/* None option - always first */}
-                      <div
-                        className="flex items-center space-x-3 border rounded-lg p-3 hover:bg-muted/50 transition-colors"
-                        data-testid={`option-${optionType.typeName.toLowerCase()}-none`}
-                      >
-                        <RadioGroupItem value={`none-${optionType.typeId}`} id={`none-${optionType.typeId}`} />
-                        <Label htmlFor={`none-${optionType.typeId}`} className="flex-1 flex justify-between items-center cursor-pointer">
-                          <span>None</span>
-                          <span className="font-semibold text-muted-foreground">₱0.00</span>
-                        </Label>
-                      </div>
-                      
                       {optionType.values.map((value) => (
                         <div
                           key={value.id}
