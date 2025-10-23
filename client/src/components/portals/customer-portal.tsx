@@ -671,13 +671,17 @@ export default function CustomerPortal() {
     }
 
     // Create an order for each restaurant cart
+    const convenienceFee = settings?.convenienceFee ? parseFloat(settings.convenienceFee) : 0;
+    const showConvenienceFee = settings?.showConvenienceFee !== false;
+    
     const ordersData = allCarts
       .filter(restaurantCart => restaurantCart.items.length > 0)
       .map(restaurantCart => {
         const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         const markupAmount = (subtotal * restaurantCart.markup) / 100;
         const deliveryFee = calculatedDeliveryFees[restaurantCart.restaurantId] || 0;
-        const total = subtotal + markupAmount + deliveryFee;
+        const orderConvenienceFee = showConvenienceFee ? convenienceFee : 0;
+        const total = subtotal + markupAmount + deliveryFee + orderConvenienceFee;
 
         const deliveryAddress = [
           selectedAddress.lotHouseNo,
@@ -698,6 +702,7 @@ export default function CustomerPortal() {
           subtotal: subtotal.toFixed(2),
           markup: markupAmount.toFixed(2),
           deliveryFee: deliveryFee.toFixed(2),
+          convenienceFee: orderConvenienceFee.toFixed(2),
           total: total.toFixed(2),
           deliveryAddress,
           deliveryLatitude: selectedAddress.latitude,
@@ -1122,22 +1127,33 @@ export default function CustomerPortal() {
                 {(() => {
                   const subtotal = cart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
                   const markupAmount = (subtotal * cart.markup) / 100;
+                  const itemsSubtotal = subtotal + markupAmount;
                   const deliveryFee = cart.restaurantId ? (calculatedDeliveryFees[cart.restaurantId] || 0) : 0;
-                  const total = subtotal + markupAmount + deliveryFee;
+                  const convenienceFee = settings?.convenienceFee ? parseFloat(settings.convenienceFee) : 0;
+                  const showConvenienceFee = settings?.showConvenienceFee !== false;
+                  const total = itemsSubtotal + deliveryFee + (showConvenienceFee ? convenienceFee : 0);
                   
                   return (
                     <>
-                      <div className="flex justify-between text-sm">
-                        <span>Total:</span>
-                        <span>₱{(subtotal + markupAmount).toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Delivery Fee:</span>
-                        <span>₱{deliveryFee.toFixed(2)}</span>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span>Items Subtotal:</span>
+                          <span>₱{itemsSubtotal.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Delivery Fee:</span>
+                          <span>₱{deliveryFee.toFixed(2)}</span>
+                        </div>
+                        {showConvenienceFee && convenienceFee > 0 && (
+                          <div className="flex justify-between text-sm">
+                            <span>Convenience Fee:</span>
+                            <span>₱{convenienceFee.toFixed(2)}</span>
+                          </div>
+                        )}
                       </div>
                       <Separator />
                       <div className="flex justify-between font-semibold">
-                        <span>Restaurant Total:</span>
+                        <span>Total Amount:</span>
                         <span>₱{total.toFixed(2)}</span>
                       </div>
                     </>
@@ -1802,52 +1818,52 @@ export default function CustomerPortal() {
               </div>
 
               <div className="bg-muted p-4 rounded-lg space-y-3">
-                <h3 className="font-medium mb-2">Order Summary - All Merchants</h3>
-                {Object.values(cart.allCarts).filter(c => c.items.length > 0).map((restaurantCart) => {
-                  const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-                  const markupAmount = (subtotal * restaurantCart.markup) / 100;
-                  const deliveryFee = calculatedDeliveryFees[restaurantCart.restaurantId] || 0;
-                  const total = subtotal + markupAmount + deliveryFee;
+                <h3 className="font-medium mb-2">Order Summary</h3>
+                {(() => {
+                  const itemsSubtotal = Object.values(cart.allCarts)
+                    .filter(c => c.items.length > 0)
+                    .reduce((total, restaurantCart) => {
+                      const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                      const markupAmount = (subtotal * restaurantCart.markup) / 100;
+                      return total + subtotal + markupAmount;
+                    }, 0);
+                  
+                  const totalDeliveryFees = Object.values(cart.allCarts)
+                    .filter(c => c.items.length > 0)
+                    .reduce((total, restaurantCart) => {
+                      return total + (calculatedDeliveryFees[restaurantCart.restaurantId] || 0);
+                    }, 0);
+                  
+                  const convenienceFee = settings?.convenienceFee ? parseFloat(settings.convenienceFee) : 0;
+                  const showConvenienceFee = settings?.showConvenienceFee !== false;
+                  const grandTotal = itemsSubtotal + totalDeliveryFees + (showConvenienceFee ? convenienceFee : 0);
                   
                   return (
-                    <div key={restaurantCart.restaurantId} className="border-b pb-2 last:border-b-0">
-                      <p className="font-medium text-sm mb-1">{restaurantCart.restaurantName}</p>
-                      <div className="space-y-1 text-xs text-muted-foreground">
+                    <>
+                      <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
-                          <span>Subtotal:</span>
-                          <span>₱{subtotal.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Markup ({restaurantCart.markup}%):</span>
-                          <span>₱{markupAmount.toFixed(2)}</span>
+                          <span>Items Subtotal:</span>
+                          <span>₱{itemsSubtotal.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span>Delivery:</span>
-                          <span>₱{deliveryFee.toFixed(2)}</span>
+                          <span>Delivery Fee:</span>
+                          <span>₱{totalDeliveryFees.toFixed(2)}</span>
                         </div>
-                        <div className="flex justify-between font-semibold text-sm text-foreground">
-                          <span>Total:</span>
-                          <span>₱{total.toFixed(2)}</span>
-                        </div>
+                        {showConvenienceFee && convenienceFee > 0 && (
+                          <div className="flex justify-between">
+                            <span>Convenience Fee:</span>
+                            <span>₱{convenienceFee.toFixed(2)}</span>
+                          </div>
+                        )}
                       </div>
-                    </div>
+                      <Separator />
+                      <div className="flex justify-between font-bold text-base">
+                        <span>Total Amount:</span>
+                        <span>₱{grandTotal.toFixed(2)}</span>
+                      </div>
+                    </>
                   );
-                })}
-                <Separator />
-                <div className="flex justify-between font-bold text-base">
-                  <span>Grand Total:</span>
-                  <span>₱{(() => {
-                    const grandTotal = Object.values(cart.allCarts)
-                      .filter(c => c.items.length > 0)
-                      .reduce((total, restaurantCart) => {
-                        const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-                        const markupAmount = (subtotal * restaurantCart.markup) / 100;
-                        const deliveryFee = calculatedDeliveryFees[restaurantCart.restaurantId] || 0;
-                        return total + subtotal + markupAmount + deliveryFee;
-                      }, 0);
-                    return grandTotal.toFixed(2);
-                  })()}</span>
-                </div>
+                })()}
               </div>
 
               <div className="flex space-x-2">

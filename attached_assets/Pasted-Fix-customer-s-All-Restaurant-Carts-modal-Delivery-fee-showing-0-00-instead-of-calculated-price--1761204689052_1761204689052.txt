@@ -1,0 +1,48 @@
+Fix customer's All Restaurant Carts modal - Delivery fee showing ₱0.00 instead of calculated price:
+
+PROBLEM:
+In the "All Restaurant Carts" modal, delivery fee shows ₱0.00 when it should show the calculated delivery fee based on distance between customer and merchant pin locations.
+
+REQUIRED FIX:
+
+1. Calculate delivery fee for each restaurant cart:
+   - Get customer's delivery address coordinates (latitude, longitude)
+   - Get each merchant's store coordinates (latitude, longitude)
+   - Calculate distance using Haversine formula
+   - Apply admin delivery settings (base rate + succeeding rate)
+   - Display calculated fee in the cart
+
+2. Show calculated delivery fee:
+   Currently showing:
+   - Delivery Fee: ₱0.00 ✗
+   
+   Should show:
+   - Delivery Fee: ₱80.00 ✓ (based on actual distance calculation)
+
+3. Calculate when modal opens:
+   - As soon as "All Restaurant Carts" modal opens
+   - Automatically calculate delivery fee for each merchant in cart
+   - Update the display immediately
+   - No manual trigger needed
+
+4. Requirements for calculation:
+   - Customer must have delivery address with pin location set
+   - Merchant must have store location with pin set
+   - If either is missing, show: "Set delivery location to calculate fee"
+
+5. Update Grand Total:
+   - Include calculated delivery fee in Grand Total
+   - Grand Total = Items Total + Delivery Fee + Convenience Fee + Merchant Fee + Markup
+
+6. Apply same calculation as checkout:
+   - Use exact same distance calculation logic
+   - Use same admin delivery settings
+   - Round distance up to whole kilometer
+   - Apply: Base Rate (first km) + Succeeding Rate (additional km)
+
+7. For multiple restaurant carts:
+   - Calculate delivery fee for EACH restaurant separately
+   - Show individual delivery fees per restaurant
+   - Sum all delivery fees in "Total for All Carts"
+
+The delivery fee calculation should work exactly the same way it does in checkout modal - using real GPS coordinates and admin settings.
