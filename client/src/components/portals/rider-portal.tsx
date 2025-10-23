@@ -843,49 +843,16 @@ export default function RiderPortal() {
                         </div>
                       </div>
 
-                      <div className="grid md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <h5 className="font-medium text-foreground mb-2">Customer Details</h5>
-                          <div className="space-y-1 text-sm text-muted-foreground">
-                            <div className="flex items-center">
-                              <User className="mr-2 h-4 w-4" />
-                              {order.customer.name}
-                            </div>
-                            <div className="flex items-start">
-                              <MapPin className="mr-2 h-4 w-4 mt-0.5 flex-shrink-0" />
-                              <div className="flex-1">
-                                <div>{order.customer.address}</div>
-                                {(order as any).deliveryLatitude && (order as any).deliveryLongitude && (
-                                  <Button
-                                    variant="link"
-                                    size="sm"
-                                    className="h-auto p-0 text-xs text-primary hover:underline mt-1"
-                                    onClick={() => window.open(
-                                      `https://www.openstreetmap.org/?mlat=${(order as any).deliveryLatitude}&mlon=${(order as any).deliveryLongitude}#map=17/${(order as any).deliveryLatitude}/${(order as any).deliveryLongitude}`,
-                                      '_blank'
-                                    )}
-                                    data-testid={`button-view-map-${order.id}`}
-                                  >
-                                    <Map className="h-3 w-3 mr-1" />
-                                    View on Map
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center">
-                              <Phone className="mr-2 h-4 w-4" />
-                              {order.customer.phone}
-                            </div>
-                          </div>
+                      <div className="space-y-2 mb-4">
+                        <div className="flex items-center text-sm">
+                          <User className="mr-2 h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">Customer:</span>
+                          <span className="ml-2 font-medium text-foreground">{order.customer.name}</span>
                         </div>
-
-                        <div>
-                          <h5 className="font-medium text-foreground mb-2">Pickup Location</h5>
-                          <div className="space-y-1 text-sm text-muted-foreground">
-                            <p>{order.restaurant.name}</p>
-                            <p>{order.restaurant.address}</p>
-                            <p>Distance: {order.distance}</p>
-                          </div>
+                        <div className="flex items-center text-sm">
+                          <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">Store:</span>
+                          <span className="ml-2 font-medium text-foreground">{order.restaurant.name}</span>
                         </div>
                       </div>
 
