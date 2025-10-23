@@ -1119,10 +1119,30 @@ export default function CustomerPortal() {
                   ))}
                 </div>
                 <Separator />
-                <div className="flex justify-between font-semibold">
-                  <span>Total:</span>
-                  <span>₱{cart.getTotal().toFixed(2)}</span>
-                </div>
+                {(() => {
+                  const subtotal = cart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                  const markupAmount = (subtotal * cart.markup) / 100;
+                  const deliveryFee = cart.restaurantId ? (calculatedDeliveryFees[cart.restaurantId] || 0) : 0;
+                  const total = subtotal + markupAmount + deliveryFee;
+                  
+                  return (
+                    <>
+                      <div className="flex justify-between text-sm">
+                        <span>Total:</span>
+                        <span>₱{(subtotal + markupAmount).toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Delivery Fee:</span>
+                        <span>₱{deliveryFee.toFixed(2)}</span>
+                      </div>
+                      <Separator />
+                      <div className="flex justify-between font-semibold">
+                        <span>Restaurant Total:</span>
+                        <span>₱{total.toFixed(2)}</span>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
               
               <div className="flex space-x-2 pt-4">
