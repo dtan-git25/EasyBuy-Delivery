@@ -558,8 +558,6 @@ export default function CustomerPortal() {
         menuItemId: selectedMenuItemForOptions.id,
         name: selectedMenuItemForOptions.name,
         price: pricePerItem,
-        basePrice: basePrice,
-        optionsPrice: optionsPrice,
         restaurant: {
           id: selectedRestaurant.id,
           name: selectedRestaurant.name,
@@ -614,10 +612,9 @@ export default function CustomerPortal() {
     const ordersData = allCarts
       .filter(restaurantCart => restaurantCart.items.length > 0)
       .map(restaurantCart => {
-        const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.basePrice * item.quantity), 0);
+        const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         const markupAmount = (subtotal * restaurantCart.markup) / 100;
-        const optionsTotal = restaurantCart.items.reduce((sum, item) => sum + (item.optionsPrice * item.quantity), 0);
-        const total = subtotal + markupAmount + optionsTotal + restaurantCart.deliveryFee;
+        const total = subtotal + markupAmount + restaurantCart.deliveryFee;
 
         const deliveryAddress = [
           selectedAddress.lotHouseNo,
@@ -737,9 +734,7 @@ export default function CustomerPortal() {
                                 <p className="text-sm text-muted-foreground mb-2">{item.description}</p>
                               )}
                               <div className="flex items-center justify-between mt-2">
-                                <span className="text-lg font-bold text-green-600">
-                                  ₱{(Number(item.price) * (1 + parseFloat(selectedRestaurant.markup.toString()) / 100)).toFixed(2)}
-                                </span>
+                                <span className="text-lg font-bold text-green-600">₱{Number(item.price).toFixed(2)}</span>
                                 <div className="flex items-center space-x-2">
                                   {!item.isAvailable ? (
                                     <Badge variant="destructive">Unavailable</Badge>
@@ -790,9 +785,7 @@ export default function CustomerPortal() {
                               {Object.entries(item.variants).map(([key, value]) => `${key}: ${value}`).join(', ')}
                             </p>
                           )}
-                          <p className="text-sm text-muted-foreground">
-                            ₱{((item.basePrice * (1 + cart.markup / 100)) + item.optionsPrice).toFixed(2)} each
-                          </p>
+                          <p className="text-sm text-muted-foreground">₱{Number(item.price).toFixed(2)} each</p>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Button
@@ -894,10 +887,9 @@ export default function CustomerPortal() {
             <div className="space-y-4">
               {Object.values(cart.allCarts).map((restaurantCart) => {
                 const isActive = cart.activeRestaurantId === restaurantCart.restaurantId;
-                const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.basePrice * item.quantity), 0);
+                const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
                 const markupAmount = subtotal * (restaurantCart.markup / 100);
-                const optionsTotal = restaurantCart.items.reduce((sum, item) => sum + (item.optionsPrice * item.quantity), 0);
-                const total = subtotal + markupAmount + optionsTotal + restaurantCart.deliveryFee;
+                const total = subtotal + markupAmount + restaurantCart.deliveryFee;
                 const itemCount = restaurantCart.items.reduce((sum, item) => sum + item.quantity, 0);
                 
                 return (
@@ -914,15 +906,12 @@ export default function CustomerPortal() {
                       <Separator />
                       
                       <div className="space-y-2 text-sm">
-                        {restaurantCart.items.map((item) => {
-                          const markedUpPrice = (item.basePrice * (1 + restaurantCart.markup / 100)) + item.optionsPrice;
-                          return (
-                            <div key={item.id} className="flex justify-between">
-                              <span>{item.quantity}x {item.name}</span>
-                              <span>₱{(markedUpPrice * item.quantity).toFixed(2)}</span>
-                            </div>
-                          );
-                        })}
+                        {restaurantCart.items.map((item) => (
+                          <div key={item.id} className="flex justify-between">
+                            <span>{item.quantity}x {item.name}</span>
+                            <span>₱{(item.price * item.quantity).toFixed(2)}</span>
+                          </div>
+                        ))}
                       </div>
                       
                       <Separator />
@@ -1660,9 +1649,7 @@ export default function CustomerPortal() {
                         {Object.entries(item.variants).map(([key, value]) => `${key}: ${value}`).join(', ')}
                       </p>
                     )}
-                    <p className="text-sm text-muted-foreground">
-                      ₱{((item.basePrice * (1 + cart.markup / 100)) + item.optionsPrice).toFixed(2)} each
-                    </p>
+                    <p className="text-sm text-muted-foreground">₱{Number(item.price).toFixed(2)} each</p>
                   </div>
                   <div className="flex items-center space-x-3">
                     <div className="flex items-center space-x-2">
@@ -1782,10 +1769,9 @@ export default function CustomerPortal() {
               <div className="bg-muted p-4 rounded-lg space-y-3">
                 <h3 className="font-medium mb-2">Order Summary - All Merchants</h3>
                 {Object.values(cart.allCarts).filter(c => c.items.length > 0).map((restaurantCart) => {
-                  const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.basePrice * item.quantity), 0);
+                  const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
                   const markupAmount = (subtotal * restaurantCart.markup) / 100;
-                  const optionsTotal = restaurantCart.items.reduce((sum, item) => sum + (item.optionsPrice * item.quantity), 0);
-                  const total = subtotal + markupAmount + optionsTotal + restaurantCart.deliveryFee;
+                  const total = subtotal + markupAmount + restaurantCart.deliveryFee;
                   
                   return (
                     <div key={restaurantCart.restaurantId} className="border-b pb-2 last:border-b-0">
