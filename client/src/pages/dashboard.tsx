@@ -408,24 +408,9 @@ export default function Dashboard() {
                       <Separator />
                       
                       <div className="space-y-1 text-sm">
-                        <div className="flex justify-between">
-                          <span>Total:</span>
-                          <span>₱{(subtotal + markupAmount).toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Delivery Fee:</span>
-                          <span>₱{deliveryFee.toFixed(2)}</span>
-                        </div>
-                        {settings?.showConvenienceFee && (
-                          <div className="flex justify-between">
-                            <span>Convenience Fee:</span>
-                            <span>₱{parseFloat(settings.convenienceFee || '0').toFixed(2)}</span>
-                          </div>
-                        )}
-                        <Separator className="my-2" />
                         <div className="flex justify-between font-semibold text-base">
-                          <span>Grand Total:</span>
-                          <span>₱{(total + (settings?.showConvenienceFee ? parseFloat(settings.convenienceFee || '0') : 0)).toFixed(2)}</span>
+                          <span>Subtotal:</span>
+                          <span>₱{(subtotal + markupAmount).toFixed(2)}</span>
                         </div>
                       </div>
                       
@@ -464,7 +449,13 @@ export default function Dashboard() {
                       <p className="font-semibold text-lg">Total for All Carts</p>
                       <p className="text-sm text-muted-foreground">{cart.getAllCartsCount()} restaurant{cart.getAllCartsCount() > 1 ? 's' : ''}</p>
                     </div>
-                    <p className="text-2xl font-bold">₱{(cart.getAllCartsTotal() + (settings?.showConvenienceFee ? parseFloat(settings.convenienceFee || '0') * cart.getAllCartsCount() : 0)).toFixed(2)}</p>
+                    <p className="text-2xl font-bold">
+                      ₱{Object.values(cart.allCarts).reduce((sum, restaurantCart) => {
+                        const subtotal = restaurantCart.items.reduce((itemSum, item) => itemSum + (item.price * item.quantity), 0);
+                        const markupAmount = subtotal * (restaurantCart.markup / 100);
+                        return sum + subtotal + markupAmount;
+                      }, 0).toFixed(2)}
+                    </p>
                   </div>
                   
                   <div className="flex gap-2 pt-2">
@@ -568,18 +559,9 @@ export default function Dashboard() {
                   <Separator />
                   
                   <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>Total:</span>
-                      <span>₱{(cart.getSubtotal() + cart.getMarkupAmount()).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Delivery Fee:</span>
-                      <span>₱{cart.getDeliveryFee().toFixed(2)}</span>
-                    </div>
-                    <Separator />
                     <div className="flex justify-between font-semibold text-lg">
-                      <span>Grand Total:</span>
-                      <span>₱{cart.getTotal().toFixed(2)}</span>
+                      <span>Subtotal:</span>
+                      <span>₱{(cart.getSubtotal() + cart.getMarkupAmount()).toFixed(2)}</span>
                     </div>
                   </div>
                   
