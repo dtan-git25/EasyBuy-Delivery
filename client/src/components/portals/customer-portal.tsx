@@ -18,6 +18,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { MenuItemOptionsModal } from "@/components/MenuItemOptionsModal";
 import { AddressSelector } from "@/components/address-selector";
 import type { SavedAddress } from "@shared/schema";
+import { calculateDistance, calculateDeliveryFee } from "@/lib/haversine";
 
 interface Restaurant {
   id: string;
@@ -207,6 +208,7 @@ export default function CustomerPortal() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [specialInstructions, setSpecialInstructions] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [calculatedDeliveryFees, setCalculatedDeliveryFees] = useState<Record<string, number>>({});
   
   // Enhanced tracking state
   const [activeTab, setActiveTab] = useState("restaurants");
@@ -289,6 +291,11 @@ export default function CustomerPortal() {
       if (!response.ok) throw new Error('Failed to fetch order history');
       return response.json();
     },
+  });
+
+  // Fetch system settings for delivery fee calculation
+  const { data: settings } = useQuery<any>({
+    queryKey: ["/api/settings"],
   });
 
   // Fetch saved addresses for profile view
@@ -383,6 +390,48 @@ export default function CustomerPortal() {
       });
     }
   });
+
+  // Calculate delivery fees based on distance when address changes
+  useEffect(() => {
+    if (!selectedAddress?.latitude || !selectedAddress?.longitude || !settings) {
+      return;
+    }
+
+    const customerLat = parseFloat(selectedAddress.latitude);
+    const customerLng = parseFloat(selectedAddress.longitude);
+    const baseRate = parseFloat(settings.baseDeliveryRate || '50');
+    const succeedingRate = parseFloat(settings.deliveryRatePerKm || '10');
+
+    const fees: Record<string, number> = {};
+
+    // Calculate delivery fee for each restaurant in the cart
+    Object.values(cart.allCarts).forEach((restaurantCart) => {
+      // Find the restaurant details to get coordinates
+      const restaurant = restaurants.find(r => r.id === restaurantCart.restaurantId);
+      
+      if (restaurant && (restaurant as any).latitude && (restaurant as any).longitude) {
+        const restaurantLat = parseFloat((restaurant as any).latitude);
+        const restaurantLng = parseFloat((restaurant as any).longitude);
+        
+        // Calculate distance using Haversine formula
+        const distance = calculateDistance(
+          customerLat,
+          customerLng,
+          restaurantLat,
+          restaurantLng
+        );
+        
+        // Calculate delivery fee based on distance
+        const deliveryFee = calculateDeliveryFee(distance, baseRate, succeedingRate);
+        fees[restaurantCart.restaurantId] = deliveryFee;
+      } else {
+        // Fallback to default delivery fee if coordinates not available
+        fees[restaurantCart.restaurantId] = baseRate;
+      }
+    });
+
+    setCalculatedDeliveryFees(fees);
+  }, [selectedAddress, settings, cart.allCarts, restaurants]);
 
   // Initialize profile edit form when entering edit mode
   useEffect(() => {
@@ -618,7 +667,8 @@ export default function CustomerPortal() {
       .map(restaurantCart => {
         const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         const markupAmount = (subtotal * restaurantCart.markup) / 100;
-        const total = subtotal + markupAmount + restaurantCart.deliveryFee;
+        const deliveryFee = calculatedDeliveryFees[restaurantCart.restaurantId] || 0;
+        const total = subtotal + markupAmount + deliveryFee;
 
         const deliveryAddress = [
           selectedAddress.lotHouseNo,
@@ -638,7 +688,7 @@ export default function CustomerPortal() {
           })),
           subtotal: subtotal.toFixed(2),
           markup: markupAmount.toFixed(2),
-          deliveryFee: restaurantCart.deliveryFee.toFixed(2),
+          deliveryFee: deliveryFee.toFixed(2),
           total: total.toFixed(2),
           deliveryAddress,
           deliveryLatitude: selectedAddress.latitude,
@@ -1757,7 +1807,8 @@ export default function CustomerPortal() {
                 {Object.values(cart.allCarts).filter(c => c.items.length > 0).map((restaurantCart) => {
                   const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
                   const markupAmount = (subtotal * restaurantCart.markup) / 100;
-                  const total = subtotal + markupAmount + restaurantCart.deliveryFee;
+                  const deliveryFee = calculatedDeliveryFees[restaurantCart.restaurantId] || 0;
+                  const total = subtotal + markupAmount + deliveryFee;
                   
                   return (
                     <div key={restaurantCart.restaurantId} className="border-b pb-2 last:border-b-0">
@@ -1773,7 +1824,7 @@ export default function CustomerPortal() {
                         </div>
                         <div className="flex justify-between">
                           <span>Delivery:</span>
-                          <span>₱{restaurantCart.deliveryFee.toFixed(2)}</span>
+                          <span>₱{deliveryFee.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between font-semibold text-sm text-foreground">
                           <span>Total:</span>
@@ -1786,7 +1837,17 @@ export default function CustomerPortal() {
                 <Separator />
                 <div className="flex justify-between font-bold text-base">
                   <span>Grand Total:</span>
-                  <span>₱{cart.getAllCartsTotal().toFixed(2)}</span>
+                  <span>₱{(() => {
+                    const grandTotal = Object.values(cart.allCarts)
+                      .filter(c => c.items.length > 0)
+                      .reduce((total, restaurantCart) => {
+                        const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                        const markupAmount = (subtotal * restaurantCart.markup) / 100;
+                        const deliveryFee = calculatedDeliveryFees[restaurantCart.restaurantId] || 0;
+                        return total + subtotal + markupAmount + deliveryFee;
+                      }, 0);
+                    return grandTotal.toFixed(2);
+                  })()}</span>
                 </div>
               </div>
 
