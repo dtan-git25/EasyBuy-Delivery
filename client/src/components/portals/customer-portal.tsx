@@ -1196,17 +1196,6 @@ export default function CustomerPortal() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="w-48 text-gray-900 dark:text-gray-100" data-testid="select-sort-by">
-                      <SelectValue placeholder="Sort by" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="distance">Distance</SelectItem>
-                      <SelectItem value="rating">Rating</SelectItem>
-                      <SelectItem value="delivery-time">Delivery Time</SelectItem>
-                      <SelectItem value="price">Price</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
               </div>
             </div>
