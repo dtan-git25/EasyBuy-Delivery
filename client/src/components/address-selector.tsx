@@ -628,26 +628,17 @@ export function AddressSelector({ value, onChange, disabled }: AddressSelectorPr
                 <strong>Required:</strong> Click anywhere on the map or drag the pin to your exact location for accurate delivery fees.
               </p>
               
-              <div className="grid grid-cols-2 gap-2">
+              <div>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={handleUseCurrentLocation}
                   disabled={isSearchingAddress}
                   data-testid="button-use-current-location"
+                  className="w-full"
                 >
                   <Navigation className="h-4 w-4 mr-2" />
                   {isSearchingAddress ? "Getting Location..." : "Use Current Location"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleSearchAddressOnMap}
-                  disabled={isSearchingAddress}
-                  data-testid="button-search-address-map"
-                >
-                  <Search className="h-4 w-4 mr-2" />
-                  {isSearchingAddress ? "Searching..." : "Search Address"}
                 </Button>
               </div>
               

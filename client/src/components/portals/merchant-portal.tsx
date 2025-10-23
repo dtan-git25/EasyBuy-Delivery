@@ -2184,26 +2184,17 @@ export default function MerchantPortal() {
                             Click anywhere on the map or drag the pin to update your exact store location for accurate delivery calculations.
                           </p>
 
-                          <div className="grid grid-cols-2 gap-2">
+                          <div>
                             <Button
                               type="button"
                               variant="outline"
                               onClick={handleProfileUseCurrentLocation}
                               disabled={isGeolocating}
                               data-testid="button-profile-use-location"
+                              className="w-full"
                             >
                               <Navigation className="h-4 w-4 mr-2" />
                               {isGeolocating ? "Getting Location..." : "Use Current Location"}
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={handleProfileSearchAddress}
-                              disabled={isGeolocating}
-                              data-testid="button-profile-search-address"
-                            >
-                              <Search className="h-4 w-4 mr-2" />
-                              {isGeolocating ? "Searching..." : "Search Address"}
                             </Button>
                           </div>
 
