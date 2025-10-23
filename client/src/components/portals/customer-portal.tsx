@@ -748,16 +748,8 @@ export default function CustomerPortal() {
             </div>
             <div className="absolute bottom-4 left-4 sm:left-6 lg:left-8 text-white">
               <h1 className="text-3xl font-bold">{selectedRestaurant.name}</h1>
-              <p className="text-lg opacity-90">{selectedRestaurant.cuisine}</p>
-              <div className="flex items-center mt-2 space-x-4">
+              <div className="flex items-center mt-2">
                 <RestaurantRating ownerId={selectedRestaurant.ownerId} />
-                <div className="flex items-center">
-                  <Clock className="h-4 w-4 mr-1" />
-                  <span>25-35 min</span>
-                </div>
-                <div className="flex items-center">
-                  <span>₱{selectedRestaurant.deliveryFee} delivery</span>
-                </div>
               </div>
             </div>
           </div>
