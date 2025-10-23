@@ -20,9 +20,22 @@ import ChatWidget from "@/components/chat/chat-widget";
 import { cn } from "@/lib/utils";
 import { AddressSelector } from "@/components/address-selector";
 import { NotificationDropdown } from "@/components/NotificationDropdown";
-import type { SavedAddress, SystemSettings } from "@shared/schema";
+import type { SavedAddress, SystemSettings, Restaurant } from "@shared/schema";
 
 type Portal = 'customer' | 'rider' | 'merchant' | 'admin' | 'owner';
+
+// Haversine formula to calculate distance between two GPS coordinates in kilometers
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth's radius in kilometers
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
 
 export default function Dashboard() {
   const { user, logoutMutation } = useAuth();
@@ -43,6 +56,46 @@ export default function Dashboard() {
   const { data: settings } = useQuery<SystemSettings>({
     queryKey: ["/api/settings"],
   });
+
+  // Fetch restaurants for GPS-based delivery fee calculation
+  const { data: restaurants = [] } = useQuery<Restaurant[]>({
+    queryKey: ["/api/restaurants"],
+    enabled: user?.role === 'customer',
+  });
+
+  // State to store calculated delivery fees for each restaurant
+  const [deliveryFees, setDeliveryFees] = useState<Record<string, number>>({});
+
+  // Calculate delivery fees when address changes
+  useEffect(() => {
+    if (!selectedAddress || !settings || restaurants.length === 0) {
+      setDeliveryFees({});
+      return;
+    }
+
+    const fees: Record<string, number> = {};
+    const baseDeliveryFee = parseFloat(settings.baseDeliveryFee?.toString() || '25');
+    const perKmRate = parseFloat(settings.perKmRate?.toString() || '15');
+    const addressLat = parseFloat(selectedAddress.latitude.toString());
+    const addressLon = parseFloat(selectedAddress.longitude.toString());
+
+    Object.values(cart.allCarts).forEach((restaurantCart) => {
+      const restaurant = restaurants.find(r => r.id === restaurantCart.restaurantId);
+      
+      if (restaurant?.latitude && restaurant?.longitude) {
+        const restaurantLat = parseFloat(restaurant.latitude.toString());
+        const restaurantLon = parseFloat(restaurant.longitude.toString());
+        const distance = calculateDistance(addressLat, addressLon, restaurantLat, restaurantLon);
+        const deliveryFee = baseDeliveryFee + (distance * perKmRate);
+        fees[restaurantCart.restaurantId] = Math.round(deliveryFee * 100) / 100; // Round to 2 decimals
+      } else {
+        // Fallback to default base delivery fee if restaurant doesn't have coordinates
+        fees[restaurantCart.restaurantId] = baseDeliveryFee;
+      }
+    });
+
+    setDeliveryFees(fees);
+  }, [selectedAddress, settings, cart.allCarts, restaurants]);
 
   // Reset payment method to first enabled method when settings change
   useEffect(() => {
@@ -138,7 +191,7 @@ export default function Dashboard() {
       for (const restaurantCart of allCarts) {
         const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         const markupAmount = subtotal * (restaurantCart.markup / 100);
-        const deliveryFee = parseFloat(restaurantCart.deliveryFee.toString());
+        const deliveryFee = deliveryFees[restaurantCart.restaurantId] || 0;
         const convenienceFee = settings?.showConvenienceFee ? parseFloat(settings.convenienceFee || '0') : 0;
         const total = subtotal + markupAmount + deliveryFee + convenienceFee;
 
@@ -650,7 +703,7 @@ export default function Dashboard() {
                 {Object.values(cart.allCarts).map((restaurantCart) => {
                   const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
                   const markupAmount = subtotal * (restaurantCart.markup / 100);
-                  const deliveryFee = parseFloat(restaurantCart.deliveryFee.toString());
+                  const deliveryFee = deliveryFees[restaurantCart.restaurantId] || 0;
                   const total = subtotal + markupAmount + deliveryFee;
 
                   return (
@@ -675,7 +728,13 @@ export default function Dashboard() {
                         </div>
                         <div className="flex justify-between">
                           <span>Delivery Fee:</span>
-                          <span>₱{deliveryFee.toFixed(2)}</span>
+                          <span>
+                            {selectedAddress ? (
+                              `₱${deliveryFee.toFixed(2)}`
+                            ) : (
+                              <span className="text-muted-foreground">Select address</span>
+                            )}
+                          </span>
                         </div>
                         <div className="flex justify-between font-semibold pt-1 border-t mt-1">
                           <span>Restaurant Total:</span>
@@ -695,7 +754,18 @@ export default function Dashboard() {
                 )}
                 <div className="flex justify-between items-center pt-2">
                   <span className="font-bold">Grand Total:</span>
-                  <span className="text-xl font-bold">₱{(cart.getAllCartsTotal() + (settings?.showConvenienceFee ? parseFloat(settings.convenienceFee || '0') * cart.getAllCartsCount() : 0)).toFixed(2)}</span>
+                  <span className="text-xl font-bold">
+                    ₱{(() => {
+                      const cartsSubtotal = Object.values(cart.allCarts).reduce((sum, restaurantCart) => {
+                        const subtotal = restaurantCart.items.reduce((itemSum, item) => itemSum + (item.price * item.quantity), 0);
+                        const markupAmount = subtotal * (restaurantCart.markup / 100);
+                        const deliveryFee = deliveryFees[restaurantCart.restaurantId] || 0;
+                        return sum + subtotal + markupAmount + deliveryFee;
+                      }, 0);
+                      const convenienceFee = settings?.showConvenienceFee ? parseFloat(settings.convenienceFee || '0') * cart.getAllCartsCount() : 0;
+                      return (cartsSubtotal + convenienceFee).toFixed(2);
+                    })()}
+                  </span>
                 </div>
               </div>
               
