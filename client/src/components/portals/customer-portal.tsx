@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCart } from "@/contexts/cart-context";
 import { Button } from "@/components/ui/button";
@@ -209,6 +209,7 @@ export default function CustomerPortal() {
   const [specialInstructions, setSpecialInstructions] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [calculatedDeliveryFees, setCalculatedDeliveryFees] = useState<Record<string, number>>({});
+  const [customerLocation, setCustomerLocation] = useState<{ lat: number; lng: number }>({ lat: 14.5995, lng: 120.9842 }); // Default to Manila
   
   // Enhanced tracking state
   const [activeTab, setActiveTab] = useState("restaurants");
@@ -442,6 +443,24 @@ export default function CustomerPortal() {
     setCalculatedDeliveryFees(fees);
   }, [selectedAddress, settings, cart.allCarts, restaurants]);
 
+  // Get customer's current location using browser geolocation API
+  useEffect(() => {
+    if ('geolocation' in navigator && activeTab === 'restaurants') {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setCustomerLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        (error) => {
+          // Silently fail and keep using Manila as default
+          console.log('Geolocation error:', error.message);
+        }
+      );
+    }
+  }, [activeTab]);
+
   // Initialize profile edit form when entering edit mode
   useEffect(() => {
     if (isEditingProfile && user) {
@@ -505,19 +524,40 @@ export default function CustomerPortal() {
     }
   }, [socket, user, sendMessage, queryClient, selectedOrderForTracking, orders, toast]);
 
-  const filteredRestaurants = restaurants.filter((restaurant: Restaurant) => {
-    // Search: Check restaurant name, cuisine, AND menu item categories
-    const restaurantMenuItems = allMenuItems.filter(item => item.restaurantId === restaurant.id);
-    const menuCategories = restaurantMenuItems.map(item => item.category.toLowerCase()).join(' ');
-    const matchesSearch = restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         restaurant.cuisine.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         menuCategories.includes(searchQuery.toLowerCase());
-    
-    // Category filter: Check if restaurant has items in selected category
-    const matchesCategory = !selectedCategory || restaurantMenuItems.some(item => item.category === selectedCategory);
-    
-    return matchesSearch && matchesCategory && restaurant.isActive;
-  });
+  const filteredRestaurants = useMemo(() => {
+    const filtered = restaurants.filter((restaurant: Restaurant) => {
+      // Search: Check restaurant name, cuisine, AND menu item categories
+      const restaurantMenuItems = allMenuItems.filter(item => item.restaurantId === restaurant.id);
+      const menuCategories = restaurantMenuItems.map(item => item.category.toLowerCase()).join(' ');
+      const matchesSearch = restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           restaurant.cuisine.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           menuCategories.includes(searchQuery.toLowerCase());
+      
+      // Category filter: Check if restaurant has items in selected category
+      const matchesCategory = !selectedCategory || restaurantMenuItems.some(item => item.category === selectedCategory);
+      
+      return matchesSearch && matchesCategory && restaurant.isActive;
+    });
+
+    // Sort restaurants by distance (farthest to nearest)
+    // Use customer's actual location from geolocation API or default to Manila
+    const restaurantsWithDistance = filtered.map((restaurant: Restaurant) => {
+      let distance = 0;
+      
+      if ((restaurant as any).latitude && (restaurant as any).longitude) {
+        const restaurantLat = parseFloat((restaurant as any).latitude);
+        const restaurantLng = parseFloat((restaurant as any).longitude);
+        
+        // Calculate distance using Haversine formula with customer's location
+        distance = calculateDistance(customerLocation.lat, customerLocation.lng, restaurantLat, restaurantLng);
+      }
+      
+      return { ...restaurant, distance };
+    });
+
+    // Sort from farthest to nearest (descending order)
+    return restaurantsWithDistance.sort((a, b) => b.distance - a.distance);
+  }, [restaurants, allMenuItems, searchQuery, selectedCategory, customerLocation]);
 
   // Group menu items by category
   const menuItemsByCategory = menuItems.reduce((acc: Record<string, MenuItem[]>, item) => {
