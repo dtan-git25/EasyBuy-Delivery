@@ -43,9 +43,10 @@ interface MenuItemOptionsModalProps {
   onClose: () => void;
   menuItem: MenuItem | null;
   onAddToCart: (quantity: number, selectedOptions: SelectedOption[], totalPrice: number) => void;
+  restaurantMarkup?: number;
 }
 
-export function MenuItemOptionsModal({ isOpen, onClose, menuItem, onAddToCart }: MenuItemOptionsModalProps) {
+export function MenuItemOptionsModal({ isOpen, onClose, menuItem, onAddToCart, restaurantMarkup = 0 }: MenuItemOptionsModalProps) {
   const [quantity, setQuantity] = useState(1);
   const [selectedOptions, setSelectedOptions] = useState<SelectedOption[]>([]);
 
@@ -113,13 +114,22 @@ export function MenuItemOptionsModal({ isOpen, onClose, menuItem, onAddToCart }:
     if (!menuItem) return 0;
     const basePrice = parseFloat(menuItem.price.toString());
     const optionsPrice = selectedOptions.reduce((sum, opt) => sum + opt.price, 0);
+    const subtotal = (basePrice + optionsPrice) * quantity;
+    // Apply markup for display only
+    return subtotal * (1 + restaurantMarkup / 100);
+  };
+  
+  const calculateBaseTotalPrice = () => {
+    if (!menuItem) return 0;
+    const basePrice = parseFloat(menuItem.price.toString());
+    const optionsPrice = selectedOptions.reduce((sum, opt) => sum + opt.price, 0);
     return (basePrice + optionsPrice) * quantity;
   };
 
   const handleAddToCart = () => {
     if (!menuItem) return;
-    const totalPrice = calculateTotalPrice();
-    onAddToCart(quantity, selectedOptions, totalPrice);
+    const baseTotalPrice = calculateBaseTotalPrice();
+    onAddToCart(quantity, selectedOptions, baseTotalPrice);
     onClose();
   };
 
@@ -136,6 +146,7 @@ export function MenuItemOptionsModal({ isOpen, onClose, menuItem, onAddToCart }:
   if (!menuItem) return null;
 
   const basePrice = parseFloat(menuItem.price.toString());
+  const markedUpBasePrice = basePrice * (1 + restaurantMarkup / 100);
   const optionsTotal = selectedOptions.reduce((sum, opt) => sum + opt.price, 0);
   const totalPrice = calculateTotalPrice();
 
@@ -154,7 +165,7 @@ export function MenuItemOptionsModal({ isOpen, onClose, menuItem, onAddToCart }:
           <div className="bg-muted/50 p-4 rounded-lg">
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium">Base Price:</span>
-              <span className="text-lg font-bold text-green-600" data-testid="text-base-price">₱{basePrice.toFixed(2)}</span>
+              <span className="text-lg font-bold text-green-600" data-testid="text-base-price">₱{markedUpBasePrice.toFixed(2)}</span>
             </div>
           </div>
 
@@ -184,23 +195,26 @@ export function MenuItemOptionsModal({ isOpen, onClose, menuItem, onAddToCart }:
                     }}
                   >
                     <div className="space-y-2">
-                      {optionType.values.map((value) => (
-                        <div
-                          key={value.id}
-                          className="flex items-center space-x-3 border rounded-lg p-3 hover:bg-muted/50 transition-colors"
-                          data-testid={`option-${optionType.typeName.toLowerCase()}-${value.value.toLowerCase().replace(/\s+/g, '-')}`}
-                        >
-                          <RadioGroupItem value={value.id} id={value.id} />
-                          <Label htmlFor={value.id} className="flex-1 flex justify-between items-center cursor-pointer">
-                            <span>{value.value}</span>
-                            {value.price === 0 ? (
-                              <span className="font-semibold text-muted-foreground">(₱0)</span>
-                            ) : (
-                              <span className="font-semibold text-green-600">+₱{value.price.toFixed(2)}</span>
-                            )}
-                          </Label>
-                        </div>
-                      ))}
+                      {optionType.values.map((value) => {
+                        const markedUpOptionPrice = value.price * (1 + restaurantMarkup / 100);
+                        return (
+                          <div
+                            key={value.id}
+                            className="flex items-center space-x-3 border rounded-lg p-3 hover:bg-muted/50 transition-colors"
+                            data-testid={`option-${optionType.typeName.toLowerCase()}-${value.value.toLowerCase().replace(/\s+/g, '-')}`}
+                          >
+                            <RadioGroupItem value={value.id} id={value.id} />
+                            <Label htmlFor={value.id} className="flex-1 flex justify-between items-center cursor-pointer">
+                              <span>{value.value}</span>
+                              {value.price === 0 ? (
+                                <span className="font-semibold text-muted-foreground">(₱0)</span>
+                              ) : (
+                                <span className="font-semibold text-green-600">+₱{markedUpOptionPrice.toFixed(2)}</span>
+                              )}
+                            </Label>
+                          </div>
+                        );
+                      })}
                     </div>
                   </RadioGroup>
                 </div>
@@ -245,16 +259,19 @@ export function MenuItemOptionsModal({ isOpen, onClose, menuItem, onAddToCart }:
           <div className="space-y-2 bg-muted/50 p-4 rounded-lg">
             <div className="flex justify-between text-sm">
               <span>Base Price × {quantity}:</span>
-              <span data-testid="text-base-total">₱{(basePrice * quantity).toFixed(2)}</span>
+              <span data-testid="text-base-total">₱{(markedUpBasePrice * quantity).toFixed(2)}</span>
             </div>
             {selectedOptions.filter(opt => opt.valueName !== "None" && opt.price > 0).length > 0 && (
               <>
-                {selectedOptions.filter(opt => opt.valueName !== "None" && opt.price > 0).map((opt) => (
-                  <div key={opt.valueId} className="flex justify-between text-sm">
-                    <span>{opt.valueName} × {quantity}:</span>
-                    <span data-testid={`text-option-price-${opt.valueName.toLowerCase().replace(/\s+/g, '-')}`}>₱{(opt.price * quantity).toFixed(2)}</span>
-                  </div>
-                ))}
+                {selectedOptions.filter(opt => opt.valueName !== "None" && opt.price > 0).map((opt) => {
+                  const markedUpOptionPrice = opt.price * (1 + restaurantMarkup / 100);
+                  return (
+                    <div key={opt.valueId} className="flex justify-between text-sm">
+                      <span>{opt.valueName} × {quantity}:</span>
+                      <span data-testid={`text-option-price-${opt.valueName.toLowerCase().replace(/\s+/g, '-')}`}>₱{(markedUpOptionPrice * quantity).toFixed(2)}</span>
+                    </div>
+                  );
+                })}
               </>
             )}
             <Separator className="my-2" />

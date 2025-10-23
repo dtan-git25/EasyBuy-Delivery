@@ -655,6 +655,11 @@ export default function CustomerPortal() {
 
   // Restaurant Detail View with Real Menu Items
   if (selectedRestaurant) {
+    // Extract values to avoid TypeScript narrowing issues
+    const currentRestaurant = selectedRestaurant;
+    const restaurantMarkup = selectedRestaurant.markup;
+    const restaurantName = selectedRestaurant.name;
+    
     return (
       <div className="min-h-screen bg-background">
         {/* Restaurant Header */}
@@ -738,7 +743,7 @@ export default function CustomerPortal() {
                                 <p className="text-sm text-muted-foreground mb-2">{item.description}</p>
                               )}
                               <div className="flex items-center justify-between mt-2">
-                                <span className="text-lg font-bold text-green-600">₱{Number(item.price).toFixed(2)}</span>
+                                <span className="text-lg font-bold text-green-600">₱{(Number(item.price) * (1 + selectedRestaurant.markup / 100)).toFixed(2)}</span>
                                 <div className="flex items-center space-x-2">
                                   {!item.isAvailable ? (
                                     <Badge variant="destructive">Unavailable</Badge>
@@ -1807,6 +1812,7 @@ export default function CustomerPortal() {
         onClose={() => setShowOptionsModal(false)}
         menuItem={selectedMenuItemForOptions}
         onAddToCart={handleAddToCartWithOptions}
+        restaurantMarkup={selectedRestaurant?.markup || 0}
       />
 
       {/* Replace Cart Confirmation Dialog */}
@@ -1815,16 +1821,29 @@ export default function CustomerPortal() {
           <AlertDialogHeader>
             <AlertDialogTitle>Replace cart items?</AlertDialogTitle>
             <AlertDialogDescription className="text-sm">
-              {replacementScenario === 'single-merchant' && (
-                <div>
-                  You have items from <strong>{Object.values(cart.allCarts).map((c) => c.restaurantName).join(', ')}</strong> in your cart. Adding items from <strong>{selectedRestaurant?.name}</strong> will replace your current cart. Continue?
-                </div>
-              )}
-              {replacementScenario === 'max-limit' && (
-                <div>
-                  You've reached the maximum of <strong>{cart.maxMerchantsPerOrder} restaurants</strong> per order. You currently have items from <strong>{Object.values(cart.allCarts).map((c) => c.restaurantName).join(' and ')}</strong>. Adding from <strong>{selectedRestaurant?.name}</strong> will remove items from <strong>{Object.values(cart.allCarts)[0]?.restaurantName}</strong>. Continue?
-                </div>
-              )}
+              {(() => {
+                const currentRestaurants = Object.values(cart.allCarts).map((c) => c.restaurantName).join(', ');
+                const newRestaurantName = selectedRestaurant?.name || '';
+                const oldestRestaurantName = Object.values(cart.allCarts)[0]?.restaurantName || '';
+                
+                if (replacementScenario === 'single-merchant') {
+                  return (
+                    <div>
+                      You have items from <strong>{currentRestaurants}</strong> in your cart. Adding items from <strong>{newRestaurantName}</strong> will replace your current cart. Continue?
+                    </div>
+                  );
+                }
+                
+                if (replacementScenario === 'max-limit') {
+                  return (
+                    <div>
+                      You've reached the maximum of <strong>{cart.maxMerchantsPerOrder} restaurants</strong> per order. You currently have items from <strong>{Object.values(cart.allCarts).map((c) => c.restaurantName).join(' and ')}</strong>. Adding from <strong>{newRestaurantName}</strong> will remove items from <strong>{oldestRestaurantName}</strong>. Continue?
+                    </div>
+                  );
+                }
+                
+                return null;
+              })()}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
