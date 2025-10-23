@@ -1,6 +1,7 @@
 import { users, restaurants, menuItems, categories, riders, wallets, orders, chatMessages, systemSettings, walletTransactions, orderStatusHistory, riderLocationHistory, optionTypes, menuItemOptionValues, savedAddresses, ratings, notifications, type User, type InsertUser, type Restaurant, type RestaurantWithOwner, type InsertRestaurant, type MenuItem, type InsertMenuItem, type Category, type InsertCategory, type Rider, type InsertRider, type Order, type InsertOrder, type ChatMessage, type InsertChatMessage, type Wallet, type SystemSettings, type WalletTransaction, type InsertWalletTransaction, type OrderStatusHistory, type InsertOrderStatusHistory, type RiderLocationHistory, type InsertRiderLocationHistory, type OptionType, type InsertOptionType, type MenuItemOptionValue, type InsertMenuItemOptionValue, type SavedAddress, type InsertSavedAddress, type Rating, type InsertRating, type Notification, type InsertNotification } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -518,8 +519,19 @@ export class DatabaseStorage implements IStorage {
     return address || undefined;
   }
 
-  async getOrders(): Promise<Order[]> {
-    return await db.select().from(orders).orderBy(desc(orders.createdAt));
+  async getOrders(): Promise<any[]> {
+    const result = await db
+      .select()
+      .from(orders)
+      .leftJoin(users, eq(orders.riderId, users.id))
+      .orderBy(desc(orders.createdAt));
+
+    // Transform to include rider details
+    return result.map(row => ({
+      ...row.orders,
+      riderName: row.users ? `${row.users.firstName || ''} ${row.users.lastName || ''}`.trim() : null,
+      riderPhone: row.users?.phone || null,
+    }));
   }
 
   async getOrder(id: string): Promise<Order | undefined> {
@@ -546,21 +558,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getOrdersByRestaurant(restaurantId: string): Promise<any[]> {
+    // Create alias for rider user to avoid conflicts
+    const riderUser = alias(users, 'rider_user');
+    
     const result = await db
       .select()
       .from(orders)
       .leftJoin(users, eq(orders.customerId, users.id))
+      .leftJoin(riderUser, eq(orders.riderId, riderUser.id))
       .where(eq(orders.restaurantId, restaurantId))
       .orderBy(desc(orders.createdAt));
 
-    // Transform to match merchant dashboard expectations
+    // Transform to match merchant dashboard expectations and include rider details
     return result.map(row => ({
       ...row.orders,
       customer: {
         name: row.users ? `${row.users.firstName || ''} ${row.users.lastName || ''}`.trim() || 'Unknown Customer' : 'Unknown Customer',
         phone: row.orders.phoneNumber,
         address: row.orders.deliveryAddress,
-      }
+      },
+      riderName: row.rider_user ? `${row.rider_user.firstName || ''} ${row.rider_user.lastName || ''}`.trim() : null,
+      riderPhone: row.rider_user?.phone || null,
     }));
   }
 
