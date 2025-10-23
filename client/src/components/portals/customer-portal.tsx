@@ -1304,19 +1304,9 @@ export default function CustomerPortal() {
                       )}
                     </div>
                     <CardContent className="p-4">
-                      <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-start justify-between">
                         <h4 className="text-lg font-semibold text-foreground">{restaurant.name}</h4>
-                        <Badge variant="secondary">
-                          {restaurant.isActive ? 'Open' : 'Closed'}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
                         <RestaurantRating ownerId={restaurant.ownerId} />
-                        <div className="flex items-center space-x-1">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                          <span>25-35 min</span>
-                        </div>
-                        <span className="text-green-600 font-medium">₱{restaurant.deliveryFee} delivery</span>
                       </div>
                     </CardContent>
                   </Card>
