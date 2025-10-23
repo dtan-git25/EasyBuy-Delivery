@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { AddressSelector } from "@/components/address-selector";
 import { NotificationDropdown } from "@/components/NotificationDropdown";
 import type { SavedAddress, SystemSettings } from "@shared/schema";
+import { calculateDistance, calculateDeliveryFee } from "@/lib/haversine";
 
 type Portal = 'customer' | 'rider' | 'merchant' | 'admin' | 'owner';
 
@@ -34,6 +35,7 @@ export default function Dashboard() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [specialInstructions, setSpecialInstructions] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [calculatedDeliveryFees, setCalculatedDeliveryFees] = useState<Record<string, number>>({});
   
   const cart = useCart();
   const { toast } = useToast();
@@ -42,6 +44,11 @@ export default function Dashboard() {
   // Fetch system settings for convenience fee
   const { data: settings } = useQuery<SystemSettings>({
     queryKey: ["/api/settings"],
+  });
+
+  // Fetch restaurants for delivery fee calculation
+  const { data: restaurants = [] } = useQuery<any[]>({
+    queryKey: ["/api/restaurants"],
   });
 
   // Reset payment method to first enabled method when settings change
@@ -59,6 +66,57 @@ export default function Dashboard() {
       }
     }
   }, [settings, paymentMethod]);
+
+  // Calculate delivery fees when address or restaurants change
+  useEffect(() => {
+    if (!settings) {
+      return;
+    }
+
+    const baseRate = parseFloat(settings.baseDeliveryFee || '50');
+    const succeedingRate = parseFloat(settings.perKmRate || '10');
+    const fees: Record<string, number> = {};
+
+    // If customer coordinates are missing, use base rate fallback for all restaurants
+    if (!selectedAddress?.latitude || !selectedAddress?.longitude) {
+      Object.values(cart.allCarts).forEach((restaurantCart) => {
+        fees[restaurantCart.restaurantId] = baseRate;
+      });
+      setCalculatedDeliveryFees(fees);
+      return;
+    }
+
+    const customerLat = parseFloat(selectedAddress.latitude);
+    const customerLng = parseFloat(selectedAddress.longitude);
+
+    // Calculate delivery fee for each restaurant in the cart
+    Object.values(cart.allCarts).forEach((restaurantCart) => {
+      // Find the restaurant details to get coordinates
+      const restaurant = restaurants.find(r => r.id === restaurantCart.restaurantId);
+      
+      if (restaurant && (restaurant as any).latitude && (restaurant as any).longitude) {
+        const restaurantLat = parseFloat((restaurant as any).latitude);
+        const restaurantLng = parseFloat((restaurant as any).longitude);
+        
+        // Calculate distance using Haversine formula
+        const distance = calculateDistance(
+          customerLat,
+          customerLng,
+          restaurantLat,
+          restaurantLng
+        );
+        
+        // Calculate delivery fee based on distance
+        const deliveryFee = calculateDeliveryFee(distance, baseRate, succeedingRate);
+        fees[restaurantCart.restaurantId] = deliveryFee;
+      } else {
+        // Fallback to default delivery fee if restaurant coordinates not available
+        fees[restaurantCart.restaurantId] = baseRate;
+      }
+    });
+
+    setCalculatedDeliveryFees(fees);
+  }, [selectedAddress, settings, cart.allCarts, restaurants]);
 
   const createOrderMutation = useMutation({
     mutationFn: async (orderData: any) => {
@@ -138,7 +196,7 @@ export default function Dashboard() {
       for (const restaurantCart of allCarts) {
         const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         const markupAmount = subtotal * (restaurantCart.markup / 100);
-        const deliveryFee = parseFloat(restaurantCart.deliveryFee.toString());
+        const deliveryFee = calculatedDeliveryFees[restaurantCart.restaurantId] || 0;
         const convenienceFee = settings?.showConvenienceFee ? parseFloat(settings.convenienceFee || '0') : 0;
         const total = subtotal + markupAmount + deliveryFee + convenienceFee;
 
@@ -678,7 +736,7 @@ export default function Dashboard() {
                 {(() => {
                   const itemsSubtotal = cart.getAllCartsTotal();
                   const totalDeliveryFees = Object.values(cart.allCarts).reduce((sum, restaurantCart) => {
-                    return sum + parseFloat(restaurantCart.deliveryFee.toString());
+                    return sum + (calculatedDeliveryFees[restaurantCart.restaurantId] || 0);
                   }, 0);
                   const convenienceFee = settings?.convenienceFee ? parseFloat(settings.convenienceFee) * cart.getAllCartsCount() : 0;
                   const showConvenienceFee = settings?.showConvenienceFee !== false;
