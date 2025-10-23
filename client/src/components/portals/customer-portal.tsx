@@ -1817,12 +1817,12 @@ export default function CustomerPortal() {
             <AlertDialogDescription className="text-sm">
               {replacementScenario === 'single-merchant' && (
                 <div>
-                  You have items from <strong>{Object.values(cart.allCarts).map((c: any) => c.restaurantName).join(', ')}</strong> in your cart. Adding items from <strong>{selectedRestaurant?.name}</strong> will replace your current cart. Continue?
+                  You have items from <strong>{Object.values(cart.allCarts).map((c) => c.restaurantName).join(', ')}</strong> in your cart. Adding items from <strong>{selectedRestaurant?.name}</strong> will replace your current cart. Continue?
                 </div>
               )}
               {replacementScenario === 'max-limit' && (
                 <div>
-                  You've reached the maximum of <strong>{cart.maxMerchantsPerOrder} restaurants</strong> per order. You currently have items from <strong>{Object.values(cart.allCarts).map((c: any) => c.restaurantName).join(' and ')}</strong>. Adding from <strong>{selectedRestaurant?.name}</strong> will remove items from <strong>{Object.values(cart.allCarts)[0]?.restaurantName}</strong>. Continue?
+                  You've reached the maximum of <strong>{cart.maxMerchantsPerOrder} restaurants</strong> per order. You currently have items from <strong>{Object.values(cart.allCarts).map((c) => c.restaurantName).join(' and ')}</strong>. Adding from <strong>{selectedRestaurant?.name}</strong> will remove items from <strong>{Object.values(cart.allCarts)[0]?.restaurantName}</strong>. Continue?
                 </div>
               )}
             </AlertDialogDescription>
