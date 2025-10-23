@@ -5,7 +5,9 @@ export interface CartItem {
   id: string;
   menuItemId: string;
   name: string;
-  price: number;
+  price: number; // Total price: basePrice + optionsPrice (for backward compatibility)
+  basePrice: number; // Base menu item price (without options)
+  optionsPrice: number; // Sum of all option/customization prices
   quantity: number;
   restaurant: {
     id: string;
@@ -80,7 +82,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (savedCarts) {
       try {
         const cartsData = JSON.parse(savedCarts);
-        setAllCarts(cartsData.carts || {});
+        const migratedCarts: Record<string, RestaurantCart> = {};
+        
+        // Migrate legacy cart items to include basePrice and optionsPrice
+        Object.entries(cartsData.carts || {}).forEach(([restaurantId, cart]: [string, any]) => {
+          migratedCarts[restaurantId] = {
+            ...cart,
+            items: cart.items.map((item: any) => ({
+              ...item,
+              // Backward compatibility: if basePrice/optionsPrice don't exist, use legacy values
+              basePrice: item.basePrice !== undefined ? item.basePrice : item.price,
+              optionsPrice: item.optionsPrice !== undefined ? item.optionsPrice : 0,
+            }))
+          };
+        });
+        
+        setAllCarts(migratedCarts);
         setActiveRestaurantId(cartsData.activeRestaurantId || null);
       } catch (error) {
         console.error('Error loading carts from localStorage:', error);
@@ -296,19 +313,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const getAllCartsTotal = () => {
     return Object.values(allCarts).reduce((total, cart) => {
-      const subtotal = cart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const subtotal = cart.items.reduce((sum, item) => sum + (item.basePrice * item.quantity), 0);
       const markupAmount = subtotal * (cart.markup / 100);
-      return total + subtotal + markupAmount + cart.deliveryFee;
+      const optionsTotal = cart.items.reduce((sum, item) => sum + (item.optionsPrice * item.quantity), 0);
+      return total + subtotal + markupAmount + optionsTotal + cart.deliveryFee;
     }, 0);
   };
 
   const getSubtotal = () => {
-    return items.reduce((total, item) => total + (item.price * item.quantity), 0);
+    // Subtotal is base prices only (options are added separately)
+    return items.reduce((total, item) => total + (item.basePrice * item.quantity), 0);
   };
 
   const getMarkupAmount = () => {
+    // Markup applies only to base prices
     const subtotal = getSubtotal();
     return subtotal * (markup / 100);
+  };
+
+  const getOptionsTotal = () => {
+    // Total of all option/customization costs (no markup applied)
+    return items.reduce((total, item) => total + (item.optionsPrice * item.quantity), 0);
   };
 
   const getDeliveryFee = () => {
@@ -316,7 +341,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const getTotal = () => {
-    return getSubtotal() + getMarkupAmount() + getDeliveryFee();
+    return getSubtotal() + getMarkupAmount() + getOptionsTotal() + getDeliveryFee();
   };
 
   const getItemCount = () => {
