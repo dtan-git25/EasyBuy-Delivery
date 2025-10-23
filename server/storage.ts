@@ -532,13 +532,16 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(orders)
       .leftJoin(restaurants, eq(orders.restaurantId, restaurants.id))
+      .leftJoin(users, eq(orders.riderId, users.id))
       .where(eq(orders.customerId, customerId))
       .orderBy(desc(orders.createdAt));
 
-    // Transform to include restaurant name
+    // Transform to include restaurant name and rider details
     return result.map(row => ({
       ...row.orders,
       restaurantName: row.restaurants?.name || 'Unknown Restaurant',
+      riderName: row.users ? `${row.users.firstName || ''} ${row.users.lastName || ''}`.trim() : null,
+      riderPhone: row.users?.phone || null,
     }));
   }
 

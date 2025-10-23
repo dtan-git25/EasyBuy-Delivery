@@ -1428,6 +1428,32 @@ export default function CustomerPortal() {
                         </div>
                       </div>
 
+                      {/* Rider Information - Show when order is accepted or in progress */}
+                      {(order as any).riderName && (order.status === 'accepted' || order.status === 'preparing' || order.status === 'ready' || order.status === 'picked_up') && (
+                        <div className="bg-muted/50 rounded-lg p-4 mb-4">
+                          <h4 className="font-medium mb-2 flex items-center">
+                            <User className="h-4 w-4 mr-2" />
+                            Rider Information
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Name:</span>
+                              <span className="ml-2 font-medium" data-testid={`text-rider-name-${order.id}`}>
+                                {(order as any).riderName}
+                              </span>
+                            </div>
+                            {(order as any).riderPhone && (
+                              <div className="text-sm">
+                                <span className="text-muted-foreground">Phone:</span>
+                                <span className="ml-2 font-medium" data-testid={`text-rider-phone-${order.id}`}>
+                                  {(order as any).riderPhone}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Order Items Breakdown */}
                       <div className="mb-4">
                         <h4 className="font-medium mb-2">Order Items</h4>

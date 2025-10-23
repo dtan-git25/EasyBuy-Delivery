@@ -1211,27 +1211,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (order && wss) {
         // Enhanced WebSocket broadcast with more details
         const orderWithHistory = await storage.getOrderStatusHistory(order.id);
-        
-        // PRIVACY: Mask rider's personal details for customer protection
-        const updatedByInfo = req.user.role === 'rider' 
-          ? {
-              id: req.user.id,
-              firstName: 'Rider',
-              lastName: '',
-              role: req.user.role
-            }
-          : {
-              id: req.user.id,
-              firstName: req.user.firstName,
-              lastName: req.user.lastName,
-              role: req.user.role
-            };
-        
         const message = JSON.stringify({
           type: 'order_update',
           order,
           statusHistory: orderWithHistory,
-          updatedBy: updatedByInfo,
+          updatedBy: {
+            id: req.user.id,
+            firstName: req.user.firstName,
+            lastName: req.user.lastName,
+            role: req.user.role
+          },
           timestamp: new Date().toISOString()
         });
         
