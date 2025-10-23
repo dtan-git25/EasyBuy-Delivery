@@ -1310,7 +1310,6 @@ export default function CustomerPortal() {
                           {restaurant.isActive ? 'Open' : 'Closed'}
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground mb-3">{restaurant.cuisine}</p>
                       <div className="flex items-center justify-between text-sm">
                         <RestaurantRating ownerId={restaurant.ownerId} />
                         <div className="flex items-center space-x-1">
