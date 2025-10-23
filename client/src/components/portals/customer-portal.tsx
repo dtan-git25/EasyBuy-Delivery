@@ -963,10 +963,17 @@ export default function CustomerPortal() {
               
               <div className="flex justify-between items-center pt-4 border-t">
                 <div>
-                  <p className="font-semibold text-lg">Total for All Carts</p>
+                  <p className="font-semibold text-lg">Subtotal for All Carts</p>
                   <p className="text-sm text-muted-foreground">{cart.getAllCartsCount()} restaurant{cart.getAllCartsCount() > 1 ? 's' : ''}</p>
                 </div>
-                <p className="text-2xl font-bold">₱{cart.getAllCartsTotal().toFixed(2)}</p>
+                <p className="text-2xl font-bold">₱{(() => {
+                  const allCartsSubtotal = Object.values(cart.allCarts).reduce((total, restaurantCart) => {
+                    const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                    const markupAmount = (subtotal * restaurantCart.markup) / 100;
+                    return total + subtotal + markupAmount;
+                  }, 0);
+                  return allCartsSubtotal.toFixed(2);
+                })()}</p>
               </div>
               
               <div className="flex gap-2 pt-2">
