@@ -345,6 +345,9 @@ export const systemSettings = pgTable("system_settings", {
   riderCommissionPercentage: decimal("rider_commission_percentage", { precision: 5, scale: 2 }).default('70'),
   logo: text("logo"), // App logo path
   
+  // Rider booking restrictions
+  maxMultipleOrderBooking: integer("max_multiple_order_booking").default(0), // 0 = disabled (no limit), >0 = max simultaneous orders
+  
   // Payment method toggles
   codEnabled: boolean("cod_enabled").default(true),
   gcashEnabled: boolean("gcash_enabled").default(true),
