@@ -977,28 +977,74 @@ export default function RiderPortal() {
                                 )}
                               </div>
                             </div>
-                            <div className="flex justify-between items-start">
-                              <span className="text-muted-foreground">Pickup Location:</span>
-                              <div className="flex items-center gap-2 flex-1 justify-end">
-                                <span className="font-medium text-right">{order.restaurantAddress}</span>
-                                {order.restaurantLatitude && order.restaurantLongitude && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 w-6 p-0 shrink-0"
-                                    onClick={() => {
-                                      setSelectedOrderForMap(order);
-                                      setMapLocationType('pickup');
-                                      setShowMapViewer(true);
-                                    }}
-                                    data-testid={`button-view-pin-pickup-${order.id}`}
-                                    title="View on map"
-                                  >
-                                    <MapPin className="h-4 w-4 text-green-600" />
-                                  </Button>
-                                )}
+                            {isGroupedOrder ? (
+                              <div className="space-y-2">
+                                <span className="text-muted-foreground text-sm">Pickup Locations:</span>
+                                <div className="space-y-2 ml-2">
+                                  {order.merchantOrders.map((merchantOrder: any) => (
+                                    <div key={merchantOrder.id} className="border-l-2 border-primary pl-3 py-1">
+                                      <div className="flex items-start justify-between gap-2">
+                                        <div className="flex-1">
+                                          <p className="font-semibold text-sm text-foreground">{merchantOrder.restaurantName}</p>
+                                          <div className="flex items-start gap-2 mt-1">
+                                            <span className="font-medium text-sm text-muted-foreground">{merchantOrder.restaurantAddress}</span>
+                                            {merchantOrder.restaurantLatitude && merchantOrder.restaurantLongitude && (
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 w-6 p-0 shrink-0"
+                                                onClick={() => {
+                                                  setSelectedOrderForMap({
+                                                    id: merchantOrder.id,
+                                                    orderNumber: merchantOrder.orderNumber,
+                                                    restaurantLatitude: merchantOrder.restaurantLatitude,
+                                                    restaurantLongitude: merchantOrder.restaurantLongitude,
+                                                    restaurantName: merchantOrder.restaurantName,
+                                                    restaurantAddress: merchantOrder.restaurantAddress,
+                                                    deliveryLatitude: order.deliveryLatitude,
+                                                    deliveryLongitude: order.deliveryLongitude,
+                                                    deliveryAddress: order.deliveryAddress
+                                                  });
+                                                  setMapLocationType('pickup');
+                                                  setShowMapViewer(true);
+                                                }}
+                                                data-testid={`button-view-pin-pickup-${merchantOrder.id}`}
+                                                title="View on map"
+                                              >
+                                                <MapPin className="h-4 w-4 text-green-600" />
+                                              </Button>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
-                            </div>
+                            ) : (
+                              <div className="flex justify-between items-start">
+                                <span className="text-muted-foreground">Pickup Location:</span>
+                                <div className="flex items-center gap-2 flex-1 justify-end">
+                                  <span className="font-medium text-right">{order.restaurantAddress}</span>
+                                  {order.restaurantLatitude && order.restaurantLongitude && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0 shrink-0"
+                                      onClick={() => {
+                                        setSelectedOrderForMap(order);
+                                        setMapLocationType('pickup');
+                                        setShowMapViewer(true);
+                                      }}
+                                      data-testid={`button-view-pin-pickup-${order.id}`}
+                                      title="View on map"
+                                    >
+                                      <MapPin className="h-4 w-4 text-green-600" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            )}
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Payment Method:</span>
                               <span className="font-medium capitalize">{order.paymentMethod}</span>
