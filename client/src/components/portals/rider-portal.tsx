@@ -1051,8 +1051,8 @@ export default function RiderPortal() {
                             </div>
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Contact:</span>
-                              <a href={`tel:${order.phoneNumber}`} className="text-primary hover:underline font-medium">
-                                {order.phoneNumber}
+                              <a href={`tel:${order.customerPhone}`} className="text-primary hover:underline font-medium">
+                                {order.customerPhone}
                               </a>
                             </div>
                           </div>
