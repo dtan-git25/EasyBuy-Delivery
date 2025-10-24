@@ -236,6 +236,8 @@ export default function CustomerPortal() {
   const [riderRating, setRiderRating] = useState(0);
   const [merchantComment, setMerchantComment] = useState("");
   const [riderComment, setRiderComment] = useState("");
+  // Multi-merchant rating state
+  const [merchantRatings, setMerchantRatings] = useState<Record<string, { rating: number; comment: string }>>({});
   
   const cart = useCart();
   const { toast } = useToast();
@@ -369,6 +371,7 @@ export default function CustomerPortal() {
       setRiderRating(0);
       setMerchantComment("");
       setRiderComment("");
+      setMerchantRatings({});
       setSelectedOrderForRating(null);
       toast({
         title: "Rating submitted",
@@ -387,6 +390,55 @@ export default function CustomerPortal() {
       toast({
         title: "Error submitting rating",
         description: error.message || "There was an error submitting your rating. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Submit multi-merchant rating mutation
+  const submitMultiMerchantRatingMutation = useMutation({
+    mutationFn: async (data: { 
+      merchantOrders: Array<{ orderId: string; merchantRating: number; merchantComment: string }>;
+      riderRating?: number;
+      riderComment?: string;
+    }) => {
+      // Submit ratings for all merchant orders
+      const promises = data.merchantOrders.map(mo => 
+        apiRequest("POST", "/api/ratings", {
+          orderId: mo.orderId,
+          merchantRating: mo.merchantRating || undefined,
+          merchantComment: mo.merchantComment || undefined,
+          riderRating: data.riderRating || undefined,
+          riderComment: data.riderComment || undefined,
+        }).then(r => r.json())
+      );
+      return Promise.all(promises);
+    },
+    onSuccess: () => {
+      setShowRatingModal(false);
+      setMerchantRating(0);
+      setRiderRating(0);
+      setMerchantComment("");
+      setRiderComment("");
+      setMerchantRatings({});
+      setSelectedOrderForRating(null);
+      toast({
+        title: "Ratings submitted",
+        description: "Thank you for your feedback!",
+      });
+      // Invalidate all queries related to orders and ratings
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const key = query.queryKey[0];
+          return typeof key === 'string' && key.startsWith('/api/ratings');
+        }
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error submitting ratings",
+        description: error.message || "There was an error submitting your ratings. Please try again.",
         variant: "destructive",
       });
     }
@@ -2162,40 +2214,106 @@ export default function CustomerPortal() {
 
       {/* Rating Modal */}
       <Dialog open={showRatingModal} onOpenChange={setShowRatingModal}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Rate Your Order</DialogTitle>
           </DialogHeader>
           <div className="space-y-6 py-4">
-            {/* Merchant Rating */}
-            <div className="space-y-3">
-              <h4 className="font-medium">How was the food?</h4>
-              <div className="flex gap-2">
-                {[1, 2, 3, 4, 5].map((rating) => (
-                  <button
-                    key={rating}
-                    onClick={() => setMerchantRating(rating)}
-                    className="transition-all"
-                    data-testid={`button-merchant-rating-${rating}`}
-                  >
-                    <Star
-                      className={`h-8 w-8 ${
-                        rating <= merchantRating
-                          ? 'fill-yellow-400 text-yellow-400'
-                          : 'text-gray-300'
-                      }`}
+            {(() => {
+              const isMultiMerchant = (selectedOrderForRating as any)?.isGroup && 
+                (selectedOrderForRating as any)?.merchantOrders && 
+                (selectedOrderForRating as any)?.merchantOrders.length > 0;
+              
+              if (isMultiMerchant) {
+                // Multi-merchant order - show rating section for each merchant
+                const merchantOrders = (selectedOrderForRating as any).merchantOrders;
+                return (
+                  <>
+                    {merchantOrders.map((merchantOrder: any, index: number) => (
+                      <div key={merchantOrder.id} className="space-y-3 pb-4 border-b last:border-b-0">
+                        <h4 className="font-medium text-primary">
+                          {merchantOrder.restaurantName}
+                        </h4>
+                        <p className="text-sm text-muted-foreground">How was the food?</p>
+                        <div className="flex gap-2">
+                          {[1, 2, 3, 4, 5].map((rating) => (
+                            <button
+                              key={rating}
+                              onClick={() => {
+                                setMerchantRatings(prev => ({
+                                  ...prev,
+                                  [merchantOrder.id]: {
+                                    rating,
+                                    comment: prev[merchantOrder.id]?.comment || ''
+                                  }
+                                }));
+                              }}
+                              className="transition-all"
+                              data-testid={`button-merchant-rating-${merchantOrder.id}-${rating}`}
+                            >
+                              <Star
+                                className={`h-8 w-8 ${
+                                  rating <= (merchantRatings[merchantOrder.id]?.rating || 0)
+                                    ? 'fill-yellow-400 text-yellow-400'
+                                    : 'text-gray-300'
+                                }`}
+                              />
+                            </button>
+                          ))}
+                        </div>
+                        <textarea
+                          placeholder={`Comments about ${merchantOrder.restaurantName}? (optional)`}
+                          value={merchantRatings[merchantOrder.id]?.comment || ''}
+                          onChange={(e) => {
+                            setMerchantRatings(prev => ({
+                              ...prev,
+                              [merchantOrder.id]: {
+                                rating: prev[merchantOrder.id]?.rating || 0,
+                                comment: e.target.value
+                              }
+                            }));
+                          }}
+                          className="w-full p-2 border rounded-md text-sm min-h-[60px] resize-none"
+                          data-testid={`input-merchant-comment-${merchantOrder.id}`}
+                        />
+                      </div>
+                    ))}
+                  </>
+                );
+              } else {
+                // Single merchant order
+                return (
+                  <div className="space-y-3">
+                    <h4 className="font-medium">How was the food?</h4>
+                    <div className="flex gap-2">
+                      {[1, 2, 3, 4, 5].map((rating) => (
+                        <button
+                          key={rating}
+                          onClick={() => setMerchantRating(rating)}
+                          className="transition-all"
+                          data-testid={`button-merchant-rating-${rating}`}
+                        >
+                          <Star
+                            className={`h-8 w-8 ${
+                              rating <= merchantRating
+                                ? 'fill-yellow-400 text-yellow-400'
+                                : 'text-gray-300'
+                            }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                    <textarea
+                      placeholder="Any comments about the food or restaurant? (optional)"
+                      value={merchantComment}
+                      onChange={(e) => setMerchantComment(e.target.value)}
+                      className="w-full p-2 border rounded-md text-sm min-h-[80px] resize-none"
+                      data-testid="input-merchant-comment"
                     />
-                  </button>
-                ))}
-              </div>
-              <textarea
-                placeholder="Any comments about the food or restaurant? (optional)"
-                value={merchantComment}
-                onChange={(e) => setMerchantComment(e.target.value)}
-                className="w-full p-2 border rounded-md text-sm min-h-[80px] resize-none"
-                data-testid="input-merchant-comment"
-              />
-            </div>
+                  </div>
+                );
+              }
+            })()}
 
             {/* Rider Rating (only if order had a rider) */}
             {selectedOrderForRating?.riderId && (
@@ -2238,6 +2356,7 @@ export default function CustomerPortal() {
                   setRiderRating(0);
                   setMerchantComment("");
                   setRiderComment("");
+                  setMerchantRatings({});
                   setSelectedOrderForRating(null);
                 }}
                 className="flex-1"
@@ -2248,19 +2367,58 @@ export default function CustomerPortal() {
               <Button
                 onClick={() => {
                   if (!selectedOrderForRating) return;
-                  submitRatingMutation.mutate({
-                    orderId: selectedOrderForRating.id,
-                    merchantRating: merchantRating || undefined,
-                    riderRating: riderRating || undefined,
-                    merchantComment: merchantComment || undefined,
-                    riderComment: riderComment || undefined,
-                  });
+                  
+                  const isMultiMerchant = (selectedOrderForRating as any)?.isGroup && 
+                    (selectedOrderForRating as any)?.merchantOrders && 
+                    (selectedOrderForRating as any)?.merchantOrders.length > 0;
+                  
+                  if (isMultiMerchant) {
+                    // Multi-merchant order - submit multiple ratings
+                    const merchantOrders = (selectedOrderForRating as any).merchantOrders;
+                    const merchantOrderRatings = merchantOrders
+                      .filter((mo: any) => merchantRatings[mo.id]?.rating > 0)
+                      .map((mo: any) => ({
+                        orderId: mo.id,
+                        merchantRating: merchantRatings[mo.id]?.rating || 0,
+                        merchantComment: merchantRatings[mo.id]?.comment || '',
+                      }));
+                    
+                    submitMultiMerchantRatingMutation.mutate({
+                      merchantOrders: merchantOrderRatings,
+                      riderRating: riderRating || undefined,
+                      riderComment: riderComment || undefined,
+                    });
+                  } else {
+                    // Single merchant order
+                    submitRatingMutation.mutate({
+                      orderId: selectedOrderForRating.id,
+                      merchantRating: merchantRating || undefined,
+                      riderRating: riderRating || undefined,
+                      merchantComment: merchantComment || undefined,
+                      riderComment: riderComment || undefined,
+                    });
+                  }
                 }}
-                disabled={submitRatingMutation.isPending || (merchantRating === 0 && riderRating === 0)}
+                disabled={
+                  (submitRatingMutation.isPending || submitMultiMerchantRatingMutation.isPending) ||
+                  (() => {
+                    const isMultiMerchant = (selectedOrderForRating as any)?.isGroup && 
+                      (selectedOrderForRating as any)?.merchantOrders && 
+                      (selectedOrderForRating as any)?.merchantOrders.length > 0;
+                    
+                    if (isMultiMerchant) {
+                      // Check if at least one merchant has a rating or rider has a rating
+                      const hasAnyMerchantRating = Object.values(merchantRatings).some(r => r.rating > 0);
+                      return !hasAnyMerchantRating && riderRating === 0;
+                    } else {
+                      return merchantRating === 0 && riderRating === 0;
+                    }
+                  })()
+                }
                 className="flex-1"
                 data-testid="button-submit-rating"
               >
-                {submitRatingMutation.isPending ? "Submitting..." : "Submit Rating"}
+                {(submitRatingMutation.isPending || submitMultiMerchantRatingMutation.isPending) ? "Submitting..." : "Submit Rating"}
               </Button>
             </div>
           </div>
