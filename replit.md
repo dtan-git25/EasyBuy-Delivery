@@ -35,7 +35,11 @@ Preferred communication style: Simple, everyday language.
 - **Multi-Merchant Checkout & Order Grouping**: Secure, atomic transaction-based system for ordering from multiple merchants, including admin controls for limits, server-side `orderGroupId` generation, and pessimistic row-level locking for rider assignment.
 - **Store Management (Admin)**: Comprehensive restaurant management with CRUD operations, status toggling, and markup configuration.
 - **Payment Method Controls**: Admin configurable payment method activation/deactivation (COD, GCash, Maya, Debit/Credit Card).
-- **Rider Booking Restrictions**: Admin-configurable limits on concurrent active orders for riders based on unique customers.
+- **Rider Booking Restrictions**: Admin-configurable system to limit rider order capacity with special rules for multi-merchant orders:
+  - **Multi-Merchant Priority Rules**: Riders can only accept ONE multi-merchant order at a time. When active, blocks all other order acceptances (single or multi-merchant). Cannot accept multi-merchant orders if rider has ANY active single-merchant orders.
+  - **Single-Merchant Rules**: Follows max booking limit (counted by unique customers). Cannot accept if rider has active multi-merchant order.
+  - **Backend**: POST/PATCH `/api/orders/:id` validates restrictions in priority order, returns HTTP 429 with specific error messages.
+  - **Frontend**: Rider portal displays context-aware messages ("Multi-Merchant Order Active" or "Booking Limit Reached").
 - **Analytics & Reporting**: Comprehensive admin dashboard for revenue, orders, users, delivery, and product analytics with date range filtering.
 
 ## External Dependencies
