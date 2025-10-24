@@ -81,7 +81,16 @@ Preferred communication style: Simple, everyday language.
 - **Order Management**: Complex order states, merchant-specific item management, and comprehensive order editing (add, modify, replace, delete items) with real-time recalculations and audit trails.
 - **Inventory Control**: Real-time availability tracking with alternative item suggestions.
 - **Product Options**: Two-level system where admins define global option types (e.g., Size, Flavor), and merchants define specific values with individual pricing for their menu items.
-- **Multi-Merchant Checkout**: Configurable system allowing admins to enable/disable customers ordering from multiple merchants in a single checkout session, with configurable merchant limits (2-5 merchants per order). Features single "Checkout All Carts" button that processes all merchant orders simultaneously with shared delivery details.
+- **Multi-Merchant Checkout & Order Grouping**: Secure, transaction-based system for customers to order from multiple merchants in a single checkout:
+  - **Admin Controls**: Enable/disable multi-merchant ordering, set merchant limits (2-5 per order)
+  - **Security**: Server-side `orderGroupId` generation using `crypto.randomUUID()` prevents client-side forgery
+  - **Atomic Checkout**: POST `/api/orders/checkout` creates all orders atomically with shared delivery details
+  - **Rider Assignment**: Transaction-based atomic group acceptance using Drizzle's `db.transaction()` with pessimistic row-level locking (`.for('update')`)
+  - **Race Condition Protection**: Multiple riders cannot accept the same group - first to lock wins, others get rejection
+  - **All-or-Nothing Semantics**: Group acceptance validates all orders are pending/unassigned, updates atomically, verifies row count, auto-rolls back on failure
+  - **Order Tracking**: Individual merchant orders within a group maintain separate status tracking while sharing the same rider and delivery
+  - **Notifications**: Sent only after successful transaction commit to maintain consistency
+  - **Error Handling**: Clear rider messages for unavailable groups, with automatic refresh suggestions
 - **Store Management (Admin)**: Comprehensive restaurant management system with table view showing all restaurants (active and inactive), owner information, markup percentages, and registration dates. Admins can set individual restaurant markups, toggle active/inactive status, view detailed information, and delete restaurants with cascade delete (automatically removes menu items, orders, and related data).
 - **Payment Method Controls**: Admin can enable/disable payment methods (COD, GCash, Maya, Debit/Credit Card) platform-wide. Backend validation ensures at least one method remains enabled. Customer checkout automatically filters to show only enabled payment methods with real-time state synchronization.
 - **Analytics & Reporting System**: Comprehensive analytics dashboard for admins featuring:

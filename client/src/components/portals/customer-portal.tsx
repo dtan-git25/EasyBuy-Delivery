@@ -1389,16 +1389,36 @@ export default function CustomerPortal() {
                   </CardContent>
                 </Card>
               ) : (
-                orders.map((order) => (
+                orders.map((order) => {
+                  // Check if this is a grouped multi-merchant order
+                  const isGroupedOrder = (order as any).merchantOrders && (order as any).merchantOrders.length > 0;
+                  const merchantOrders = (order as any).merchantOrders || [];
+                  
+                  return (
                   <Card key={order.id} className="overflow-hidden" data-testid={`order-${order.id}`}>
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-4">
                         <div>
                           <h3 className="text-lg font-semibold">Order #{order.orderNumber}</h3>
-                          <p className="text-sm font-medium text-primary mb-1">
-                            {(order as any).restaurantName || 'Restaurant'}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
+                          {isGroupedOrder ? (
+                            <>
+                              <Badge variant="secondary" className="mt-1 mb-2">
+                                Multi-Merchant ({merchantOrders.length} stores)
+                              </Badge>
+                              <div className="text-sm space-y-1">
+                                {merchantOrders.map((mo: any, idx: number) => (
+                                  <p key={mo.id} className="text-sm font-medium text-primary">
+                                    • {mo.restaurantName}
+                                  </p>
+                                ))}
+                              </div>
+                            </>
+                          ) : (
+                            <p className="text-sm font-medium text-primary mb-1">
+                              {(order as any).restaurantName || 'Restaurant'}
+                            </p>
+                          )}
+                          <p className="text-sm text-muted-foreground mt-1">
                             Placed on {new Date(order.createdAt).toLocaleString()}
                           </p>
                         </div>
@@ -1454,28 +1474,55 @@ export default function CustomerPortal() {
                         </div>
                       )}
 
-                      {/* Order Items Breakdown */}
+                      {/* Order Items Breakdown - Show merchant orders for grouped orders */}
                       <div className="mb-4">
                         <h4 className="font-medium mb-2">Order Items</h4>
-                        <div className="space-y-1 text-sm">
-                          {(() => {
-                            const orderItems = order.items as Array<{ name: string; quantity: number; price: string }>;
-                            const markup = parseFloat(order.markup);
-                            const subtotal = orderItems.reduce((sum, i) => sum + parseFloat(i.price) * i.quantity, 0);
-                            const markupPercentage = (markup / subtotal) * 100;
-                            
-                            return orderItems.map((item, index) => {
-                              const basePrice = parseFloat(item.price);
-                              const markedUpPrice = basePrice * (1 + markupPercentage / 100);
-                              return (
-                                <div key={index} className="flex justify-between">
-                                  <span>{item.name} x{item.quantity}</span>
-                                  <span>₱{(markedUpPrice * item.quantity).toFixed(2)}</span>
+                        {isGroupedOrder ? (
+                          <div className="space-y-4">
+                            {merchantOrders.map((merchantOrder: any) => (
+                              <div key={merchantOrder.id} className="border rounded-lg p-3">
+                                <div className="flex items-center justify-between mb-2">
+                                  <h5 className="font-medium text-sm">{merchantOrder.restaurantName}</h5>
+                                  <Badge variant="secondary" className="text-xs">
+                                    {merchantOrder.status.replace('_', ' ').toUpperCase()}
+                                  </Badge>
                                 </div>
-                              );
-                            });
-                          })()}
-                        </div>
+                                <div className="space-y-1 text-sm">
+                                  {merchantOrder.items.map((item: any, idx: number) => (
+                                    <div key={idx} className="flex justify-between text-muted-foreground">
+                                      <span>{item.name} x{item.quantity}</span>
+                                      <span>₱{(parseFloat(item.price) * item.quantity).toFixed(2)}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="mt-2 pt-2 border-t flex justify-between items-center text-sm">
+                                  <span className="font-medium">Subtotal:</span>
+                                  <span className="font-semibold">₱{merchantOrder.total}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="space-y-1 text-sm">
+                            {(() => {
+                              const orderItems = order.items as Array<{ name: string; quantity: number; price: string }>;
+                              const markup = parseFloat(order.markup);
+                              const subtotal = orderItems.reduce((sum, i) => sum + parseFloat(i.price) * i.quantity, 0);
+                              const markupPercentage = (markup / subtotal) * 100;
+                              
+                              return orderItems.map((item, index) => {
+                                const basePrice = parseFloat(item.price);
+                                const markedUpPrice = basePrice * (1 + markupPercentage / 100);
+                                return (
+                                  <div key={index} className="flex justify-between">
+                                    <span>{item.name} x{item.quantity}</span>
+                                    <span>₱{(markedUpPrice * item.quantity).toFixed(2)}</span>
+                                  </div>
+                                );
+                              });
+                            })()}
+                          </div>
+                        )}
                       </div>
 
                       {/* Order Cost Breakdown */}
@@ -1563,7 +1610,8 @@ export default function CustomerPortal() {
                       )}
                     </CardContent>
                   </Card>
-                ))
+                  );
+                })
               )}
             </div>
           </TabsContent>

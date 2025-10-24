@@ -32,6 +32,10 @@ interface PendingOrder {
   markup: string;
   distance: string;
   createdAt: string;
+  // Multi-merchant group order fields
+  orderGroupId?: string | null;
+  merchantCount?: number;
+  restaurants?: Array<{ id: string; name: string; address: string }>;
 }
 
 // Compact inline rating display for profile headers
@@ -835,6 +839,11 @@ export default function RiderPortal() {
                             <p className="text-sm text-muted-foreground">
                               {new Date(order.createdAt).toLocaleString()}
                             </p>
+                            {order.orderGroupId && order.merchantCount && order.merchantCount > 1 && (
+                              <Badge variant="secondary" className="mt-1">
+                                Multi-Merchant ({order.merchantCount} stores)
+                              </Badge>
+                            )}
                           </div>
                         </div>
                         <div className="text-right">
@@ -849,20 +858,44 @@ export default function RiderPortal() {
                           <span className="text-muted-foreground">Customer:</span>
                           <span className="ml-2 font-medium text-foreground">{order.customer.name}</span>
                         </div>
+                        
+                        {order.orderGroupId && order.restaurants && order.restaurants.length > 1 ? (
+                          <div className="flex items-start text-sm">
+                            <MapPin className="mr-2 h-4 w-4 text-muted-foreground mt-0.5" />
+                            <div className="flex-1">
+                              <span className="text-muted-foreground">Pickup Stores:</span>
+                              <div className="ml-2 mt-1 space-y-1">
+                                {order.restaurants.map((restaurant) => (
+                                  <div key={restaurant.id} className="flex items-center">
+                                    <span className="text-xs text-primary mr-1">•</span>
+                                    <span className="font-medium text-foreground">{restaurant.name}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center text-sm">
+                            <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
+                            <span className="text-muted-foreground">Store:</span>
+                            <span className="ml-2 font-medium text-foreground">{order.restaurant.name}</span>
+                          </div>
+                        )}
+                        
                         <div className="flex items-center text-sm">
-                          <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">Store:</span>
-                          <span className="ml-2 font-medium text-foreground">{order.restaurant.name}</span>
+                          <Package className="mr-2 h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">Your Earnings:</span>
+                          <span className="ml-2 font-bold text-green-600">₱{order.commission}</span>
                         </div>
                       </div>
 
                       <div className="flex justify-end">
                         <Button 
-                          onClick={() => acceptOrder(order.id)}
+                          onClick={() => acceptOrder(order.orderGroupId || order.id)}
                           disabled={updateOrderMutation.isPending}
                           data-testid={`button-accept-${order.id}`}
                         >
-                          Accept Order
+                          Accept {order.orderGroupId && order.merchantCount && order.merchantCount > 1 ? 'Group' : 'Order'}
                         </Button>
                       </div>
                     </CardContent>
@@ -880,6 +913,9 @@ export default function RiderPortal() {
                 </Card>
               ) : (
                 activeOrders.map((order: any) => {
+                  // Check if this is a grouped order
+                  const isGroupedOrder = order.merchantOrders && order.merchantOrders.length > 0;
+                  
                   const orderItems = order.items as Array<{ name: string; quantity: number; price: string }>;
                   const markup = parseFloat(order.markup) || 0;
                   const subtotal = parseFloat(order.subtotal) || 0;
@@ -978,25 +1014,57 @@ export default function RiderPortal() {
 
                         <Separator />
 
-                        {/* Order Items */}
-                        <div>
-                          <h5 className="font-semibold text-foreground mb-2">Order from: {order.restaurantName}</h5>
-                          <div className="space-y-1 text-sm">
-                            {orderItems.map((item, index) => {
-                              const markedUpPrice = parseFloat(item.price) * (1 + (markup / subtotal));
-                              return (
-                                <div key={index} className="flex justify-between">
-                                  <span>{item.name} x{item.quantity}</span>
-                                  <span>₱{(markedUpPrice * item.quantity).toFixed(2)}</span>
+                        {/* Order Items - Show merchant orders for grouped orders */}
+                        {isGroupedOrder ? (
+                          <div>
+                            <h5 className="font-semibold text-foreground mb-3">
+                              Multi-Merchant Order ({order.merchantOrders.length} stores)
+                            </h5>
+                            <div className="space-y-4">
+                              {order.merchantOrders.map((merchantOrder: any, idx: number) => (
+                                <div key={merchantOrder.id} className="border rounded-lg p-3">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <h6 className="font-medium text-foreground">{merchantOrder.restaurantName}</h6>
+                                    <Badge variant="secondary" className="text-xs">
+                                      {merchantOrder.status.replace('_', ' ').toUpperCase()}
+                                    </Badge>
+                                  </div>
+                                  <div className="space-y-1 text-sm">
+                                    {merchantOrder.items.map((item: any, itemIdx: number) => (
+                                      <div key={itemIdx} className="flex justify-between text-muted-foreground">
+                                        <span>{item.name} x{item.quantity}</span>
+                                        <span>₱{(parseFloat(item.price) * item.quantity).toFixed(2)}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <div className="mt-2 pt-2 border-t flex justify-between items-center">
+                                    <span className="text-sm font-medium">Subtotal:</span>
+                                    <span className="font-semibold">₱{merchantOrder.total}</span>
+                                  </div>
                                 </div>
-                              );
-                            })}
-                            <div className="flex justify-between pt-1 border-t font-medium">
-                              <span>Total:</span>
-                              <span>₱{(subtotal + markup).toFixed(2)}</span>
+                              ))}
                             </div>
                           </div>
-                        </div>
+                        ) : (
+                          <div>
+                            <h5 className="font-semibold text-foreground mb-2">Order from: {order.restaurantName}</h5>
+                            <div className="space-y-1 text-sm">
+                              {orderItems.map((item, index) => {
+                                const markedUpPrice = parseFloat(item.price) * (1 + (markup / subtotal));
+                                return (
+                                  <div key={index} className="flex justify-between">
+                                    <span>{item.name} x{item.quantity}</span>
+                                    <span>₱{(markedUpPrice * item.quantity).toFixed(2)}</span>
+                                  </div>
+                                );
+                              })}
+                              <div className="flex justify-between pt-1 border-t font-medium">
+                                <span>Total:</span>
+                                <span>₱{(subtotal + markup).toFixed(2)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
 
                         <Separator />
 
@@ -1027,24 +1095,65 @@ export default function RiderPortal() {
                         <Separator />
 
                         {/* Actions */}
-                        <div className="flex flex-col space-y-2">
-                          {order.status === 'accepted' && (
-                            <Button 
-                              onClick={() => updateOrderStatus(order.id, 'picked_up')}
-                              data-testid={`button-pickup-${order.id}`}
-                            >
-                              Mark as Picked Up
-                            </Button>
-                          )}
-                          {order.status === 'picked_up' && (
-                            <Button 
-                              onClick={() => updateOrderStatus(order.id, 'delivered')}
-                              data-testid={`button-delivered-${order.id}`}
-                            >
-                              Mark as Delivered
-                            </Button>
-                          )}
-                        </div>
+                        {isGroupedOrder ? (
+                          <div className="space-y-3">
+                            <h5 className="font-semibold text-foreground">Update Order Status:</h5>
+                            {order.merchantOrders.map((merchantOrder: any) => (
+                              <div key={merchantOrder.id} className="flex items-center justify-between p-3 border rounded-lg">
+                                <div>
+                                  <p className="font-medium text-sm">{merchantOrder.restaurantName}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Current: {merchantOrder.status.replace('_', ' ').toUpperCase()}
+                                  </p>
+                                </div>
+                                <div className="flex gap-2">
+                                  {merchantOrder.status === 'accepted' && (
+                                    <Button 
+                                      size="sm"
+                                      onClick={() => updateOrderStatus(merchantOrder.id, 'picked_up')}
+                                      data-testid={`button-pickup-${merchantOrder.id}`}
+                                    >
+                                      Mark Picked Up
+                                    </Button>
+                                  )}
+                                  {merchantOrder.status === 'picked_up' && (
+                                    <Button 
+                                      size="sm"
+                                      onClick={() => updateOrderStatus(merchantOrder.id, 'delivered')}
+                                      data-testid={`button-delivered-${merchantOrder.id}`}
+                                    >
+                                      Mark Delivered
+                                    </Button>
+                                  )}
+                                  {merchantOrder.status === 'delivered' && (
+                                    <Badge variant="default" className="px-3 py-1">
+                                      ✓ Delivered
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="flex flex-col space-y-2">
+                            {order.status === 'accepted' && (
+                              <Button 
+                                onClick={() => updateOrderStatus(order.id, 'picked_up')}
+                                data-testid={`button-pickup-${order.id}`}
+                              >
+                                Mark as Picked Up
+                              </Button>
+                            )}
+                            {order.status === 'picked_up' && (
+                              <Button 
+                                onClick={() => updateOrderStatus(order.id, 'delivered')}
+                                data-testid={`button-delivered-${order.id}`}
+                              >
+                                Mark as Delivered
+                              </Button>
+                            )}
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   );
