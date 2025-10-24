@@ -881,12 +881,6 @@ export default function RiderPortal() {
                             <span className="ml-2 font-medium text-foreground">{order.restaurant.name}</span>
                           </div>
                         )}
-                        
-                        <div className="flex items-center text-sm">
-                          <Package className="mr-2 h-4 w-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">Your Earnings:</span>
-                          <span className="ml-2 font-bold text-green-600">₱{order.commission}</span>
-                        </div>
                       </div>
 
                       <div className="flex justify-end">
