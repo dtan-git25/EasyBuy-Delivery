@@ -1,0 +1,153 @@
+Implement Capacity-Based Rider Booking System with numeric limits:
+
+ADMIN SETTINGS (Settings tab > Rider Management or Multi-Merchant Checkout section):
+
+Create "Rider Booking Capacity" settings card with two controls:
+
+1. MAXIMUM ACTIVE ORDERS
+   - Label: "Maximum Active Orders Per Rider"
+   - Control type: Number input or slider
+   - Range: 1 to 10, or "Unlimited" option
+   - Default: Unlimited
+   - Description: "Maximum number of orders a rider can accept simultaneously"
+
+2. MAXIMUM MERCHANTS PER ORDER
+   - Label: "Maximum Merchants Per Order"
+   - Control type: Number input or slider
+   - Range: 1 to 5, or "Unlimited" option
+   - Default: Unlimited
+   - Description: "Maximum number of merchants allowed in a single order"
+
+HOW IT WORKS:
+
+Maximum Active Orders Examples:
+- Set to 1: Rider must complete current order before accepting another
+- Set to 2: Rider can handle 2 orders simultaneously, then locked until one completes
+- Set to 5: Rider can juggle up to 5 orders at once
+- Set to Unlimited: No restriction on order count
+
+Maximum Merchants Per Order Examples:
+- Set to 1: Orders with multiple merchants are hidden from riders or cannot be accepted
+- Set to 3: Riders can only accept orders with 3 or fewer merchants
+- Set to 5: Riders can accept orders with up to 5 merchants
+- Set to Unlimited: Riders can accept orders regardless of merchant count
+
+VALIDATION LOGIC:
+
+When rider tries to accept an order:
+
+Step 1 - Check Active Order Limit:
+- Count rider's current active orders
+- If count >= max active orders setting, block acceptance
+- Show message: "You have reached the maximum of [X] active orders. Complete an order first."
+
+Step 2 - Check Merchant Count Limit:
+- Count number of merchants in the pending order
+- If merchant count > max merchants setting, block acceptance
+- Show message: "This order contains [X] merchants. Maximum allowed is [Y] merchants per order."
+
+Step 3 - Allow acceptance if both checks pass
+
+RIDER PENDING ORDERS DISPLAY:
+
+Show order information:
+- Customer name
+- Store names (if multiple)
+- Merchant count indicator: "3 pickups" or "2 merchants"
+- Total amount
+- Accept button (disabled if restrictions prevent acceptance)
+
+If order cannot be accepted due to restrictions:
+- Disable Accept button
+- Show tooltip explaining why
+- "Complete your active orders first (2/2 active)"
+- "Too many merchants (5 merchants, max 3 allowed)"
+
+ADMIN UI LAYOUT:
+
+Rider Booking Capacity Settings
+
+Maximum Active Orders Per Rider:
+○ 1 order   ○ 2 orders   ○ 3 orders   ○ 5 orders   ○ Unlimited
+or
+[Number input: 2] [Apply]
+
+Maximum Merchants Per Order:
+○ 1 merchant   ○ 2 merchants   ○ 3 merchants   ○ 5 merchants   ○ Unlimited
+or
+[Number input: 3] [Apply]
+
+Preview:
+With current settings, riders can accept up to 2 orders simultaneously, each containing up to 3 merchants maximum.
+
+[Save Settings]
+
+DATABASE STRUCTURE:
+
+admin_settings table:
+- max_active_orders_per_rider (integer, null = unlimited)
+- max_merchants_per_order (integer, null = unlimited)
+
+orders table already has:
+- merchant_count (count of merchants in order)
+- rider_id
+- status
+
+BENEFITS OF THIS APPROACH:
+
+1. Simple and Clear:
+   - No confusing toggle combinations
+   - Just set two numbers
+   - Easy to understand impact
+
+2. Flexible:
+   - Admin can fine-tune based on their market
+   - Can adjust as business grows
+   - Can test different capacities
+
+3. Scalable:
+   - Works for small operations (strict limits)
+   - Works for large operations (higher limits)
+   - Can be adjusted anytime
+
+4. Predictable:
+   - Riders know exactly what their limits are
+   - No complex scenarios to remember
+   - Clear feedback when limit reached
+
+5. Easy to Communicate:
+   - "You can handle 3 orders at once"
+   - "Each order can have up to 2 pickups"
+   - Simple rules
+
+EXAMPLE CONFIGURATIONS:
+
+Conservative Setup (Small operation):
+- Max Active Orders: 1
+- Max Merchants: 1
+Result: One order, one merchant at a time. Simple and controlled.
+
+Standard Setup (Medium operation):
+- Max Active Orders: 2
+- Max Merchants: 3
+Result: Riders can handle 2 orders, each with up to 3 pickup locations.
+
+Aggressive Setup (Large operation):
+- Max Active Orders: 5
+- Max Merchants: 5
+Result: Experienced riders can handle complex multi-order scenarios.
+
+Open Setup (Flexible operation):
+- Max Active Orders: Unlimited
+- Max Merchants: Unlimited
+Result: Riders manage their own capacity, full freedom.
+
+IMPLEMENTATION PRIORITY:
+
+Phase 1: Add settings in admin dashboard
+Phase 2: Implement validation when accepting orders
+Phase 3: Show clear messaging to riders
+Phase 4: Add visual indicators in pending orders
+Phase 5: Track metrics (how often limits are hit)
+
+This capacity-based system is more intuitive, flexible, and easier to manage than toggle combinations.

@@ -954,6 +954,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Multi-merchant checkout endpoint - securely handles order group creation
+  app.post("/api/orders/checkout", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'customer') {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const { carts, deliveryAddress, deliveryLatitude, deliveryLongitude, phoneNumber, specialInstructions, paymentMethod } = req.body;
+      
+      if (!carts || !Array.isArray(carts) || carts.length === 0) {
+        return res.status(400).json({ error: "Invalid checkout data" });
+      }
+
+      // Generate secure orderGroupId on backend (SECURITY: prevents client-side forgery)
+      const orderGroupId = crypto.randomUUID();
+      
+      const createdOrders = [];
+      const settings = await storage.getSystemSettings();
+      
+      // Create all orders with the same orderGroupId
+      for (const cart of carts) {
+        const orderNumber = `EBD-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+        
+        const orderData = {
+          orderGroupId, // Server-generated group ID
+          customerId: req.user.id,
+          restaurantId: cart.restaurantId,
+          orderNumber,
+          items: cart.items,
+          subtotal: cart.subtotal,
+          markup: cart.markup,
+          deliveryFee: cart.deliveryFee,
+          convenienceFee: cart.convenienceFee,
+          total: cart.total,
+          deliveryAddress,
+          deliveryLatitude,
+          deliveryLongitude,
+          phoneNumber,
+          customerNotes: specialInstructions,
+          paymentMethod,
+          status: 'pending',
+        };
+        
+        const parsedOrderData = insertOrderSchema.parse(orderData);
+        const order = await storage.createOrder(parsedOrderData);
+        createdOrders.push(order);
+        
+        // Create notifications for each order
+        const admins = await storage.getUsersByRole('admin');
+        for (const admin of admins) {
+          await storage.createNotification({
+            userId: admin.id,
+            type: 'new_order',
+            title: 'New Order Placed',
+            message: `Order #${order.id.substring(0, 8)} has been placed`,
+            metadata: { orderId: order.id, orderGroupId }
+          });
+        }
+        
+        // Notify merchant
+        if (order.restaurantId) {
+          const restaurant = await storage.getRestaurant(order.restaurantId);
+          if (restaurant) {
+            await storage.createNotification({
+              userId: restaurant.ownerId,
+              type: 'new_order',
+              title: 'New Order Received',
+              message: 'You have received a new order',
+              metadata: { orderId: order.id, orderGroupId }
+            });
+          }
+        }
+      }
+      
+      // Broadcast new order group to connected riders via WebSocket
+      if (wss) {
+        const message = JSON.stringify({
+          type: 'new_order_group',
+          orderGroupId,
+          orders: createdOrders,
+          merchantCount: carts.length
+        });
+        
+        wss.clients.forEach(client => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
+          }
+        });
+      }
+      
+      res.status(201).json({ 
+        success: true, 
+        orderGroupId,
+        orders: createdOrders,
+        message: `Successfully created ${carts.length} orders`
+      });
+    } catch (error) {
+      console.error("Error creating multi-merchant orders:", error);
+      res.status(400).json({ error: "Invalid checkout data" });
+    }
+  });
+
   app.post("/api/orders", async (req, res) => {
     if (!req.isAuthenticated() || req.user?.role !== 'customer') {
       return res.status(401).json({ error: "Unauthorized" });
@@ -1145,6 +1247,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Safe to assign order to this rider
         orderUpdates.riderId = riderId;
+        
+        // If this order is part of a group, accept ALL orders in the group
+        if (currentOrder.orderGroupId) {
+          const groupOrders = await storage.getOrdersByGroupId(currentOrder.orderGroupId);
+          
+          // Update all orders in the group
+          for (const groupOrder of groupOrders) {
+            if (groupOrder.id !== req.params.id) { // Skip the main order, it will be updated below
+              // Verify each order in group is also pending and unassigned
+              if (groupOrder.status === 'pending' && !groupOrder.riderId) {
+                await storage.updateOrder(groupOrder.id, {
+                  riderId,
+                  status: 'accepted',
+                });
+                
+                // Create notification for each grouped order
+                await storage.createNotification({
+                  userId: groupOrder.customerId,
+                  type: 'order_status_change',
+                  title: 'Order Update',
+                  message: 'Your order has been accepted by a rider',
+                  metadata: { orderId: groupOrder.id, status: 'accepted' }
+                });
+                
+                // Notify merchant for each grouped order
+                if (groupOrder.restaurantId) {
+                  const restaurant = await storage.getRestaurant(groupOrder.restaurantId);
+                  if (restaurant) {
+                    await storage.createNotification({
+                      userId: restaurant.ownerId,
+                      type: 'order_accepted_by_rider',
+                      title: 'Rider Assigned',
+                      message: 'A rider has accepted your order',
+                      metadata: { orderId: groupOrder.id }
+                    });
+                  }
+                }
+              }
+            }
+          }
+        }
       }
       
       // SECURITY: For other order updates by rider, verify they own the order

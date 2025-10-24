@@ -86,6 +86,7 @@ export interface IStorage {
   getOrdersByCustomer(customerId: string): Promise<Order[]>;
   getOrdersByRestaurant(restaurantId: string): Promise<Order[]>;
   getOrdersByRider(riderId: string): Promise<any[]>;
+  getOrdersByGroupId(orderGroupId: string): Promise<Order[]>;
   getPendingOrders(): Promise<any[]>;
   createOrder(order: InsertOrder): Promise<Order>;
   updateOrder(id: string, updates: Partial<Order>): Promise<Order | undefined>;
@@ -548,13 +549,93 @@ export class DatabaseStorage implements IStorage {
       .where(eq(orders.customerId, customerId))
       .orderBy(desc(orders.createdAt));
 
-    // Transform to include restaurant name and rider details
-    return result.map(row => ({
-      ...row.orders,
-      restaurantName: row.restaurants?.name || 'Unknown Restaurant',
-      riderName: row.users ? `${row.users.firstName || ''} ${row.users.lastName || ''}`.trim() : null,
-      riderPhone: row.users?.phone || null,
-    }));
+    // Group orders by orderGroupId for multi-merchant orders
+    const groupedOrders = new Map<string | null, any[]>();
+    
+    result.forEach(row => {
+      const groupKey = row.orders.orderGroupId || row.orders.id; // Use individual order ID if no group
+      if (!groupedOrders.has(groupKey)) {
+        groupedOrders.set(groupKey, []);
+      }
+      groupedOrders.get(groupKey)!.push(row);
+    });
+
+    // Transform groups for customer view with individual merchant order tracking
+    const customerOrderGroups: any[] = [];
+    
+    groupedOrders.forEach((orderRows, groupKey) => {
+      const firstOrder = orderRows[0].orders;
+      const isGroup = orderRows.length > 1;
+      
+      // Get rider info (same for all orders in group if assigned)
+      const riderUser = orderRows[0].users;
+      const riderName = riderUser ? `${riderUser.firstName || ''} ${riderUser.lastName || ''}`.trim() : null;
+      const riderPhone = riderUser?.phone || null;
+      
+      // Build individual merchant orders array with full details
+      const merchantOrders = orderRows.map(row => ({
+        id: row.orders.id,
+        orderNumber: row.orders.orderNumber,
+        restaurantId: row.orders.restaurantId,
+        restaurantName: row.restaurants?.name || 'Unknown Restaurant',
+        items: row.orders.items,
+        subtotal: row.orders.subtotal,
+        markup: row.orders.markup,
+        deliveryFee: row.orders.deliveryFee,
+        total: row.orders.total,
+        status: row.orders.status,
+        createdAt: row.orders.createdAt,
+        updatedAt: row.orders.updatedAt,
+      }));
+      
+      // Calculate combined totals
+      const combinedTotal = orderRows.reduce((sum, row) => 
+        sum + parseFloat(row.orders.total as string), 0
+      );
+      const combinedDeliveryFee = orderRows.reduce((sum, row) => 
+        sum + parseFloat(row.orders.deliveryFee as string), 0
+      );
+      
+      customerOrderGroups.push({
+        // Group-level data
+        id: isGroup ? groupKey : firstOrder.id,
+        orderGroupId: firstOrder.orderGroupId,
+        isGroup,
+        merchantCount: orderRows.length,
+        orderNumber: isGroup ? `GROUP-${groupKey}` : firstOrder.orderNumber,
+        
+        // Delivery info (same for all in group)
+        deliveryAddress: firstOrder.deliveryAddress,
+        deliveryLatitude: firstOrder.deliveryLatitude,
+        deliveryLongitude: firstOrder.deliveryLongitude,
+        phoneNumber: firstOrder.phoneNumber,
+        customerNotes: firstOrder.customerNotes,
+        
+        // Rider info (same for all in group)
+        riderId: firstOrder.riderId,
+        riderName,
+        riderPhone,
+        
+        // Combined order data
+        total: combinedTotal.toFixed(2),
+        deliveryFee: combinedDeliveryFee.toFixed(2),
+        paymentMethod: firstOrder.paymentMethod,
+        createdAt: firstOrder.createdAt,
+        completedAt: firstOrder.completedAt,
+        
+        // Individual merchant orders for tracking
+        merchantOrders, // Array of individual orders with statuses
+        
+        // Legacy fields for backward compatibility (use first/primary order)
+        restaurantName: merchantOrders[0].restaurantName,
+        status: firstOrder.status, // Overall status
+        items: firstOrder.items,
+        subtotal: firstOrder.subtotal,
+        markup: firstOrder.markup,
+      });
+    });
+    
+    return customerOrderGroups;
   }
 
   async getOrdersByRestaurant(restaurantId: string): Promise<any[]> {
@@ -584,6 +665,7 @@ export class DatabaseStorage implements IStorage {
 
   // Get orders by rider's user ID (not rider profile ID)
   // orders.rider_id has FK constraint to users.id
+  // Returns grouped orders for multi-merchant deliveries with individual tracking
   async getOrdersByRider(riderUserId: string): Promise<any[]> {
     const result = await db
       .select()
@@ -593,15 +675,93 @@ export class DatabaseStorage implements IStorage {
       .where(eq(orders.riderId, riderUserId))
       .orderBy(desc(orders.createdAt));
 
-    // Transform to include customer and restaurant details
-    return result.map(row => ({
-      ...row.orders,
-      customerName: row.users ? `${row.users.firstName || ''} ${row.users.lastName || ''}`.trim() || 'Unknown Customer' : 'Unknown Customer',
-      restaurantName: row.restaurants?.name || 'Unknown Restaurant',
-      restaurantAddress: row.restaurants?.address || 'Unknown Address',
-      restaurantLatitude: row.restaurants?.latitude,
-      restaurantLongitude: row.restaurants?.longitude,
-    }));
+    // Group orders by orderGroupId for multi-merchant deliveries
+    const groupedOrders = new Map<string | null, any[]>();
+    
+    result.forEach(row => {
+      const groupKey = row.orders.orderGroupId || row.orders.id; // Use individual order ID if no group
+      if (!groupedOrders.has(groupKey)) {
+        groupedOrders.set(groupKey, []);
+      }
+      groupedOrders.get(groupKey)!.push(row);
+    });
+
+    // Transform groups to provide both grouped view and individual order tracking
+    const riderOrderGroups: any[] = [];
+    
+    groupedOrders.forEach((orderRows, groupKey) => {
+      const firstOrder = orderRows[0].orders;
+      const isGroup = orderRows.length > 1;
+      
+      // Get customer info (same for all orders in group)
+      const customerUser = orderRows[0].users;
+      const customerName = customerUser ? 
+        `${customerUser.firstName || ''} ${customerUser.lastName || ''}`.trim() || 'Unknown Customer' : 
+        'Unknown Customer';
+      
+      // Build individual merchant orders array with full details for tracking
+      const merchantOrders = orderRows.map(row => ({
+        id: row.orders.id,
+        orderNumber: row.orders.orderNumber,
+        restaurantId: row.orders.restaurantId,
+        restaurantName: row.restaurants?.name || 'Unknown Restaurant',
+        restaurantAddress: row.restaurants?.address || 'Unknown Address',
+        restaurantLatitude: row.restaurants?.latitude,
+        restaurantLongitude: row.restaurants?.longitude,
+        items: row.orders.items,
+        subtotal: row.orders.subtotal,
+        markup: row.orders.markup,
+        deliveryFee: row.orders.deliveryFee,
+        total: row.orders.total,
+        status: row.orders.status,
+        createdAt: row.orders.createdAt,
+        updatedAt: row.orders.updatedAt,
+      }));
+      
+      // Calculate combined totals for the group
+      const combinedTotal = orderRows.reduce((sum, row) => 
+        sum + parseFloat(row.orders.total as string), 0
+      );
+      
+      riderOrderGroups.push({
+        // Group-level data
+        id: isGroup ? groupKey : firstOrder.id,
+        orderGroupId: firstOrder.orderGroupId,
+        isGroup,
+        merchantCount: orderRows.length,
+        orderNumber: isGroup ? `GROUP-${groupKey}` : firstOrder.orderNumber,
+        
+        // Customer info (same for all in group)
+        customerId: firstOrder.customerId,
+        customerName,
+        customerPhone: firstOrder.phoneNumber,
+        deliveryAddress: firstOrder.deliveryAddress,
+        deliveryLatitude: firstOrder.deliveryLatitude,
+        deliveryLongitude: firstOrder.deliveryLongitude,
+        customerNotes: firstOrder.customerNotes,
+        
+        // Combined order data
+        total: combinedTotal.toFixed(2),
+        paymentMethod: firstOrder.paymentMethod,
+        createdAt: firstOrder.createdAt,
+        
+        // Individual merchant orders for tracking
+        merchantOrders, // Array of individual orders for separate status updates
+        
+        // Legacy fields for backward compatibility (use first/primary order)
+        restaurantName: merchantOrders[0].restaurantName,
+        restaurantAddress: merchantOrders[0].restaurantAddress,
+        restaurantLatitude: merchantOrders[0].restaurantLatitude,
+        restaurantLongitude: merchantOrders[0].restaurantLongitude,
+        status: firstOrder.status, // Overall status (could be enhanced to show combined status)
+        items: firstOrder.items,
+        subtotal: firstOrder.subtotal,
+        markup: firstOrder.markup,
+        deliveryFee: firstOrder.deliveryFee,
+      });
+    });
+    
+    return riderOrderGroups;
   }
 
   async getPendingOrders(): Promise<any[]> {
@@ -613,29 +773,87 @@ export class DatabaseStorage implements IStorage {
       .where(eq(orders.status, 'pending'))
       .orderBy(asc(orders.createdAt));
 
-    // Transform to match frontend expectations
-    return result.map(row => ({
-      id: row.orders.id,
-      orderNumber: row.orders.orderNumber,
-      total: row.orders.total,
-      subtotal: row.orders.subtotal,
-      markup: row.orders.markup,
-      deliveryFee: row.orders.deliveryFee,
-      deliveryAddress: row.orders.deliveryAddress,
-      phoneNumber: row.orders.phoneNumber,
-      createdAt: row.orders.createdAt,
-      customer: {
-        name: row.users ? `${row.users.firstName || ''} ${row.users.lastName || ''}`.trim() || 'Unknown' : 'Unknown',
-        address: row.orders.deliveryAddress,
-        phone: row.orders.phoneNumber,
-      },
-      restaurant: {
+    // Group orders by orderGroupId
+    const groupedOrders = new Map<string | null, any[]>();
+    
+    result.forEach(row => {
+      const groupKey = row.orders.orderGroupId || row.orders.id; // Use individual order ID if no group
+      if (!groupedOrders.has(groupKey)) {
+        groupedOrders.set(groupKey, []);
+      }
+      groupedOrders.get(groupKey)!.push(row);
+    });
+
+    // Transform groups to match frontend expectations
+    const pendingOrderGroups: any[] = [];
+    
+    groupedOrders.forEach((orderRows, groupKey) => {
+      const firstOrder = orderRows[0].orders;
+      const isGroup = orderRows.length > 1;
+      
+      // Calculate combined totals for the group
+      const combinedTotal = orderRows.reduce((sum, row) => 
+        sum + parseFloat(row.orders.total as string), 0
+      );
+      const combinedSubtotal = orderRows.reduce((sum, row) => 
+        sum + parseFloat(row.orders.subtotal as string), 0
+      );
+      const combinedMarkup = orderRows.reduce((sum, row) => 
+        sum + parseFloat(row.orders.markup as string), 0
+      );
+      const combinedDeliveryFee = orderRows.reduce((sum, row) => 
+        sum + parseFloat(row.orders.deliveryFee as string), 0
+      );
+      
+      // Get customer info (same for all orders in group)
+      const customerUser = orderRows[0].users;
+      const customerName = customerUser ? 
+        `${customerUser.firstName || ''} ${customerUser.lastName || ''}`.trim() || 'Unknown' : 
+        'Unknown';
+      
+      // Get restaurant info for the group
+      const restaurants = orderRows.map(row => ({
         name: row.restaurants?.name || 'Unknown',
         address: row.restaurants?.address || 'Unknown',
-      },
-      distance: `${(parseFloat(row.orders.deliveryFee as string) / 10).toFixed(1)} km`,
-      commission: (parseFloat(row.orders.deliveryFee as string) * 0.7).toFixed(2),
-    }));
+      }));
+      
+      pendingOrderGroups.push({
+        id: isGroup ? groupKey : firstOrder.id, // Use group ID or single order ID
+        orderGroupId: firstOrder.orderGroupId, // Include for frontend reference
+        isGroup, // Flag to indicate if this is a grouped order
+        merchantCount: orderRows.length,
+        orderIds: orderRows.map(row => row.orders.id), // All order IDs in this group
+        orderNumber: isGroup ? `GROUP-${groupKey}` : firstOrder.orderNumber,
+        total: combinedTotal.toFixed(2),
+        subtotal: combinedSubtotal.toFixed(2),
+        markup: combinedMarkup.toFixed(2),
+        deliveryFee: combinedDeliveryFee.toFixed(2),
+        deliveryAddress: firstOrder.deliveryAddress,
+        phoneNumber: firstOrder.phoneNumber,
+        createdAt: firstOrder.createdAt,
+        customer: {
+          name: customerName,
+          address: firstOrder.deliveryAddress,
+          phone: firstOrder.phoneNumber,
+        },
+        restaurant: isGroup ? {
+          name: restaurants.map(r => r.name).join(', '), // Comma-separated for simple display
+          address: 'Multiple locations', // Indicate multiple pickups
+        } : restaurants[0],
+        restaurants, // Array of all restaurants in the group
+        distance: `${(combinedDeliveryFee / 10).toFixed(1)} km`,
+        commission: (combinedDeliveryFee * 0.7).toFixed(2),
+      });
+    });
+    
+    return pendingOrderGroups;
+  }
+
+  async getOrdersByGroupId(orderGroupId: string): Promise<Order[]> {
+    return await db
+      .select()
+      .from(orders)
+      .where(eq(orders.orderGroupId, orderGroupId));
   }
 
   async createOrder(order: InsertOrder): Promise<Order> {

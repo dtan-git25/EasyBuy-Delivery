@@ -1,0 +1,187 @@
+Fix multi-merchant checkout to group orders while keeping separate order tracking:
+
+PROBLEM:
+When customer orders from multiple merchants, system creates separate orders. Customer and rider see them as individual orders instead of grouped together.
+
+REQUIRED SOLUTION:
+
+Create an order grouping system that:
+1. Groups multiple merchant orders from same customer into ONE acceptance for rider
+2. Each merchant order maintains its own status and tracking
+3. Customer sees orders grouped together
+4. Rider accepts the group as one job but tracks each merchant order separately
+
+IMPLEMENTATION:
+
+1. DATABASE STRUCTURE:
+
+Add order_group_id to link related orders:
+
+orders table:
+- order_id (unique per merchant)
+- order_group_id (same for all orders from one customer checkout)
+- customer_id (same)
+- merchant_id (different per order)
+- rider_id (same once accepted)
+- status (individual per merchant order)
+- created_at (same timestamp for grouped orders)
+
+Example data:
+Order #001: order_group_id = "GROUP_123", customer = John, merchant = Jollibee, status = preparing
+Order #002: order_group_id = "GROUP_123", customer = John, merchant = McDonald's, status = preparing  
+Order #003: order_group_id = "GROUP_123", customer = John, merchant = KFC, status = ready
+
+2. CUSTOMER CHECKOUT FLOW:
+
+When customer checks out multiple merchants:
+- Generate one order_group_id
+- Create separate order records for each merchant
+- All orders share same order_group_id
+- Customer pays once for entire group
+
+3. CUSTOMER "MY ORDERS" VIEW:
+
+Show as grouped card:
+
+Order Group #GROUP_123 - Placed: Oct 24, 2025
+┌─────────────────────────────────────┐
+│ 📦 3 Merchants                      │
+│                                     │
+│ Jollibee                            │
+│ - Cheeseburger x1                   │
+│ Status: Preparing                   │
+│                                     │
+│ McDonald's                          │
+│ - Big Mac x2                        │
+│ Status: Preparing                   │
+│                                     │
+│ KFC                                 │
+│ - Chicken Bucket x1                 │
+│ Status: Ready for Pickup            │
+│                                     │
+│ Total: ₱850.00                      │
+│ Delivery Fee: ₱100.00               │
+│ Overall Status: Preparing           │
+└─────────────────────────────────────┘
+
+Each merchant order shows individually but within one grouped card.
+
+4. RIDER PENDING ORDERS VIEW:
+
+Show as ONE order to accept:
+
+Pending Order - Customer: John Doe
+┌─────────────────────────────────────┐
+│ Pickup from 3 merchants:            │
+│ • Jollibee                          │
+│ • McDonald's                        │
+│ • KFC                               │
+│                                     │
+│ Total Amount: ₱850.00               │
+│ [Accept Order Group]                │
+└─────────────────────────────────────┘
+
+5. RIDER ACCEPTANCE:
+
+When rider clicks Accept:
+- Update ALL orders in the group with rider_id
+- All orders move to rider's Active Orders
+- Rider is assigned to entire order group
+
+Database update:
+UPDATE orders SET rider_id = ?, status = 'accepted' WHERE order_group_id = 'GROUP_123'
+
+6. RIDER ACTIVE ORDERS VIEW:
+
+Show grouped but with individual tracking:
+
+Order Group #GROUP_123 - Customer: John Doe
+┌─────────────────────────────────────┐
+│ Delivery Address:                   │
+│ 123 Main St, Quezon City [📍]      │
+│                                     │
+│ Pickup 1: Jollibee                  │
+│ 456 Street [📍]                     │
+│ Status: Preparing                   │
+│ [Mark as Picked Up]                 │
+│                                     │
+│ Pickup 2: McDonald's                │
+│ 789 Avenue [📍]                     │
+│ Status: Ready                       │
+│ [Mark as Picked Up]                 │
+│                                     │
+│ Pickup 3: KFC                       │
+│ 321 Road [📍]                       │
+│ Status: Ready                       │
+│ [Mark as Picked Up]                 │
+│                                     │
+│ [Mark All as Delivered]             │
+└─────────────────────────────────────┘
+
+7. INDIVIDUAL ORDER STATUS TRACKING:
+
+Rider can update each merchant order separately:
+- Mark "Picked Up from Jollibee" → updates only Order #001
+- Mark "Picked Up from McDonald's" → updates only Order #002
+- Mark "Picked Up from KFC" → updates only Order #003
+- Mark "Delivered" → updates all remaining orders to delivered
+
+Each order maintains its own status while being part of the group.
+
+8. MERCHANT VIEW:
+
+Each merchant only sees their own order:
+- Jollibee sees Order #001 (not the other merchants' orders)
+- McDonald's sees Order #002
+- KFC sees Order #003
+- Each can mark "Ready for Pickup" independently
+
+9. ORDER STATUS FLOW PER MERCHANT:
+
+Order #001 (Jollibee):
+pending → accepted by rider → preparing → ready → picked up → delivered
+
+Order #002 (McDonald's):
+pending → accepted by rider → preparing → ready → picked up → delivered
+
+Order #003 (KFC):
+pending → accepted by rider → preparing → ready → picked up → delivered
+
+All progress independently but rider handles them as one delivery job.
+
+10. QUERIES NEEDED:
+
+Get pending order groups for rider:
+SELECT order_group_id, customer_id, COUNT(*) as merchant_count, SUM(total) as total_amount
+FROM orders
+WHERE rider_id IS NULL AND status = 'pending'
+GROUP BY order_group_id
+
+Get rider's active order groups:
+SELECT * FROM orders
+WHERE rider_id = ? AND status IN ('accepted', 'picked_up', 'in_transit')
+ORDER BY order_group_id
+
+Count rider's active order groups for capacity:
+SELECT COUNT(DISTINCT order_group_id)
+FROM orders  
+WHERE rider_id = ? AND status IN ('accepted', 'picked_up', 'in_transit')
+
+11. DELIVERY COMPLETION:
+
+When rider marks "Delivered":
+- Update all orders in the group to status = 'delivered'
+- Complete the entire order group
+- Free up rider capacity for new orders
+
+KEY POINTS:
+
+✓ Customer places order once, creates order group
+✓ Rider sees and accepts group as ONE order
+✓ Each merchant order tracks separately
+✓ Rider can update each pickup status individually
+✓ Customer sees grouped orders with individual status
+✓ Capacity counting: 1 customer order group = 1 order for rider limits
+✓ Merchants only see their own order from the group
+
+This maintains separate order tracking while presenting a unified experience for customer and rider.

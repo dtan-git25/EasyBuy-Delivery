@@ -1,0 +1,91 @@
+Implement rider booking restrictions with admin controls:
+
+ADMIN SETTINGS (Settings tab > Multi-Merchant Checkout section):
+
+Add two toggle settings:
+
+1. DOUBLE ORDER BOOKING (Toggle ON/OFF)
+   - Setting name: "Allow Double Order Booking"
+   - Default: OFF
+   
+   When ENABLED:
+   - Rider can accept up to 2 orders from different customers simultaneously
+   - Once 2 orders are accepted, rider is "locked" from accepting more
+   - Both orders must be marked as delivered or cancelled before rider can accept new orders
+   - Pending orders list shows message: "Complete your 2 active orders before accepting more"
+   
+   When DISABLED:
+   - Rider can only accept 1 order at a time from any customer
+   - Must complete current order before accepting another
+
+2. MULTIPLE MERCHANT BOOKING (Toggle ON/OFF)
+   - Setting name: "Allow Multiple Merchant Orders (Same Customer)"
+   - Default: OFF
+   
+   When ENABLED:
+   - Rider can accept one customer's order even if it contains multiple merchants
+   - Example: Customer orders from 3 restaurants, rider accepts all pickups in 1 order
+   - Limited to 1 accepted multi-merchant order at a time
+   - Must complete this order before accepting new orders
+   
+   When DISABLED:
+   - Rider cannot accept orders with multiple merchants
+   - Or restrict to accepting only single-merchant orders
+
+RIDER EXPERIENCE:
+
+In Pending Orders:
+- Check rider's current active order count
+- Check booking restriction settings from admin
+- If restrictions met, disable Accept buttons on pending orders
+- Show message explaining why they can't accept
+
+Scenarios based on settings:
+
+Scenario A - Both OFF:
+- Rider accepts 1 order maximum
+- Must deliver/cancel before accepting another
+
+Scenario B - Double booking ON, Multiple merchant OFF:
+- Rider can accept 2 separate customer orders (single merchant each)
+- Cannot accept orders with multiple merchants
+- Must complete both before accepting more
+
+Scenario C - Double booking OFF, Multiple merchant ON:
+- Rider can accept 1 order with multiple merchants from same customer
+- Cannot accept second order until first is complete
+
+Scenario D - Both ON:
+- Rider can accept 2 orders from different customers
+- Each order can have multiple merchants
+- Maximum 2 orders active at once
+
+VALIDATION LOGIC:
+
+Before allowing order acceptance:
+1. Count rider's active orders (status: accepted, picked_up, in_transit)
+2. Check admin double booking setting
+3. Check if order has multiple merchants
+4. Check admin multiple merchant setting
+5. Apply restrictions accordingly
+6. Show appropriate error message if restricted
+
+ERROR MESSAGES:
+
+"You have reached the maximum of 2 active orders. Please complete your current deliveries first."
+
+"Multiple merchant orders are currently disabled. Complete your active order first."
+
+"You already have an active multi-merchant order. Complete it before accepting another."
+
+DATABASE:
+
+Save settings in admin_settings table:
+- allow_double_booking (boolean, default: false)
+- allow_multiple_merchant_booking (boolean, default: false)
+
+Track in orders:
+- merchant_count (number of merchants in order)
+- order_group_id (if multiple merchants from same customer)
+
+This gives admin control over rider workload and delivery efficiency while preventing riders from being overwhelmed with too many simultaneous orders.

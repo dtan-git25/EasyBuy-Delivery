@@ -193,7 +193,45 @@ export default function Dashboard() {
     ].filter(Boolean).join(", ");
 
     try {
-      for (const restaurantCart of allCarts) {
+      // For multi-merchant checkout, send all carts to backend to handle atomically
+      if (allCarts.length > 1) {
+        // Prepare all cart data for backend processing
+        const checkoutData = {
+          carts: allCarts.map(restaurantCart => {
+            const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const markupAmount = subtotal * (restaurantCart.markup / 100);
+            const deliveryFee = calculatedDeliveryFees[restaurantCart.restaurantId] || 0;
+            const convenienceFee = settings?.showConvenienceFee ? parseFloat(settings.convenienceFee || '0') : 0;
+            const total = subtotal + markupAmount + deliveryFee + convenienceFee;
+
+            return {
+              restaurantId: restaurantCart.restaurantId,
+              items: restaurantCart.items.map(item => ({
+                menuItemId: item.menuItemId,
+                name: item.name,
+                price: item.price,
+                quantity: item.quantity
+              })),
+              subtotal: subtotal.toFixed(2),
+              markup: markupAmount.toFixed(2),
+              deliveryFee: deliveryFee.toFixed(2),
+              convenienceFee: convenienceFee.toFixed(2),
+              total: total.toFixed(2),
+            };
+          }),
+          deliveryAddress,
+          deliveryLatitude: selectedAddress.latitude,
+          deliveryLongitude: selectedAddress.longitude,
+          phoneNumber,
+          specialInstructions,
+          paymentMethod,
+        };
+
+        // Backend will generate orderGroupId and create all orders atomically
+        await apiRequest("POST", "/api/orders/checkout", checkoutData);
+      } else {
+        // Single merchant order - use existing endpoint
+        const restaurantCart = allCarts[0];
         const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         const markupAmount = subtotal * (restaurantCart.markup / 100);
         const deliveryFee = calculatedDeliveryFees[restaurantCart.restaurantId] || 0;
