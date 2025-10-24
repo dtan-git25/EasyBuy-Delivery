@@ -1,0 +1,134 @@
+Fix multi-merchant order status tracking - prevent entire group from being marked delivered when only one order is delivered:
+
+PROBLEM:
+When rider marks ONE merchant order as delivered (e.g., Mcdo order), the ENTIRE order group gets marked as delivered, including other merchant orders that haven't been delivered yet (e.g., Jolibee order still in progress).
+
+REQUIRED FIX:
+
+Each merchant order in the group should track status independently. Only mark the entire group as completed when ALL individual orders are delivered.
+
+1. INDIVIDUAL ORDER STATUS:
+
+Each order maintains its own status:
+- Order EBD-0001 (Mcdo): accepted → picked_up → delivered
+- Order EBD-0002 (Jolibee): accepted → picked_up → delivered
+- Order EBD-0003 (KFC): accepted → picked_up → delivered
+
+They progress independently.
+
+2. WHEN RIDER MARKS "DELIVERED":
+
+If rider marks Order EBD-0001 as delivered:
+- Update ONLY Order EBD-0001 status to "delivered"
+- Order EBD-0002 remains at its current status (e.g., "picked_up")
+- Order EBD-0003 remains at its current status (e.g., "accepted")
+
+Do NOT update all orders in the group.
+
+3. DATABASE UPDATE:
+
+Current (WRONG):
+UPDATE orders SET status = 'delivered' WHERE order_group_id = ?
+
+This updates ALL orders in the group.
+
+Required (CORRECT):
+UPDATE orders SET status = 'delivered' WHERE order_id = ?
+
+This updates ONLY the specific order.
+
+4. RIDER ACTIVE ORDER CARD:
+
+Show individual status and buttons per merchant:
+
+Order Group #GROUP-123 - Customer: John Doe
+
+Pickup 1: Mcdo
+Address: 123 Street [📍]
+Status: Picked Up
+[Mark as Delivered] ← Updates only EBD-0001
+
+Pickup 2: Jolibee  
+Address: 456 Avenue [📍]
+Status: Picked Up
+[Mark as Delivered] ← Updates only EBD-0002
+
+Pickup 3: KFC
+Address: 789 Road [📍]
+Status: Accepted
+[Mark as Picked Up] ← Updates only EBD-0003
+
+Each button updates only that specific order's status.
+
+5. GROUP COMPLETION LOGIC:
+
+Check if ALL orders in the group are delivered:
+
+Query to check group completion:
+SELECT COUNT(*) as total, 
+       SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as delivered_count
+FROM orders
+WHERE order_group_id = ?
+
+If total = delivered_count, then entire group is complete.
+
+6. ORDER GROUP STATUS:
+
+Calculate overall group status dynamically:
+- If ANY order is "accepted": Group status = "In Progress"
+- If ANY order is "picked_up": Group status = "In Transit"
+- If ALL orders are "delivered": Group status = "Completed"
+- If ANY order is "cancelled": Group status = "Partially Cancelled"
+
+Don't store group status separately, calculate it from individual order statuses.
+
+7. CUSTOMER VIEW:
+
+Customer sees each order's individual status:
+
+My Order - Order Group #123
+
+Mcdo Order (EBD-0001)
+Status: ✓ Delivered
+
+Jolibee Order (EBD-0002)  
+Status: 🚗 In Transit (Picked Up)
+
+KFC Order (EBD-0003)
+Status: 📦 Accepted
+
+Overall: In Progress (2 of 3 delivered)
+
+8. MARK ALL AS DELIVERED (OPTIONAL):
+
+Can add a single button for convenience:
+
+[Mark All as Delivered]
+
+This updates ALL orders in the group to delivered when rider completes the entire delivery trip.
+
+But individual buttons should still work independently.
+
+9. PREVENT PREMATURE COMPLETION:
+
+Order group should NOT appear in "Completed Orders" until ALL individual orders are delivered.
+
+Filter completed order groups:
+SELECT order_group_id
+FROM orders
+WHERE customer_id = ?
+GROUP BY order_group_id
+HAVING COUNT(*) = SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END)
+
+This only shows groups where all orders are delivered.
+
+10. STATUS UPDATE API:
+
+When rider clicks "Mark as Delivered" for specific order:
+- API receives: order_id (not order_group_id)
+- Update: WHERE order_id = ?
+- Response: Updated status for that order only
+
+Verify the API endpoint is using order_id, not order_group_id for status updates.
+
+The key fix: Status updates must target individual order_id, not order_group_id. Each merchant order progresses independently.
