@@ -600,9 +600,32 @@ export default function RiderPortal() {
   const activeCustomerOrders = activeOrders.filter((order: any) => 
     order.status === 'accepted' || order.status === 'picked_up'
   );
-  const uniqueCustomers = new Set(activeCustomerOrders.map((order: any) => order.customerId));
+  
+  // Separate single-merchant and multi-merchant orders
+  const multiMerchantOrders = activeCustomerOrders.filter((order: any) => order.orderGroupId);
+  const singleMerchantOrders = activeCustomerOrders.filter((order: any) => !order.orderGroupId);
+  
+  // Calculate unique customers for single-merchant orders only
+  const uniqueCustomers = new Set(singleMerchantOrders.map((order: any) => order.customerId));
   const activeCustomerCount = uniqueCustomers.size;
-  const isBookingLimitReached = maxBookingLimit > 0 && activeCustomerCount >= maxBookingLimit;
+  
+  // Determine booking restriction status
+  const hasMultiMerchantOrder = multiMerchantOrders.length > 0;
+  const hasSingleMerchantOrders = singleMerchantOrders.length > 0;
+  const isBookingLimitReached = maxBookingLimit > 0 && activeCustomerCount >= maxBookingLimit && !hasMultiMerchantOrder;
+  
+  // Get booking restriction message
+  let bookingRestrictionMessage = '';
+  let bookingRestrictionTitle = '';
+  if (hasMultiMerchantOrder) {
+    bookingRestrictionTitle = 'Multi-Merchant Order Active';
+    bookingRestrictionMessage = 'Complete your multi-merchant order before accepting new orders.';
+  } else if (isBookingLimitReached) {
+    bookingRestrictionTitle = 'Booking Limit Reached';
+    bookingRestrictionMessage = `Complete your ${activeCustomerCount} active order(s) before accepting more. The admin has set a limit of ${maxBookingLimit} simultaneous order(s) from different customers.`;
+  }
+  
+  const hasBookingRestriction = hasMultiMerchantOrder || isBookingLimitReached;
 
   // Today's delivered orders (using completedAt to check when order was completed)
   const todayDeliveredOrders = historicalOrders.filter((order: any) => {
@@ -828,14 +851,13 @@ export default function RiderPortal() {
                     </Button>
                   </CardContent>
                 </Card>
-              ) : isBookingLimitReached ? (
+              ) : hasBookingRestriction ? (
                 <Card>
                   <CardContent className="p-8 text-center">
                     <AlertCircle className="mx-auto h-12 w-12 text-orange-500 mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Booking Limit Reached</h3>
+                    <h3 className="text-lg font-semibold mb-2">{bookingRestrictionTitle}</h3>
                     <p className="text-muted-foreground mb-4">
-                      Complete your {activeCustomerCount} active order(s) before accepting more. 
-                      The admin has set a limit of {maxBookingLimit} simultaneous order(s) from different customers.
+                      {bookingRestrictionMessage}
                     </p>
                     <Button 
                       variant="outline" 
