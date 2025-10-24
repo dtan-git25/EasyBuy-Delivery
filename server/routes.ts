@@ -1237,6 +1237,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
+        // Check rider booking restrictions
+        const settings = await storage.getSystemSettings();
+        const maxBooking = settings?.maxMultipleOrderBooking || 0;
+        
+        if (maxBooking > 0) {
+          // Get all active orders for this rider
+          const allOrders = await storage.getOrders();
+          const riderActiveOrders = allOrders.filter((order: any) => 
+            order.riderId === riderId && 
+            (order.status === 'accepted' || order.status === 'picked_up')
+          );
+          
+          // Count unique customers for active orders
+          const uniqueCustomers = new Set(riderActiveOrders.map((order: any) => order.customerId));
+          const activeCustomerCount = uniqueCustomers.size;
+          
+          // Check if rider has reached the limit
+          if (activeCustomerCount >= maxBooking) {
+            return res.status(429).json({ 
+              error: "Booking limit reached",
+              message: `Complete your ${activeCustomerCount} active order(s) before accepting more`,
+              currentActiveOrders: activeCustomerCount,
+              maxAllowed: maxBooking
+            });
+          }
+        }
+        
         // Verify order is in pending status and has no rider assigned
         if (currentOrder.status !== 'pending') {
           return res.status(409).json({ 
