@@ -524,6 +524,13 @@ export default function CustomerPortal() {
     }
   }, [socket, user, sendMessage, queryClient, selectedOrderForTracking, orders, toast]);
 
+  // Pre-fill phone number from user profile
+  useEffect(() => {
+    if (user?.phone && !phoneNumber) {
+      setPhoneNumber(user.phone);
+    }
+  }, [user]);
+
   const filteredRestaurants = useMemo(() => {
     const filtered = restaurants.filter((restaurant: Restaurant) => {
       // Search: Check restaurant name, cuisine, AND menu item categories
