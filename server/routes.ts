@@ -1223,10 +1223,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // SECURITY: If rider is accepting an order, verify it's unassigned and pending
       if (req.user.role === 'rider' && req.body.status === 'accepted' && riderId) {
-        // Get current order state
-        const currentOrder = await storage.getOrder(req.params.id);
+        // Check if the ID is an orderGroupId or an individual order ID
+        let currentOrder = await storage.getOrder(req.params.id);
+        
+        // If not found, check if it's an orderGroupId instead
         if (!currentOrder) {
-          return res.status(404).json({ error: "Order not found" });
+          const groupOrders = await storage.getOrdersByGroupId(req.params.id);
+          if (groupOrders && groupOrders.length > 0) {
+            // Use the first order from the group for validation
+            currentOrder = groupOrders[0];
+          } else {
+            return res.status(404).json({ error: "Order not found" });
+          }
         }
         
         // Verify order is in pending status and has no rider assigned
@@ -1248,45 +1256,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Safe to assign order to this rider
         orderUpdates.riderId = riderId;
         
-        // If this order is part of a group, accept ALL orders in the group
+        // If this order is part of a group, use atomic transaction-based acceptance
         if (currentOrder.orderGroupId) {
-          const groupOrders = await storage.getOrdersByGroupId(currentOrder.orderGroupId);
+          // Use atomic method that ensures all-or-nothing acceptance with database transaction
+          const result = await storage.acceptOrderGroupAtomic(currentOrder.orderGroupId, riderId);
           
-          // Update all orders in the group
-          for (const groupOrder of groupOrders) {
-            if (groupOrder.id !== req.params.id) { // Skip the main order, it will be updated below
-              // Verify each order in group is also pending and unassigned
-              if (groupOrder.status === 'pending' && !groupOrder.riderId) {
-                await storage.updateOrder(groupOrder.id, {
-                  riderId,
-                  status: 'accepted',
-                });
-                
-                // Create notification for each grouped order
+          if (!result.success) {
+            // Transaction failed - group not accepted
+            return res.status(409).json({ 
+              error: "Order group cannot be accepted",
+              message: result.message,
+              groupStatus: "unavailable"
+            });
+          }
+          
+          // Transaction successful - all orders accepted atomically
+          // Send notifications for each accepted order
+          for (const acceptedOrder of result.orders!) {
+            // Notify customer
+            await storage.createNotification({
+              userId: acceptedOrder.customerId,
+              type: 'order_status_change',
+              title: 'Order Update',
+              message: 'Your order has been accepted by a rider',
+              metadata: { orderId: acceptedOrder.id, status: 'accepted' }
+            });
+            
+            // Notify merchant
+            if (acceptedOrder.restaurantId) {
+              const restaurant = await storage.getRestaurant(acceptedOrder.restaurantId);
+              if (restaurant) {
                 await storage.createNotification({
-                  userId: groupOrder.customerId,
-                  type: 'order_status_change',
-                  title: 'Order Update',
-                  message: 'Your order has been accepted by a rider',
-                  metadata: { orderId: groupOrder.id, status: 'accepted' }
+                  userId: restaurant.ownerId,
+                  type: 'order_accepted_by_rider',
+                  title: 'Rider Assigned',
+                  message: 'A rider has accepted your order',
+                  metadata: { orderId: acceptedOrder.id }
                 });
-                
-                // Notify merchant for each grouped order
-                if (groupOrder.restaurantId) {
-                  const restaurant = await storage.getRestaurant(groupOrder.restaurantId);
-                  if (restaurant) {
-                    await storage.createNotification({
-                      userId: restaurant.ownerId,
-                      type: 'order_accepted_by_rider',
-                      title: 'Rider Assigned',
-                      message: 'A rider has accepted your order',
-                      metadata: { orderId: groupOrder.id }
-                    });
-                  }
-                }
               }
             }
           }
+          
+          // Success - Return group acceptance confirmation
+          res.json({ 
+            order: result.orders![0],  // Return the first order as representative
+            orderGroupId: currentOrder.orderGroupId,
+            ordersUpdated: result.ordersUpdated,
+            message: result.message
+          });
+          return; // Exit early to avoid duplicate updates
+        } else {
+          // For single orders, continue with normal update flow below
         }
       }
       

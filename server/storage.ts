@@ -90,6 +90,7 @@ export interface IStorage {
   getPendingOrders(): Promise<any[]>;
   createOrder(order: InsertOrder): Promise<Order>;
   updateOrder(id: string, updates: Partial<Order>): Promise<Order | undefined>;
+  acceptOrderGroupAtomic(orderGroupId: string, riderId: string): Promise<{ success: boolean; message: string; ordersUpdated?: number; orders?: Order[] }>;
 
   // Chat operations
   getChatMessages(orderId: string): Promise<(ChatMessage & { sender: User })[]>;
@@ -864,6 +865,99 @@ export class DatabaseStorage implements IStorage {
   async updateOrder(id: string, updates: Partial<Order>): Promise<Order | undefined> {
     const [order] = await db.update(orders).set(updates).where(eq(orders.id, id)).returning();
     return order || undefined;
+  }
+
+  /**
+   * Atomically accept all orders in a group using database transaction.
+   * This prevents race conditions where multiple riders try to accept the same group.
+   */
+  async acceptOrderGroupAtomic(orderGroupId: string, riderId: string): Promise<{ success: boolean; message: string; ordersUpdated?: number; orders?: Order[] }> {
+    try {
+      const result = await db.transaction(async (tx) => {
+        // 1. Check all orders in the group are pending and unassigned (within transaction)
+        const groupOrders = await tx
+          .select()
+          .from(orders)
+          .where(eq(orders.orderGroupId, orderGroupId))
+          .for('update'); // Lock rows to prevent concurrent modifications
+
+        if (groupOrders.length === 0) {
+          throw new Error('ORDER_GROUP_NOT_FOUND');
+        }
+
+        // 2. Validate ALL orders are available for acceptance
+        const invalidOrders = groupOrders.filter(order => 
+          order.status !== 'pending' || order.riderId !== null
+        );
+
+        if (invalidOrders.length > 0) {
+          throw new Error(`PARTIAL_UNAVAILABLE:${invalidOrders.length}`);
+        }
+
+        // 3. Update all orders in the group in one atomic operation
+        const updatedOrders = await tx
+          .update(orders)
+          .set({
+            riderId,
+            status: 'accepted',
+            updatedAt: new Date(),
+          })
+          .where(and(
+            eq(orders.orderGroupId, orderGroupId),
+            eq(orders.status, 'pending')
+          ))
+          .returning();
+
+        // 4. Verify all orders were updated (safety check)
+        if (updatedOrders.length !== groupOrders.length) {
+          throw new Error(`UPDATE_MISMATCH:Expected ${groupOrders.length}, got ${updatedOrders.length}`);
+        }
+
+        return {
+          success: true,
+          orders: updatedOrders,
+          ordersUpdated: updatedOrders.length,
+        };
+      });
+
+      return {
+        success: true,
+        message: `Successfully accepted ${result.ordersUpdated} orders in the group`,
+        ordersUpdated: result.ordersUpdated,
+        orders: result.orders,
+      };
+    } catch (error) {
+      console.error('Error in acceptOrderGroupAtomic:', error);
+      
+      if (error instanceof Error) {
+        if (error.message === 'ORDER_GROUP_NOT_FOUND') {
+          return {
+            success: false,
+            message: 'Order group not found',
+          };
+        }
+        
+        if (error.message.startsWith('PARTIAL_UNAVAILABLE:')) {
+          const count = error.message.split(':')[1];
+          return {
+            success: false,
+            message: `${count} order(s) in the group are no longer available (already accepted or cancelled)`,
+          };
+        }
+        
+        if (error.message.startsWith('UPDATE_MISMATCH:')) {
+          return {
+            success: false,
+            message: 'Failed to update all orders in the group. Please try again.',
+          };
+        }
+      }
+      
+      return {
+        success: false,
+        message: 'Failed to accept order group. Please try again.',
+      };
+    }
   }
 
   async getChatMessages(orderId: string): Promise<(ChatMessage & { sender: User })[]> {

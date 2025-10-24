@@ -1,0 +1,88 @@
+Fix rider order acceptance error - "Order not found" 404 error:
+
+PROBLEM:
+When rider clicks Accept on a multi-merchant order group, getting error:
+"Update Failed - 404: Order not found"
+
+ROOT CAUSE:
+The backend API is likely looking for a single order_id, but multi-merchant orders now use order_group_id to link multiple orders together.
+
+DEBUGGING STEPS:
+
+1. Check what ID is being sent when rider clicks Accept:
+   - Is it sending order_id or order_group_id?
+   - Console log the value being sent to API
+
+2. Verify the API endpoint for accepting orders:
+   - Current endpoint probably: POST /api/orders/:order_id/accept
+   - Check if it expects single order_id or order_group_id
+
+3. Check the database query in accept order endpoint:
+   - Is it querying: WHERE order_id = ?
+   - Should query: WHERE order_group_id = ? (for grouped orders)
+
+REQUIRED FIXES:
+
+1. UPDATE BACKEND API ENDPOINT:
+
+The accept order endpoint needs to handle order groups:
+
+If order_group_id is provided:
+- Update ALL orders with that order_group_id
+- Set rider_id for all orders in the group
+- Update status to 'accepted' for all orders
+
+If single order_id is provided (backward compatibility):
+- Update just that one order
+- Set rider_id and status
+
+2. FRONTEND - Send correct identifier:
+
+When rider clicks Accept on pending order:
+- Send order_group_id (not individual order_id)
+- API call should include order_group_id parameter
+
+3. BACKEND QUERY UPDATE:
+
+Change from:
+UPDATE orders SET rider_id = ?, status = 'accepted' WHERE order_id = ?
+
+To:
+UPDATE orders SET rider_id = ?, status = 'accepted' WHERE order_group_id = ?
+
+Or handle both cases:
+If order_group_id provided: update all orders in group
+If order_id provided: update single order
+
+4. ERROR HANDLING:
+
+Check if order_group_id exists in database:
+- Query: SELECT * FROM orders WHERE order_group_id = ?
+- If no results, return appropriate error
+- If found, update all matching orders
+
+5. VERIFY DATA EXISTS:
+
+Check pending orders table has:
+- order_group_id column populated
+- Multiple orders sharing same order_group_id
+- All orders have rider_id = NULL (not yet assigned)
+
+6. DEBUG LOGGING:
+
+Add logs to see what's happening:
+- Log the order_group_id being received
+- Log the SQL query being executed  
+- Log how many rows are updated
+- Log any database errors
+
+7. CHECK RIDER PENDING ORDERS QUERY:
+
+Make sure pending orders are being fetched correctly:
+- Group by order_group_id
+- Show as single order for rider to accept
+- Include all necessary data for acceptance
+
+The issue is likely a mismatch between sending order_id vs order_group_id, or the backend not being updated to handle grouped orders.
+
+Fix the backend endpoint to accept and update orders by order_group_id for multi-merchant orders.
