@@ -1083,6 +1083,7 @@ export default function AdminPortal() {
     showConvenienceFee: (settings as any)?.showConvenienceFee ?? true,
     allowMultiMerchantCheckout: (settings as any)?.allowMultiMerchantCheckout ?? false,
     maxMerchantsPerOrder: (settings as any)?.maxMerchantsPerOrder || 2,
+    maxMultipleOrderBooking: (settings as any)?.maxMultipleOrderBooking || 0,
     riderCommissionPercentage: (settings as any)?.riderCommissionPercentage || '70',
     codEnabled: (settings as any)?.codEnabled ?? true,
     gcashEnabled: (settings as any)?.gcashEnabled ?? true,
@@ -1100,6 +1101,7 @@ export default function AdminPortal() {
         showConvenienceFee: (settings as any).showConvenienceFee ?? true,
         allowMultiMerchantCheckout: (settings as any).allowMultiMerchantCheckout ?? false,
         maxMerchantsPerOrder: (settings as any).maxMerchantsPerOrder || 2,
+        maxMultipleOrderBooking: (settings as any).maxMultipleOrderBooking || 0,
         riderCommissionPercentage: (settings as any).riderCommissionPercentage || '70',
         codEnabled: (settings as any).codEnabled ?? true,
         gcashEnabled: (settings as any).gcashEnabled ?? true,
@@ -1937,6 +1939,43 @@ export default function AdminPortal() {
                           </p>
                         </div>
                       )}
+
+                      <div className="pt-4 border-t">
+                        <Label htmlFor="max-multiple-booking" className="text-base">Max Multiple Order Booking</Label>
+                        <p className="text-sm text-muted-foreground mt-1 mb-3">
+                          Limit how many orders from different customers a rider can accept simultaneously
+                        </p>
+                        <div className="flex items-center space-x-2">
+                          <Input
+                            id="max-multiple-booking"
+                            type="number"
+                            min={0}
+                            max={20}
+                            value={tempSettings.maxMultipleOrderBooking}
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value);
+                              if (value >= 0 && value <= 20) {
+                                setTempSettings(prev => ({ ...prev, maxMultipleOrderBooking: value }));
+                              }
+                            }}
+                            className="w-24"
+                            data-testid="input-max-multiple-booking"
+                          />
+                          <Button 
+                            size="sm"
+                            onClick={() => updateSetting('maxMultipleOrderBooking', tempSettings.maxMultipleOrderBooking)}
+                            disabled={updateSettingsMutation.isPending}
+                            data-testid="button-update-max-multiple-booking"
+                          >
+                            Update
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          {tempSettings.maxMultipleOrderBooking === 0 
+                            ? "Set to 0 to disable (no limit on rider bookings)" 
+                            : `Riders can accept up to ${tempSettings.maxMultipleOrderBooking} order(s) from different customers`}
+                        </p>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
