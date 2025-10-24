@@ -525,15 +525,95 @@ export class DatabaseStorage implements IStorage {
     const result = await db
       .select()
       .from(orders)
+      .leftJoin(restaurants, eq(orders.restaurantId, restaurants.id))
       .leftJoin(users, eq(orders.riderId, users.id))
       .orderBy(desc(orders.createdAt));
 
-    // Transform to include rider details
-    return result.map(row => ({
-      ...row.orders,
-      riderName: row.users ? `${row.users.firstName || ''} ${row.users.lastName || ''}`.trim() : null,
-      riderPhone: row.users?.phone || null,
-    }));
+    // Group orders by orderGroupId for multi-merchant orders
+    const groupedOrders = new Map<string | null, any[]>();
+    
+    result.forEach(row => {
+      const groupKey = row.orders.orderGroupId || row.orders.id;
+      if (!groupedOrders.has(groupKey)) {
+        groupedOrders.set(groupKey, []);
+      }
+      groupedOrders.get(groupKey)!.push(row);
+    });
+
+    // Transform groups for admin view with individual merchant order tracking
+    const adminOrderGroups: any[] = [];
+    
+    groupedOrders.forEach((orderRows, groupKey) => {
+      const firstOrder = orderRows[0].orders;
+      const isGroup = orderRows.length > 1;
+      
+      // Get rider info
+      const riderUser = orderRows[0].users;
+      const riderName = riderUser ? `${riderUser.firstName || ''} ${riderUser.lastName || ''}`.trim() : null;
+      const riderPhone = riderUser?.phone || null;
+      
+      // Build individual merchant orders array with full details
+      const merchantOrders = orderRows.map(row => ({
+        id: row.orders.id,
+        orderNumber: row.orders.orderNumber,
+        restaurantId: row.orders.restaurantId,
+        restaurantName: row.restaurants?.name || 'Unknown Restaurant',
+        items: row.orders.items,
+        subtotal: row.orders.subtotal,
+        markup: row.orders.markup,
+        deliveryFee: row.orders.deliveryFee,
+        total: row.orders.total,
+        status: row.orders.status,
+        createdAt: row.orders.createdAt,
+        updatedAt: row.orders.updatedAt,
+      }));
+      
+      // Calculate combined totals
+      const combinedTotal = orderRows.reduce((sum, row) => 
+        sum + parseFloat(row.orders.total as string), 0
+      );
+      
+      adminOrderGroups.push({
+        // Group-level data
+        id: isGroup ? groupKey : firstOrder.id,
+        orderGroupId: firstOrder.orderGroupId,
+        isGroup,
+        merchantCount: orderRows.length,
+        orderNumber: isGroup ? `GROUP-${groupKey}` : firstOrder.orderNumber,
+        
+        // Customer and delivery info
+        customerId: firstOrder.customerId,
+        deliveryAddress: firstOrder.deliveryAddress,
+        deliveryLatitude: firstOrder.deliveryLatitude,
+        deliveryLongitude: firstOrder.deliveryLongitude,
+        phoneNumber: firstOrder.phoneNumber,
+        customerNotes: firstOrder.customerNotes,
+        
+        // Rider info
+        riderId: firstOrder.riderId,
+        riderName,
+        riderPhone,
+        
+        // Combined order data
+        total: combinedTotal.toFixed(2),
+        paymentMethod: firstOrder.paymentMethod,
+        createdAt: firstOrder.createdAt,
+        completedAt: firstOrder.completedAt,
+        
+        // Individual merchant orders for tracking
+        merchantOrders,
+        
+        // Legacy fields for backward compatibility
+        restaurantName: merchantOrders[0].restaurantName,
+        status: firstOrder.status,
+        items: firstOrder.items,
+        subtotal: firstOrder.subtotal,
+        markup: firstOrder.markup,
+        deliveryFee: firstOrder.deliveryFee,
+      });
+    });
+    
+    return adminOrderGroups;
   }
 
   async getOrder(id: string): Promise<Order | undefined> {
