@@ -236,7 +236,40 @@ export default function ChatWidget() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const chatableOrders = orders.filter((order: any) => 
+  // Flatten grouped orders for chatbox dropdown
+  // Admins and merchants see individual orders already
+  // But customers and riders get grouped orders with merchantOrders array
+  const flattenedOrders: any[] = [];
+  
+  orders.forEach((order: any) => {
+    // Check if this is a grouped multi-merchant order
+    if (order.isGroup && order.merchantOrders && order.merchantOrders.length > 0) {
+      // For grouped orders, add each individual merchant order separately
+      order.merchantOrders.forEach((merchantOrder: any) => {
+        flattenedOrders.push({
+          id: merchantOrder.id,
+          orderNumber: merchantOrder.orderNumber,
+          restaurantName: merchantOrder.restaurantName,
+          status: merchantOrder.status,
+          riderName: order.riderName, // Rider info is same for all orders in group
+          riderPhone: order.riderPhone,
+          items: merchantOrder.items,
+          total: merchantOrder.total,
+          // Keep other fields that might be needed
+          restaurantId: merchantOrder.restaurantId,
+          subtotal: merchantOrder.subtotal,
+          markup: merchantOrder.markup,
+          deliveryFee: merchantOrder.deliveryFee,
+          createdAt: merchantOrder.createdAt,
+        });
+      });
+    } else {
+      // For non-grouped orders (admins, merchants, single orders), add as-is
+      flattenedOrders.push(order);
+    }
+  });
+  
+  const chatableOrders = flattenedOrders.filter((order: any) => 
     ['accepted', 'preparing', 'ready', 'picked_up'].includes(order.status)
   );
   
