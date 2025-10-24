@@ -1419,6 +1419,46 @@ export default function CustomerPortal() {
                                   </p>
                                 ))}
                               </div>
+                              {(() => {
+                                const deliveredCount = merchantOrders.filter((mo: any) => mo.status === 'delivered').length;
+                                const cancelledCount = merchantOrders.filter((mo: any) => mo.status === 'cancelled').length;
+                                const totalCount = merchantOrders.length;
+                                const activeCount = totalCount - cancelledCount;
+                                
+                                // All cancelled
+                                if (cancelledCount === totalCount) {
+                                  return (
+                                    <p className="text-xs text-muted-foreground mt-2">
+                                      All orders cancelled
+                                    </p>
+                                  );
+                                }
+                                // All delivered (no cancelled)
+                                else if (deliveredCount === totalCount) {
+                                  return (
+                                    <p className="text-xs text-muted-foreground mt-2">
+                                      All orders delivered
+                                    </p>
+                                  );
+                                }
+                                // All active delivered (some cancelled)
+                                else if (activeCount > 0 && deliveredCount === activeCount) {
+                                  return (
+                                    <p className="text-xs text-muted-foreground mt-2">
+                                      {deliveredCount} delivered, {cancelledCount} cancelled
+                                    </p>
+                                  );
+                                }
+                                // Mixed states
+                                else {
+                                  return (
+                                    <p className="text-xs text-muted-foreground mt-2">
+                                      {deliveredCount} of {totalCount} delivered
+                                      {cancelledCount > 0 ? `, ${cancelledCount} cancelled` : ''}
+                                    </p>
+                                  );
+                                }
+                              })()}
                             </>
                           ) : (
                             <p className="text-sm font-medium text-primary mb-1">
@@ -1429,13 +1469,55 @@ export default function CustomerPortal() {
                             Placed on {new Date(order.createdAt).toLocaleString()}
                           </p>
                         </div>
-                        <Badge variant={
-                          order.status === 'delivered' ? 'default' :
-                          order.status === 'cancelled' ? 'destructive' :
-                          order.status === 'pending' ? 'secondary' : 'outline'
-                        }>
-                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                        </Badge>
+                        {isGroupedOrder ? (
+                          (() => {
+                            const deliveredCount = merchantOrders.filter((mo: any) => mo.status === 'delivered').length;
+                            const cancelledCount = merchantOrders.filter((mo: any) => mo.status === 'cancelled').length;
+                            const totalCount = merchantOrders.length;
+                            const activeCount = totalCount - cancelledCount;
+                            
+                            // All delivered (including cases where some are cancelled)
+                            if (deliveredCount === activeCount && activeCount > 0) {
+                              return (
+                                <Badge variant="default">
+                                  {cancelledCount > 0 ? 'Partially Completed' : 'Completed'}
+                                </Badge>
+                              );
+                            }
+                            // All cancelled
+                            else if (cancelledCount === totalCount) {
+                              return (
+                                <Badge variant="destructive">
+                                  Cancelled
+                                </Badge>
+                              );
+                            }
+                            // Some delivered or in progress
+                            else if (deliveredCount > 0) {
+                              return (
+                                <Badge variant="outline">
+                                  In Progress
+                                </Badge>
+                              );
+                            }
+                            // None delivered yet (pending or preparing)
+                            else {
+                              return (
+                                <Badge variant="secondary">
+                                  Processing
+                                </Badge>
+                              );
+                            }
+                          })()
+                        ) : (
+                          <Badge variant={
+                            order.status === 'delivered' ? 'default' :
+                            order.status === 'cancelled' ? 'destructive' :
+                            order.status === 'pending' ? 'secondary' : 'outline'
+                          }>
+                            {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                          </Badge>
+                        )}
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">

@@ -1137,13 +1137,20 @@ export default function RiderPortal() {
                         {/* Actions */}
                         {isGroupedOrder ? (
                           <div className="space-y-3">
-                            <h5 className="font-semibold text-foreground">Update Order Status:</h5>
+                            <div className="flex items-start justify-between mb-2">
+                              <div>
+                                <h5 className="font-semibold text-foreground">Update Order Status</h5>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Update each merchant order independently
+                                </p>
+                              </div>
+                            </div>
                             {order.merchantOrders.map((merchantOrder: any) => (
-                              <div key={merchantOrder.id} className="flex items-center justify-between p-3 border rounded-lg">
+                              <div key={merchantOrder.id} className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
                                 <div>
                                   <p className="font-medium text-sm">{merchantOrder.restaurantName}</p>
                                   <p className="text-xs text-muted-foreground">
-                                    Current: {merchantOrder.status.replace('_', ' ').toUpperCase()}
+                                    Order {merchantOrder.orderNumber} • {merchantOrder.status.replace('_', ' ').toUpperCase()}
                                   </p>
                                 </div>
                                 <div className="flex gap-2">
