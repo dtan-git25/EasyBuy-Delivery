@@ -595,6 +595,15 @@ export default function RiderPortal() {
     ['delivered', 'cancelled'].includes(order.status)
   );
 
+  // Calculate booking limit status
+  const maxBookingLimit = (settings as any)?.maxMultipleOrderBooking || 0;
+  const activeCustomerOrders = activeOrders.filter((order: any) => 
+    order.status === 'accepted' || order.status === 'picked_up'
+  );
+  const uniqueCustomers = new Set(activeCustomerOrders.map((order: any) => order.customerId));
+  const activeCustomerCount = uniqueCustomers.size;
+  const isBookingLimitReached = maxBookingLimit > 0 && activeCustomerCount >= maxBookingLimit;
+
   // Today's delivered orders (using completedAt to check when order was completed)
   const todayDeliveredOrders = historicalOrders.filter((order: any) => {
     if (order.status !== 'delivered' || !order.completedAt) return false;
@@ -816,6 +825,24 @@ export default function RiderPortal() {
                       data-testid="button-go-to-documents"
                     >
                       Go to Documents
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : isBookingLimitReached ? (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <AlertCircle className="mx-auto h-12 w-12 text-orange-500 mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Booking Limit Reached</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Complete your {activeCustomerCount} active order(s) before accepting more. 
+                      The admin has set a limit of {maxBookingLimit} simultaneous order(s) from different customers.
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => document.querySelector('[data-testid="tab-active"]')?.click()}
+                      data-testid="button-go-to-active"
+                    >
+                      View Active Orders
                     </Button>
                   </CardContent>
                 </Card>
