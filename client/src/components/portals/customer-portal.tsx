@@ -1495,12 +1495,24 @@ export default function CustomerPortal() {
                                   </Badge>
                                 </div>
                                 <div className="space-y-1 text-sm">
-                                  {merchantOrder.items.map((item: any, idx: number) => (
-                                    <div key={idx} className="flex justify-between text-muted-foreground">
-                                      <span>{item.name} x{item.quantity}</span>
-                                      <span>₱{(parseFloat(item.price) * item.quantity).toFixed(2)}</span>
-                                    </div>
-                                  ))}
+                                  {(() => {
+                                    // Calculate markup percentage for this merchant order
+                                    const items = merchantOrder.items as Array<{ name: string; quantity: number; price: string }>;
+                                    const markup = parseFloat(merchantOrder.markup || '0');
+                                    const subtotal = items.reduce((sum, i) => sum + parseFloat(i.price) * i.quantity, 0);
+                                    const markupPercentage = subtotal > 0 ? (markup / subtotal) * 100 : 0;
+                                    
+                                    return items.map((item: any, idx: number) => {
+                                      const basePrice = parseFloat(item.price);
+                                      const markedUpPrice = basePrice * (1 + markupPercentage / 100);
+                                      return (
+                                        <div key={idx} className="flex justify-between text-muted-foreground">
+                                          <span>{item.name} x{item.quantity}</span>
+                                          <span>₱{(markedUpPrice * item.quantity).toFixed(2)}</span>
+                                        </div>
+                                      );
+                                    });
+                                  })()}
                                 </div>
                                 <div className="mt-2 pt-2 border-t flex justify-between items-center text-sm">
                                   <span className="font-medium">Subtotal:</span>
