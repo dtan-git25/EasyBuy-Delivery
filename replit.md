@@ -51,6 +51,13 @@ Preferred communication style: Simple, everyday language.
 - **Rider Information Visibility**: When a rider accepts an order, their name and phone number are displayed to customers, merchants, and admins in:
   - **Order Details Section**: Dedicated "Rider Information" box showing rider name and phone
   - **Chatbox Header**: Rider details appear at the top of the chat interface with clickable phone number (tel: link) for direct calling on mobile devices
+- **Multi-Merchant Order Chat**: For grouped orders (multi-merchant checkout), the chatbox dropdown displays each individual order separately with restaurant name for clear identification:
+  - Format: "EBD-0001 - Restaurant Name - STATUS"
+  - Each order in the group has its own chat thread using individual order_id (not order_group_id)
+  - Merchants only see chat for their specific order, maintaining privacy
+  - Customers can select and chat about each merchant's order separately
+  - Riders see all orders they're handling with restaurant names for easy switching
+  - Prevents confusion between different merchant orders in the same delivery group
 
 ### Location Services
 - **Browser Geolocation API**: Optional "Share Location" button for customers to provide precise coordinates for accurate delivery fee calculation.

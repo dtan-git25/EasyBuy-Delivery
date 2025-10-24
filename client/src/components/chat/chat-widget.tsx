@@ -37,7 +37,7 @@ export default function ChatWidget() {
   const { socket, sendMessage } = useWebSocket();
 
   // Get active orders for chat
-  const { data: orders = [] } = useQuery({
+  const { data: orders = [] } = useQuery<any[]>({
     queryKey: ["/api/orders"],
     enabled: isOpen,
   });
@@ -321,12 +321,19 @@ export default function ChatWidget() {
                 data-testid="select-order-chat"
               >
                 <option value="">Choose an order...</option>
-                {chatableOrders.map((order: any) => (
-                  <option key={order.id} value={order.id}>
-                    {order.orderNumber} - {order.status.toUpperCase()}
-                    {unreadMessages[order.id] ? ` (${unreadMessages[order.id]} new)` : ''}
-                  </option>
-                ))}
+                {chatableOrders.map((order: any) => {
+                  // For multi-merchant orders, show restaurant name to distinguish between orders
+                  const restaurantName = order.restaurantName || 'Unknown Restaurant';
+                  const displayText = `${order.orderNumber} - ${restaurantName}`;
+                  const statusText = order.status.toUpperCase();
+                  const unreadText = unreadMessages[order.id] ? ` (${unreadMessages[order.id]} new)` : '';
+                  
+                  return (
+                    <option key={order.id} value={order.id}>
+                      {displayText} - {statusText}{unreadText}
+                    </option>
+                  );
+                })}
               </select>
             </div>
           )}

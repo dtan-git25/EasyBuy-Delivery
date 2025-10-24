@@ -1,0 +1,125 @@
+Fix chatbox order dropdown for multi-merchant orders - show individual order IDs instead of group ID:
+
+PROBLEM:
+In chatbox dropdown, multi-merchant orders show only "GROUP-0001" instead of individual order IDs like "EBD-0001", "EBD-0002".
+
+REQUIRED FIX:
+
+Show each individual order in the chatbox dropdown so users can chat about specific merchant orders:
+
+1. CHATBOX DROPDOWN DISPLAY:
+
+Instead of showing:
+- GROUP-0001
+
+Show all orders in the group separately:
+- EBD-0001 (Jollibee)
+- EBD-0002 (McDonald's)
+- EBD-0003 (KFC)
+
+2. WHY THIS IS NEEDED:
+
+Multi-merchant orders involve different merchants, so conversations may be specific to one merchant:
+- Customer needs to discuss Jollibee order specifically
+- Merchant only sees their own order chat
+- Rider can chat about specific pickup issues
+
+3. DROPDOWN STRUCTURE:
+
+Active Orders (Chatbox dropdown):
+┌─────────────────────────────────┐
+│ EBD-0001 - Jollibee            │
+│ EBD-0002 - McDonald's          │
+│ EBD-0003 - KFC                 │
+└─────────────────────────────────┘
+
+Each order is selectable separately for chatting.
+
+4. CHAT PARTICIPANTS PER ORDER:
+
+For Order EBD-0001 (Jollibee):
+- Customer
+- Jollibee merchant
+- Rider
+- Admin
+
+For Order EBD-0002 (McDonald's):
+- Customer (same person)
+- McDonald's merchant (different merchant)
+- Rider (same person)
+- Admin
+
+Each order has its own chat room/thread.
+
+5. QUERY CHANGE:
+
+Instead of grouping by order_group_id for chat, query individual orders:
+
+Get chat orders for dropdown:
+SELECT order_id, merchant_name, status
+FROM orders
+WHERE rider_id = ? AND status IN ('accepted', 'picked_up', 'in_transit')
+ORDER BY created_at DESC
+
+Returns:
+- EBD-0001, Jollibee, accepted
+- EBD-0002, McDonald's, accepted
+- EBD-0003, KFC, accepted
+
+6. CHAT ROOM IDENTIFICATION:
+
+Each chat uses order_id (not order_group_id):
+- Chat for EBD-0001 is separate from EBD-0002
+- Messages tagged with specific order_id
+- Merchant only sees messages for their order_id
+
+7. CUSTOMER VIEW:
+
+Customer sees all their orders from the group:
+- Can select EBD-0001 to chat about Jollibee order
+- Can select EBD-0002 to chat about McDonald's order
+- Different chat threads for different concerns
+
+8. MERCHANT VIEW:
+
+Jollibee merchant only sees:
+- EBD-0001 (their order)
+- Not EBD-0002 or EBD-0003
+
+McDonald's merchant only sees:
+- EBD-0002 (their order)
+
+Each merchant isolated to their own order chat.
+
+9. RIDER VIEW:
+
+Rider sees all orders they're handling:
+- EBD-0001 - Jollibee
+- EBD-0002 - McDonald's
+- EBD-0003 - KFC
+- EBD-0004 - Pizza Hut (different customer)
+- EBD-0005 - Burger King (different customer)
+
+Can switch between chats for different orders/customers.
+
+10. CHAT TABLE STRUCTURE:
+
+messages table:
+- message_id
+- order_id (EBD-0001, not GROUP-0001)
+- sender_id
+- sender_role
+- message_text
+- timestamp
+
+This allows filtering messages per specific order.
+
+11. BENEFITS:
+
+- Specific conversations per merchant order
+- Merchant privacy (can't see other merchants' chats)
+- Clear context for each conversation
+- Easier issue resolution per order
+- Better organization for multi-merchant scenarios
+
+The key change: Use individual order_id for chat identification instead of order_group_id, while still treating the delivery as one job for the rider's acceptance and capacity.
