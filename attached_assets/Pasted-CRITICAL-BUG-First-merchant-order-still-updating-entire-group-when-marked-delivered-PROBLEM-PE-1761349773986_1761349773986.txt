@@ -1,0 +1,127 @@
+CRITICAL BUG - First merchant order still updating entire group when marked delivered:
+
+PROBLEM PERSISTS:
+After previous fix, when rider marks the FIRST merchant order as delivered in the Active Orders tab, the ENTIRE order group is still being marked as delivered. This is STILL WRONG.
+
+The 2nd, 3rd orders work correctly (only update themselves), but the FIRST order continues to have this bug.
+
+URGENT INVESTIGATION NEEDED:
+
+1. FIND THE EXACT CODE:
+   - Locate the "Mark as Delivered" button click handler for the FIRST merchant order in rider's active order card
+   - There is clearly different code or a different code path for the first order
+   - Compare the code for first order vs second/third orders
+
+2. CHECK THESE SPECIFIC AREAS:
+
+   A) Is the first order rendered differently?
+   - Check if first merchant order card uses different component or function
+   - Check if there's map/loop that treats index 0 specially
+   
+   B) Is the order_id being passed correctly?
+   - Console log the order_id when clicking first order's deliver button
+   - Console log the order_id when clicking second order's deliver button
+   - Compare if they're different
+   
+   C) Is there conditional logic based on position?
+   - Search for: index === 0, first === true, position === 0
+   - Search for: orders[0] being handled separately
+   
+   D) Is there a "Mark All Delivered" being triggered?
+   - Check if clicking first order accidentally triggers group completion
+   - Check if there's auto-complete logic for first order
+
+3. VERIFY API CALLS:
+
+   Open browser Network tab:
+   - Click "Mark as Delivered" on FIRST order
+   - Check the API request - what order_id is sent?
+   - Check the response - how many orders were updated?
+   
+   - Click "Mark as Delivered" on SECOND order
+   - Check the API request - what order_id is sent?
+   - Check the response - how many orders were updated?
+   
+   Compare both requests - they should be identical except for the order_id value.
+
+4. CHECK BACKEND UPDATE QUERY:
+
+   The backend endpoint is receiving the request. Check:
+   - Is there logic that says "if this is the first order in the group, update all"?
+   - Is there query that checks order position and behaves differently?
+   - Add logging: console.log('Updating order_id:', order_id, 'in group:', order_group_id)
+
+5. LOOK FOR THESE PATTERNS (WRONG CODE):
+
+   Wrong pattern A:
+   if (isFirstOrder) {
+     UPDATE orders SET status = 'delivered' WHERE order_group_id = ?
+   }
+   
+   Wrong pattern B:
+   const orders = getOrdersInGroup(order_group_id);
+   if (order_id === orders[0].id) {
+     // Update all orders
+   }
+   
+   Wrong pattern C:
+   if (orderIndex === 0) {
+     completeEntireGroup();
+   }
+
+6. CORRECT CODE FOR ALL ORDERS:
+
+   Every order, regardless of position, should execute:
+   UPDATE orders SET status = 'delivered' WHERE order_id = ?
+   
+   There should be ZERO special handling for the first order.
+
+7. TEMPORARILY DISABLE FEATURES:
+
+   Temporarily comment out:
+   - Any "Mark All Delivered" functionality
+   - Any group completion logic
+   - Any auto-complete features
+   
+   Test if first order now updates correctly.
+
+8. CHECK ORDER SORTING:
+
+   Is the "first" order actually the first chronologically?
+   - Or is it just displayed first in the UI?
+   - Check if order sorting/display affects the bug
+
+9. FORCE EXPLICIT ORDER_ID:
+
+   When rendering each merchant order card, explicitly pass and log the order_id:
+   - Order 1: order_id = EBD-0001
+   - Order 2: order_id = EBD-0002
+   - Order 3: order_id = EBD-0003
+   
+   Ensure each button uses its own specific order_id.
+
+10. SHARE THE ACTUAL CODE:
+
+    For the AI Agent to fix this properly, share:
+    - The exact code that renders the first merchant order card
+    - The exact click handler for "Mark as Delivered" button
+    - The API call being made
+    - The backend update query
+    
+    The bug is in one of these places and we need to see the actual code.
+
+EXPECTED BEHAVIOR:
+
+First order button click:
+- Sends: order_id = EBD-0001
+- Updates: WHERE order_id = 'EBD-0001'
+- Result: Only EBD-0001 status = 'delivered'
+
+Second order button click:
+- Sends: order_id = EBD-0002
+- Updates: WHERE order_id = 'EBD-0002'
+- Result: Only EBD-0002 status = 'delivered'
+
+Both should work IDENTICALLY. There should be no difference in behavior based on order position.
+
+This bug suggests there's hidden logic somewhere that treats the first order specially - find it and remove it.

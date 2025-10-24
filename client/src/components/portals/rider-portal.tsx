@@ -466,6 +466,10 @@ export default function RiderPortal() {
   };
 
   const updateOrderStatus = (orderId: string, status: string) => {
+    console.log('=== UPDATE ORDER STATUS ===');
+    console.log('Order ID:', orderId);
+    console.log('New Status:', status);
+    console.log('==========================');
     updateOrderMutation.mutate({ orderId, status });
   };
 
