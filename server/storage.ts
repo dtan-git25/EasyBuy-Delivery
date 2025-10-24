@@ -725,8 +725,8 @@ export class DatabaseStorage implements IStorage {
       );
       
       riderOrderGroups.push({
-        // Group-level data - ALWAYS use real order ID, never orderGroupId
-        id: firstOrder.id, // Use first order's actual ID (not orderGroupId)
+        // Group-level data (use unique identifier for the group view)
+        id: isGroup ? groupKey : firstOrder.id, // groupKey for groups, order ID for singles
         orderGroupId: firstOrder.orderGroupId,
         isGroup,
         merchantCount: orderRows.length,
@@ -819,7 +819,7 @@ export class DatabaseStorage implements IStorage {
       }));
       
       pendingOrderGroups.push({
-        id: firstOrder.id, // ALWAYS use real order ID, never orderGroupId
+        id: isGroup ? groupKey : firstOrder.id, // groupKey for groups, order ID for singles
         orderGroupId: firstOrder.orderGroupId, // Include for frontend reference
         isGroup, // Flag to indicate if this is a grouped order
         merchantCount: orderRows.length,
