@@ -856,16 +856,9 @@ export default function RiderPortal() {
                   <CardContent className="p-8 text-center">
                     <AlertCircle className="mx-auto h-12 w-12 text-orange-500 mb-4" />
                     <h3 className="text-lg font-semibold mb-2">{bookingRestrictionTitle}</h3>
-                    <p className="text-muted-foreground mb-4">
+                    <p className="text-muted-foreground">
                       {bookingRestrictionMessage}
                     </p>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => document.querySelector('[data-testid="tab-active"]')?.click()}
-                      data-testid="button-go-to-active"
-                    >
-                      View Active Orders
-                    </Button>
                   </CardContent>
                 </Card>
               ) : pendingOrders.length === 0 ? (
