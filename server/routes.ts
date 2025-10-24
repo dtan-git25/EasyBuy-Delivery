@@ -1241,26 +1241,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const settings = await storage.getSystemSettings();
         const maxBooking = settings?.maxMultipleOrderBooking || 0;
         
-        if (maxBooking > 0) {
-          // Get all active orders for this rider
-          const allOrders = await storage.getOrders();
-          const riderActiveOrders = allOrders.filter((order: any) => 
-            order.riderId === riderId && 
-            (order.status === 'accepted' || order.status === 'picked_up')
-          );
-          
-          // Count unique customers for active orders
-          const uniqueCustomers = new Set(riderActiveOrders.map((order: any) => order.customerId));
-          const activeCustomerCount = uniqueCustomers.size;
-          
-          // Check if rider has reached the limit
-          if (activeCustomerCount >= maxBooking) {
+        // Get all active orders for this rider
+        const allOrders = await storage.getOrders();
+        const riderActiveOrders = allOrders.filter((order: any) => 
+          order.riderId === riderId && 
+          (order.status === 'accepted' || order.status === 'picked_up')
+        );
+        
+        // Separate single-merchant and multi-merchant orders
+        const multiMerchantOrders = riderActiveOrders.filter((order: any) => order.orderGroupId);
+        const singleMerchantOrders = riderActiveOrders.filter((order: any) => !order.orderGroupId);
+        
+        // Check if the order being accepted is a multi-merchant order
+        const isAcceptingMultiMerchantOrder = !!currentOrder.orderGroupId;
+        
+        // RULE 1: Multi-merchant orders require exclusive rider capacity
+        if (isAcceptingMultiMerchantOrder) {
+          // Rider can only accept ONE multi-merchant order at a time
+          if (multiMerchantOrders.length > 0) {
             return res.status(429).json({ 
-              error: "Booking limit reached",
-              message: `Complete your ${activeCustomerCount} active order(s) before accepting more`,
-              currentActiveOrders: activeCustomerCount,
-              maxAllowed: maxBooking
+              error: "Multi-merchant order limit reached",
+              message: "Complete your current multi-merchant order before accepting another",
+              isMultiMerchant: true,
+              restriction: "one_multi_merchant_at_a_time"
             });
+          }
+          
+          // If rider has any single-merchant orders, cannot accept multi-merchant orders
+          if (singleMerchantOrders.length > 0) {
+            return res.status(429).json({ 
+              error: "Cannot accept multi-merchant order",
+              message: "Complete your existing single-merchant orders before accepting a multi-merchant order",
+              isMultiMerchant: true,
+              activeSingleOrders: singleMerchantOrders.length,
+              restriction: "must_complete_single_orders_first"
+            });
+          }
+        } else {
+          // RULE 2: Cannot accept single-merchant orders if rider has multi-merchant order
+          if (multiMerchantOrders.length > 0) {
+            return res.status(429).json({ 
+              error: "Cannot accept order",
+              message: "Complete your multi-merchant order before accepting new orders",
+              hasMultiMerchantOrder: true,
+              restriction: "must_complete_multi_merchant_first"
+            });
+          }
+          
+          // RULE 3: Single-merchant orders follow normal max booking limit
+          if (maxBooking > 0) {
+            // Count unique customers for single-merchant orders
+            const uniqueCustomers = new Set(singleMerchantOrders.map((order: any) => order.customerId));
+            const activeCustomerCount = uniqueCustomers.size;
+            
+            // Check if rider has reached the limit
+            if (activeCustomerCount >= maxBooking) {
+              return res.status(429).json({ 
+                error: "Booking limit reached",
+                message: `Complete your ${activeCustomerCount} active order(s) before accepting more`,
+                currentActiveOrders: activeCustomerCount,
+                maxAllowed: maxBooking,
+                restriction: "max_booking_limit"
+              });
+            }
           }
         }
         
