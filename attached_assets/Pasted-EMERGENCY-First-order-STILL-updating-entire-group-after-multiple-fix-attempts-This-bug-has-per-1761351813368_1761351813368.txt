@@ -1,0 +1,140 @@
+EMERGENCY - First order STILL updating entire group after multiple fix attempts:
+
+This bug has persisted through several fixes. We need a different approach.
+
+COMPLETE RESET APPROACH:
+
+1. STOP trying to fix the existing code
+2. START by completely rewriting the "Mark as Delivered" functionality
+
+NEW IMPLEMENTATION STRATEGY:
+
+Step 1 - Delete all existing "Mark as Delivered" code for multi-merchant orders
+Step 2 - Rewrite from scratch using the working 2nd/3rd order code as template
+
+SPECIFIC INSTRUCTIONS:
+
+1. FIND THE WORKING CODE:
+   - Look at how 2nd order "Mark as Delivered" button works
+   - Look at how 3rd order "Mark as Delivered" button works
+   - These ARE working correctly - they only update their specific order
+
+2. COPY THE WORKING PATTERN:
+   - Copy the EXACT code used for 2nd/3rd orders
+   - Apply this SAME code to ALL orders including the first
+   - Do NOT create separate logic for first order
+
+3. ENSURE UNIFORM RENDERING:
+   - All merchant orders in the group should render using IDENTICAL code
+   - Use a loop/map to render all orders with same component
+   - No special cases for index 0 or first order
+
+4. RENDER EXAMPLE:
+
+   {orders.map((order) => (
+     <MerchantOrderCard 
+       key={order.order_id}
+       orderId={order.order_id}  // Pass specific order_id
+       merchantName={order.merchant_name}
+       status={order.status}
+       onMarkDelivered={() => handleMarkDelivered(order.order_id)}  // Use order.order_id
+     />
+   ))}
+
+   Every order uses the same component and same handler.
+
+5. HANDLER FUNCTION:
+
+   const handleMarkDelivered = async (orderId) => {
+     // This function should be IDENTICAL for all orders
+     try {
+       const response = await fetch(`/api/orders/${orderId}/status`, {
+         method: 'PATCH',
+         body: JSON.stringify({ status: 'delivered' })
+       });
+       
+       if (response.ok) {
+         // Update UI for this specific order only
+         // DO NOT update the entire group
+       }
+     } catch (error) {
+       console.error('Error updating order:', error);
+     }
+   };
+
+6. BACKEND VERIFICATION:
+
+   Backend endpoint should be:
+   PATCH /api/orders/:order_id/status
+   
+   Query:
+   UPDATE orders 
+   SET status = ? 
+   WHERE order_id = ?  // ONLY this order_id, NEVER order_group_id
+   
+   Response should confirm only 1 row updated.
+
+7. DEBUG WITH CONSOLE LOGS:
+
+   Add extensive logging:
+   
+   Frontend:
+   console.log('Marking delivered - Order ID:', orderId);
+   console.log('Is this first order?', index === 0);
+   console.log('Order position:', index);
+   
+   Backend:
+   console.log('Received order_id:', req.params.order_id);
+   console.log('Updating query:', 'UPDATE orders SET status = delivered WHERE order_id = ' + order_id);
+   console.log('Rows affected:', result.rowsAffected);
+   
+   Check these logs when clicking first order button.
+
+8. COMPARE NETWORK REQUESTS:
+
+   Click second order "Mark as Delivered":
+   - Copy the exact API request from Network tab
+   - Note the URL, method, headers, body
+   
+   Click first order "Mark as Delivered":
+   - Copy the exact API request from Network tab
+   - Compare with second order request
+   
+   They MUST be identical except for the order_id value.
+   Share both requests if they differ.
+
+9. TEMPORARY WORKAROUND TEST:
+
+   As a test, try this:
+   - Remove/hide the first order from the UI temporarily
+   - Make the 2nd order appear as "first" visually
+   - Test if it still updates correctly
+   
+   If yes: The bug is in how first order is rendered/handled in frontend
+   If no: The bug might be in backend logic checking order position
+
+10. CHECK FOR HIDDEN FEATURES:
+
+    Search entire codebase for:
+    - "complete group"
+    - "deliver all"
+    - "finish order group"
+    - "mark group delivered"
+    - Any code that updates by order_group_id
+    
+    One of these might be triggered by first order.
+
+11. ASK AI AGENT TO SHOW CODE:
+
+    Request: "Show me the complete code for rendering merchant orders in rider's active orders and the Mark as Delivered button click handler"
+    
+    Review that code line by line to find the issue.
+
+ULTIMATE SOLUTION:
+
+If after all this it still doesn't work:
+- Provide the actual code files to human developer
+- There's clearly something being missed in the AI Agent's fixes
+- Need direct code review
+
+The fact that 2nd/3rd orders work but 1st doesn't work means the code IS different somewhere - we just haven't found where yet.
