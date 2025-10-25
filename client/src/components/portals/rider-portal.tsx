@@ -478,6 +478,10 @@ export default function RiderPortal() {
   };
 
   const updateOrderStatus = (orderId: string, status: string) => {
+    console.log('=== UPDATING ORDER ===');
+    console.log('Order ID being sent:', orderId);
+    console.log('Status:', status);
+    console.log('API URL will be:', `/api/orders/${orderId}`);
     updateOrderMutation.mutate({ orderId, status });
   };
 
@@ -964,6 +968,14 @@ export default function RiderPortal() {
                   // Check if this is a grouped order
                   const isGroupedOrder = order.merchantOrders && order.merchantOrders.length > 0;
                   
+                  // Log merchant orders data for debugging
+                  if (isGroupedOrder) {
+                    console.log('=== MERCHANT ORDERS DATA ===');
+                    console.log('Order group ID:', order.orderGroupId || order.id);
+                    console.log('Merchant orders:', JSON.stringify(order.merchantOrders, null, 2));
+                    console.log('===========================');
+                  }
+                  
                   const orderItems = order.items as Array<{ name: string; quantity: number; price: string }>;
                   const markup = parseFloat(order.markup) || 0;
                   const subtotal = parseFloat(order.subtotal) || 0;
@@ -1199,14 +1211,22 @@ export default function RiderPortal() {
                                 </p>
                               </div>
                             </div>
-                            {order.merchantOrders.map((merchantOrder: any) => (
-                              <div key={merchantOrder.id} className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
-                                <div>
-                                  <p className="font-medium text-sm">{merchantOrder.restaurantName}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    Order {merchantOrder.orderNumber} • {merchantOrder.status.replace('_', ' ').toUpperCase()}
-                                  </p>
-                                </div>
+                            {order.merchantOrders.map((merchantOrder: any, index: number) => {
+                              console.log(`Merchant Order ${index}:`, {
+                                id: merchantOrder.id,
+                                orderNumber: merchantOrder.orderNumber,
+                                restaurantName: merchantOrder.restaurantName,
+                                status: merchantOrder.status
+                              });
+                              
+                              return (
+                                <div key={merchantOrder.id} className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+                                  <div>
+                                    <p className="font-medium text-sm">{merchantOrder.restaurantName}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      Order {merchantOrder.orderNumber} • {merchantOrder.status.replace('_', ' ').toUpperCase()}
+                                    </p>
+                                  </div>
                                 <div className="flex gap-2">
                                   {merchantOrder.status === 'accepted' && (
                                     <Button 
@@ -1231,9 +1251,10 @@ export default function RiderPortal() {
                                       ✓ Delivered
                                     </Badge>
                                   )}
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         ) : (
                           <div className="flex flex-col space-y-2">

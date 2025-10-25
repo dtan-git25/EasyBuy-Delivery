@@ -1,0 +1,77 @@
+Based on the code you showed, the logic is correct - but the bug persists. This means it's a DATA issue, not a CODE issue.
+
+IMMEDIATE DATA INVESTIGATION:
+
+1. Add console logging to see what IDs are actually being used:
+
+In the frontend code, modify the updateOrderStatus function to log:
+
+const updateOrderStatus = (orderId: string, status: string) => {
+  console.log('=== UPDATING ORDER ===');
+  console.log('Order ID being sent:', orderId);
+  console.log('Status:', status);
+  console.log('API URL will be:', `/api/orders/${orderId}`);
+  updateOrderMutation.mutate({ orderId, status });
+};
+
+Also add logging in the map loop:
+
+{order.merchantOrders.map((merchantOrder: any, index: number) => {
+  console.log(`Merchant Order ${index}:`, {
+    id: merchantOrder.id,
+    orderNumber: merchantOrder.orderNumber,
+    restaurantName: merchantOrder.restaurantName,
+    status: merchantOrder.status
+  });
+  
+  return (
+    <div key={merchantOrder.id} ...>
+      ...
+    </div>
+  );
+})}
+
+2. Add backend logging:
+
+In the PATCH /api/orders/:id endpoint, add:
+
+console.log('=== BACKEND UPDATE ===');
+console.log('Order ID from URL params:', req.params.id);
+console.log('Status to update:', req.body.status);
+
+In the database update function, add:
+
+console.log('=== DATABASE UPDATE ===');
+console.log('Updating order with ID:', orderId);
+console.log('WHERE clause: id =', orderId);
+console.log('Rows affected:', updatedOrder ? 1 : 0);
+
+3. Check the actual data in order.merchantOrders:
+
+When the active order card loads, log the entire merchantOrders array:
+
+console.log('=== MERCHANT ORDERS DATA ===');
+console.log('Order group:', order.orderGroupId);
+console.log('Merchant orders:', JSON.stringify(order.merchantOrders, null, 2));
+
+4. Test and report back:
+
+Click "Mark Delivered" on FIRST merchant order
+Check console logs - what order ID was sent?
+Check backend logs - what order ID was received?
+Check database - which rows were updated?
+
+Click "Mark Delivered" on SECOND merchant order
+Check the same logs
+Compare with first order
+
+SUSPECTED ISSUE:
+
+The merchantOrder.id for the first order might be:
+- Equal to order_group_id instead of order_id
+- Somehow linked to all orders in the group
+- A duplicate ID that matches multiple rows
+
+Once you share the console log output from clicking both buttons, we can identify the exact data problem and fix it at the data generation level.
+
+The code is correct - but something is wrong with how merchantOrders array is being populated for the first order.
