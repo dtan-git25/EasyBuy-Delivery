@@ -1089,6 +1089,7 @@ export default function AdminPortal() {
     gcashEnabled: (settings as any)?.gcashEnabled ?? true,
     mayaEnabled: (settings as any)?.mayaEnabled ?? true,
     cardEnabled: (settings as any)?.cardEnabled ?? true,
+    enableWalletSystem: (settings as any)?.enableWalletSystem ?? false,
   });
 
   // Sync tempSettings when settings data changes
@@ -1107,6 +1108,7 @@ export default function AdminPortal() {
         gcashEnabled: (settings as any).gcashEnabled ?? true,
         mayaEnabled: (settings as any).mayaEnabled ?? true,
         cardEnabled: (settings as any).cardEnabled ?? true,
+        enableWalletSystem: (settings as any).enableWalletSystem ?? false,
       });
     }
   }, [settings]);
@@ -2056,7 +2058,7 @@ export default function AdminPortal() {
                     </div>
 
                     {/* Card Toggle */}
-                    <div className="flex items-center justify-between py-2">
+                    <div className="flex items-center justify-between py-2 border-b">
                       <div className="space-y-0.5">
                         <Label htmlFor="card-toggle" className="text-base font-medium">
                           Debit/Credit Card
@@ -2073,6 +2075,27 @@ export default function AdminPortal() {
                           updateSetting('cardEnabled', checked);
                         }}
                         data-testid="switch-card-enabled"
+                      />
+                    </div>
+
+                    {/* Wallet System Toggle */}
+                    <div className="flex items-center justify-between py-2">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="wallet-toggle" className="text-base font-medium">
+                          Wallet System
+                        </Label>
+                        <p className="text-sm text-muted-foreground">
+                          {tempSettings.enableWalletSystem ? "Allow riders and merchants to use wallet functionality" : "Wallet features disabled"}
+                        </p>
+                      </div>
+                      <Switch
+                        id="wallet-toggle"
+                        checked={tempSettings.enableWalletSystem}
+                        onCheckedChange={(checked) => {
+                          setTempSettings(prev => ({ ...prev, enableWalletSystem: checked }));
+                          updateSetting('enableWalletSystem', checked);
+                        }}
+                        data-testid="switch-wallet-enabled"
                       />
                     </div>
 
