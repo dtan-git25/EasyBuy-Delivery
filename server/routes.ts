@@ -1396,9 +1396,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Use enhanced order update with status history tracking
-      console.log('=== BACKEND UPDATE ===');
-      console.log('Order ID from URL params:', req.params.id);
-      console.log('Status to update:', req.body.status);
+      console.log('🟢 ========== BACKEND RECEIVED REQUEST ==========');
+      console.log('🟢 Order ID from URL params:', req.params.id);
+      console.log('🟢 Request body:', JSON.stringify(req.body, null, 2));
+      console.log('🟢 Status to update:', req.body.status);
+      console.log('🟢 User role:', req.user.role);
+      console.log('🟢 ===============================================');
       
       const order = await storage.updateOrderWithStatusHistory(
         req.params.id, 
@@ -1408,7 +1411,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         req.body.location
       );
       
-      console.log('Order update result:', order ? `Updated order ${order.id}` : 'No order returned');
+      console.log('🟢 Order update result:', order ? `Updated order ${order.id} to status ${order.status}` : 'No order returned');
       
       // Create notifications for order status changes
       if (order && req.body.status) {
