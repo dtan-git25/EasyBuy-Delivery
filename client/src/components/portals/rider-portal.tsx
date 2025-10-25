@@ -604,13 +604,29 @@ export default function RiderPortal() {
     updateDocumentsMutation.mutate(formData);
   };
 
-  const activeOrders = myOrders.filter((order: any) => 
-    ['accepted', 'preparing', 'ready', 'picked_up'].includes(order.status)
-  );
+  // Filter active orders - for multi-merchant orders, check if ANY merchant order is still active
+  const activeOrders = myOrders.filter((order: any) => {
+    // For multi-merchant orders, check if ANY merchant order is still active
+    if (order.isGroup && order.merchantOrders && order.merchantOrders.length > 0) {
+      return order.merchantOrders.some((mo: any) => 
+        ['accepted', 'preparing', 'ready', 'picked_up'].includes(mo.status)
+      );
+    }
+    // For single orders, use the regular status check
+    return ['accepted', 'preparing', 'ready', 'picked_up'].includes(order.status);
+  });
 
-  const historicalOrders = myOrders.filter((order: any) => 
-    ['delivered', 'cancelled'].includes(order.status)
-  );
+  // Filter historical orders - for multi-merchant orders, check if ALL merchant orders are delivered/cancelled
+  const historicalOrders = myOrders.filter((order: any) => {
+    // For multi-merchant orders, check if ALL merchant orders are delivered/cancelled
+    if (order.isGroup && order.merchantOrders && order.merchantOrders.length > 0) {
+      return order.merchantOrders.every((mo: any) => 
+        ['delivered', 'cancelled'].includes(mo.status)
+      );
+    }
+    // For single orders, use the regular status check
+    return ['delivered', 'cancelled'].includes(order.status);
+  });
 
   // Calculate booking limit status
   const maxBookingLimit = (settings as any)?.maxMultipleOrderBooking || 0;
@@ -646,7 +662,15 @@ export default function RiderPortal() {
 
   // Today's delivered orders (using completedAt to check when order was completed)
   const todayDeliveredOrders = historicalOrders.filter((order: any) => {
-    if (order.status !== 'delivered' || !order.completedAt) return false;
+    // For multi-merchant orders, check if ALL merchant orders are delivered
+    let isDelivered = false;
+    if (order.isGroup && order.merchantOrders && order.merchantOrders.length > 0) {
+      isDelivered = order.merchantOrders.every((mo: any) => mo.status === 'delivered');
+    } else {
+      isDelivered = order.status === 'delivered';
+    }
+    
+    if (!isDelivered || !order.completedAt) return false;
     
     // Use local date comparison to avoid timezone issues
     const now = new Date();
@@ -668,10 +692,22 @@ export default function RiderPortal() {
 
   // Success rate calculation: (delivered orders / total non-cancelled orders) × 100%
   // This gives the percentage of orders successfully delivered vs all orders accepted/attempted
-  const totalNonCancelledOrders = myOrders.filter((order: any) => 
-    order.status !== 'cancelled' && order.status !== 'pending'
-  ).length;
-  const deliveredOrders = myOrders.filter((order: any) => order.status === 'delivered').length;
+  const totalNonCancelledOrders = myOrders.filter((order: any) => {
+    // For multi-merchant orders, check if NOT all cancelled
+    if (order.isGroup && order.merchantOrders && order.merchantOrders.length > 0) {
+      return !order.merchantOrders.every((mo: any) => mo.status === 'cancelled' || mo.status === 'pending');
+    }
+    return order.status !== 'cancelled' && order.status !== 'pending';
+  }).length;
+  
+  const deliveredOrders = myOrders.filter((order: any) => {
+    // For multi-merchant orders, check if ALL delivered
+    if (order.isGroup && order.merchantOrders && order.merchantOrders.length > 0) {
+      return order.merchantOrders.every((mo: any) => mo.status === 'delivered');
+    }
+    return order.status === 'delivered';
+  }).length;
+  
   const successRate = totalNonCancelledOrders > 0 
     ? Math.round((deliveredOrders / totalNonCancelledOrders) * 100) 
     : 0;
