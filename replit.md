@@ -6,6 +6,9 @@ This project is a comprehensive food delivery web application with Customer, Rid
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes (October 2025)
+- **Fixed Multi-Merchant Order Filtering in Rider Portal**: Corrected the order tab filtering logic to properly handle multi-merchant orders. Previously, a multi-merchant order group would incorrectly move to "Order History" when only ONE merchant order was delivered. Now correctly remains in "Active Orders" until ALL merchant orders in the group are delivered or cancelled. Updated filtering uses `.some()` for active orders (ANY merchant order still active) and `.every()` for historical orders (ALL merchant orders delivered/cancelled). Also fixed stats calculations (today's earnings, success rate) to properly account for multi-merchant order completion status.
+
 ## System Architecture
 
 ### UI/UX Decisions
