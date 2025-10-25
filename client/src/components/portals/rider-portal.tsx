@@ -478,11 +478,6 @@ export default function RiderPortal() {
   };
 
   const updateOrderStatus = (orderId: string, status: string) => {
-    console.log('🔴 ========== BUTTON CLICKED ==========');
-    console.log('🔴 Updating to status:', status);
-    console.log('🔴 Order ID being sent:', orderId);
-    console.log('🔴 API endpoint:', `/api/orders/${orderId}`);
-    console.log('🔴 =====================================');
     updateOrderMutation.mutate({ orderId, status });
   };
 
@@ -1004,14 +999,6 @@ export default function RiderPortal() {
                 activeOrders.map((order: any) => {
                   // Check if this is a grouped order
                   const isGroupedOrder = order.merchantOrders && order.merchantOrders.length > 0;
-                  
-                  // Log merchant orders data for debugging
-                  if (isGroupedOrder) {
-                    console.log('=== MERCHANT ORDERS DATA ===');
-                    console.log('Order group ID:', order.orderGroupId || order.id);
-                    console.log('Merchant orders:', JSON.stringify(order.merchantOrders, null, 2));
-                    console.log('===========================');
-                  }
                   
                   const orderItems = order.items as Array<{ name: string; quantity: number; price: string }>;
                   const markup = parseFloat(order.markup) || 0;

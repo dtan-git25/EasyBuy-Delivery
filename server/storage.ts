@@ -1371,22 +1371,10 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Update the order
-    console.log('🟡 ========== DATABASE UPDATE ==========');
-    console.log('🟡 Updating order ID:', orderId);
-    console.log('🟡 New status:', updates.status);
-    console.log('🟡 SQL WHERE clause: orders.id =', orderId);
-    console.log('🟡 Updates object:', JSON.stringify(updates, null, 2));
-    console.log('🟡 ========================================');
-    
     const [updatedOrder] = await db.update(orders).set({
       ...updates,
       updatedAt: new Date()
     }).where(eq(orders.id, orderId)).returning();
-    
-    console.log('🟡 Rows affected:', updatedOrder ? 1 : 0);
-    console.log('🟡 Updated order ID:', updatedOrder?.id);
-    console.log('🟡 Updated order status:', updatedOrder?.status);
-    console.log('🟡 ========================================');
 
     // Create status history record if status changed
     if (updates.status && updates.status !== currentOrder.status) {
