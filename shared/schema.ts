@@ -354,6 +354,9 @@ export const systemSettings = pgTable("system_settings", {
   mayaEnabled: boolean("maya_enabled").default(true),
   cardEnabled: boolean("card_enabled").default(true),
   
+  // Wallet system toggle
+  enableWalletSystem: boolean("enable_wallet_system").default(false),
+  
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
