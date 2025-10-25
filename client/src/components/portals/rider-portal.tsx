@@ -222,6 +222,18 @@ export default function RiderPortal() {
               });
               break;
               
+            case 'new_order_group':
+              // Multi-merchant order group created - refresh pending orders list
+              queryClient.invalidateQueries({ queryKey: ["/api/orders/pending"] });
+              queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+              
+              const merchantCount = data.merchantCount || (data.orders?.length) || 'multiple';
+              toast({
+                title: "New Multi-Merchant Order Available",
+                description: `New order group with ${merchantCount} restaurants is ready for pickup!`,
+              });
+              break;
+              
             case 'order_update':
               // Existing order updated - refresh both lists
               queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
@@ -466,10 +478,6 @@ export default function RiderPortal() {
   };
 
   const updateOrderStatus = (orderId: string, status: string) => {
-    console.log('=== UPDATE ORDER STATUS ===');
-    console.log('Order ID:', orderId);
-    console.log('New Status:', status);
-    console.log('==========================');
     updateOrderMutation.mutate({ orderId, status });
   };
 

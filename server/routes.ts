@@ -1396,10 +1396,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Use enhanced order update with status history tracking
-      console.log('=== UPDATING ORDER ===');
-      console.log('Order ID from URL:', req.params.id);
-      console.log('Status update:', orderUpdates.status);
-      console.log('====================');
       const order = await storage.updateOrderWithStatusHistory(
         req.params.id, 
         orderUpdates, 
