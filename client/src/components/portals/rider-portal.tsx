@@ -478,10 +478,11 @@ export default function RiderPortal() {
   };
 
   const updateOrderStatus = (orderId: string, status: string) => {
-    console.log('=== UPDATING ORDER ===');
-    console.log('Order ID being sent:', orderId);
-    console.log('Status:', status);
-    console.log('API URL will be:', `/api/orders/${orderId}`);
+    console.log('🔴 ========== BUTTON CLICKED ==========');
+    console.log('🔴 Updating to status:', status);
+    console.log('🔴 Order ID being sent:', orderId);
+    console.log('🔴 API endpoint:', `/api/orders/${orderId}`);
+    console.log('🔴 =====================================');
     updateOrderMutation.mutate({ orderId, status });
   };
 
