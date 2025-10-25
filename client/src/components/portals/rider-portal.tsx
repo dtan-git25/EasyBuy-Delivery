@@ -740,26 +740,28 @@ export default function RiderPortal() {
               </div>
             </div>
 
-            {/* Wallet Balance */}
-            <div className="bg-gradient-to-r from-primary to-secondary rounded-xl p-4 text-primary-foreground">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm opacity-90">Wallet Balance</p>
-                  <p className="text-2xl font-bold">
-                    ₱{parseFloat(wallet?.balance || '0').toFixed(2)}
-                  </p>
+            {/* Wallet Balance - Only show if wallet system is enabled */}
+            {(settings as any)?.enableWalletSystem && (
+              <div className="bg-gradient-to-r from-primary to-secondary rounded-xl p-4 text-primary-foreground">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm opacity-90">Wallet Balance</p>
+                    <p className="text-2xl font-bold">
+                      ₱{parseFloat(wallet?.balance || '0').toFixed(2)}
+                    </p>
+                  </div>
+                  <Wallet className="text-2xl opacity-80" />
                 </div>
-                <Wallet className="text-2xl opacity-80" />
+                <Button 
+                  variant="secondary" 
+                  size="sm" 
+                  className="mt-2 bg-white bg-opacity-20 hover:bg-opacity-30"
+                  data-testid="button-top-up"
+                >
+                  Top Up
+                </Button>
               </div>
-              <Button 
-                variant="secondary" 
-                size="sm" 
-                className="mt-2 bg-white bg-opacity-20 hover:bg-opacity-30"
-                data-testid="button-top-up"
-              >
-                Top Up
-              </Button>
-            </div>
+            )}
 
             {/* Status Toggle */}
             <div className="flex flex-col space-y-2">
