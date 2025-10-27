@@ -1871,39 +1871,6 @@ export default function RiderPortal() {
 
                     {/* Rating Information */}
                     <RiderRatingDisplay riderId={user?.id} />
-
-                    {/* Optional: Link to documents */}
-                    {riderProfile?.documentsStatus && (
-                      <>
-                        <Separator />
-                        <div>
-                          <h3 className="text-lg font-semibold mb-4">Documents</h3>
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-sm text-muted-foreground">Document Status</p>
-                              <Badge 
-                                variant={
-                                  riderProfile.documentsStatus === 'approved' ? 'default' : 
-                                  riderProfile.documentsStatus === 'rejected' ? 'destructive' : 
-                                  'secondary'
-                                }
-                                data-testid="text-documents-status"
-                              >
-                                {riderProfile.documentsStatus}
-                              </Badge>
-                            </div>
-                            <Button
-                              variant="outline"
-                              onClick={() => setIsDocumentsDialogOpen(true)}
-                              data-testid="button-view-documents"
-                            >
-                              <FileText className="w-4 h-4 mr-2" />
-                              View Documents
-                            </Button>
-                          </div>
-                        </div>
-                      </>
-                    )}
                   </div>
                 </CardContent>
               </Card>
