@@ -432,6 +432,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update system settings with the new logo path
       await storage.updateSystemSettings({ logo: logoUrl });
       
+      // Generate PWA icons from the uploaded logo
+      const { generatePWAIcons } = await import('./generate-icons');
+      await generatePWAIcons();
+      
       res.json({ logoUrl });
     } catch (error) {
       console.error("Error uploading logo:", error);
