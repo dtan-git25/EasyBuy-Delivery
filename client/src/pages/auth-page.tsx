@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect, useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,10 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Bike, Store, Users, Settings, Upload, Camera, MapPin, Navigation, Search } from "lucide-react";
+import { Bike, Store, Users, Settings, Upload, Camera } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 import { useToast } from "@/hooks/use-toast";
 import { 
   customerRegistrationSchema, 
@@ -40,12 +38,6 @@ export default function AuthPage() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotPasswordMessage, setForgotPasswordMessage] = useState("");
   const { toast } = useToast();
-  
-  // Merchant map refs and state
-  const merchantMapContainerRef = useRef<HTMLDivElement | null>(null);
-  const merchantMapRef = useRef<L.Map | null>(null);
-  const merchantMarkerRef = useRef<L.Marker | null>(null);
-  const [isGeolocating, setIsGeolocating] = useState(false);
 
   // Fetch system settings for app logo
   const { data: settings } = useQuery<SystemSettings>({
@@ -123,8 +115,6 @@ export default function AuthPage() {
       storeName: "",
       storeAddress: "",
       storeContactNo: "",
-      latitude: "14.5995", // Default to Manila center
-      longitude: "120.9842",
       email: "",
       username: "",
       password: "",
@@ -154,69 +144,6 @@ export default function AuthPage() {
       setForgotPasswordMessage(error.message);
     },
   });
-
-  // Initialize merchant map when merchant tab is selected
-  useEffect(() => {
-    if (activeTab === "register" && registerRole === "merchant") {
-      // Wait for DOM to be ready
-      const initMap = setTimeout(() => {
-        if (merchantMapContainerRef.current && !merchantMapRef.current) {
-          try {
-            const lat = parseFloat(merchantForm.watch("latitude") || "14.5995");
-            const lng = parseFloat(merchantForm.watch("longitude") || "120.9842");
-
-            const map = L.map(merchantMapContainerRef.current, {
-              center: [lat, lng],
-              zoom: 15,
-              zoomControl: true,
-            });
-
-            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-              attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-              maxZoom: 19,
-            }).addTo(map);
-
-            const marker = L.marker([lat, lng], {
-              draggable: true,
-              autoPan: true,
-            }).addTo(map);
-
-            marker.on("dragend", () => {
-              const position = marker.getLatLng();
-              merchantForm.setValue("latitude", position.lat.toFixed(6));
-              merchantForm.setValue("longitude", position.lng.toFixed(6));
-            });
-
-            map.on("click", (e) => {
-              marker.setLatLng(e.latlng);
-              merchantForm.setValue("latitude", e.latlng.lat.toFixed(6));
-              merchantForm.setValue("longitude", e.latlng.lng.toFixed(6));
-            });
-
-            merchantMapRef.current = map;
-            merchantMarkerRef.current = marker;
-
-            setTimeout(() => {
-              map.invalidateSize();
-            }, 250);
-          } catch (error) {
-            console.error("Error initializing merchant map:", error);
-          }
-        }
-      }, 150);
-
-      return () => {
-        clearTimeout(initMap);
-      };
-    } else {
-      // Cleanup map when switching away from merchant registration
-      if (merchantMapRef.current) {
-        merchantMapRef.current.remove();
-        merchantMapRef.current = null;
-        merchantMarkerRef.current = null;
-      }
-    }
-  }, [activeTab, registerRole]);
 
   // Show loading state during auth transitions or while redirecting
   if (isLoading || user) {
@@ -256,100 +183,6 @@ export default function AuthPage() {
       await registerMutation.mutateAsync(registrationData);
     } catch (error) {
       console.error("Registration failed:", error);
-    }
-  };
-
-  // Use current location for merchant registration
-  const handleMerchantUseCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      toast({
-        title: "Not Supported",
-        description: "Geolocation is not supported by your browser",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsGeolocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        merchantForm.setValue("latitude", latitude.toFixed(6));
-        merchantForm.setValue("longitude", longitude.toFixed(6));
-
-        if (merchantMapRef.current && merchantMarkerRef.current) {
-          merchantMapRef.current.setView([latitude, longitude], 17);
-          merchantMarkerRef.current.setLatLng([latitude, longitude]);
-        }
-
-        toast({
-          title: "Location Found",
-          description: "Map centered to your current location. Drag the pin to adjust.",
-        });
-        setIsGeolocating(false);
-      },
-      (error) => {
-        let message = "Could not get your location. Please enable location access.";
-        if (error.code === error.PERMISSION_DENIED) {
-          message = "Location access denied. Please enable it in your browser settings.";
-        }
-        toast({
-          title: "Location Error",
-          description: message,
-          variant: "destructive",
-        });
-        setIsGeolocating(false);
-      }
-    );
-  };
-
-  // Search address for merchant registration
-  const handleMerchantSearchAddress = async () => {
-    const address = merchantForm.watch("storeAddress");
-
-    if (!address.trim()) {
-      toast({
-        title: "No Address",
-        description: "Please enter your store address first",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsGeolocating(true);
-    try {
-      const response = await fetch(`/api/geocode?address=${encodeURIComponent(address)}`);
-      const data = await response.json();
-
-      if (data.coordinates) {
-        const { latitude, longitude } = data.coordinates;
-        merchantForm.setValue("latitude", latitude);
-        merchantForm.setValue("longitude", longitude);
-
-        if (merchantMapRef.current && merchantMarkerRef.current) {
-          merchantMapRef.current.setView([parseFloat(latitude), parseFloat(longitude)], 15);
-          merchantMarkerRef.current.setLatLng([parseFloat(latitude), parseFloat(longitude)]);
-        }
-
-        toast({
-          title: "Address Found",
-          description: "Map centered to your store address. Drag the pin to adjust.",
-        });
-      } else {
-        toast({
-          title: "Address Not Found",
-          description: "Could not find location. Please drag the pin manually or try a more specific address.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Search Error",
-        description: "Failed to search address. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGeolocating(false);
     }
   };
 
@@ -1009,69 +842,6 @@ export default function AuthPage() {
                             {merchantForm.formState.errors.storeAddress && (
                               <p className="text-sm text-destructive mt-1">
                                 {merchantForm.formState.errors.storeAddress.message}
-                              </p>
-                            )}
-                          </div>
-
-                          {/* Store Location Map */}
-                          <div className="space-y-3 p-4 bg-muted/50 rounded-lg border-2 border-primary/20">
-                            <Label className="flex items-center gap-2 text-base font-semibold">
-                              <MapPin className="h-5 w-5 text-primary" />
-                              Pin Your Store Location on Map *
-                            </Label>
-                            <p className="text-sm text-muted-foreground">
-                              Click anywhere on the map or drag the pin to your exact store location. This is required for accurate delivery fees and rider navigation.
-                            </p>
-
-                            <div className="grid grid-cols-2 gap-2">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={handleMerchantUseCurrentLocation}
-                                disabled={isGeolocating}
-                                data-testid="button-merchant-use-location"
-                              >
-                                <Navigation className="h-4 w-4 mr-2" />
-                                {isGeolocating ? "Getting Location..." : "Use Current Location"}
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={handleMerchantSearchAddress}
-                                disabled={isGeolocating}
-                                data-testid="button-merchant-search-address"
-                              >
-                                <Search className="h-4 w-4 mr-2" />
-                                {isGeolocating ? "Searching..." : "Search Address"}
-                              </Button>
-                            </div>
-
-                            {/* Map Container */}
-                            <div
-                              ref={merchantMapContainerRef}
-                              className="h-80 w-full rounded-lg border-2 border-border overflow-hidden"
-                              style={{ minHeight: '320px', position: 'relative', zIndex: 1 }}
-                              data-testid="merchant-map-container"
-                            />
-
-                            {/* Display coordinates */}
-                            <div className="flex items-center gap-2 p-3 bg-background rounded-md border">
-                              <MapPin className="h-4 w-4 text-primary" />
-                              <div className="flex-1 text-sm">
-                                <span className="font-medium">Store Pin Location: </span>
-                                <span className="text-muted-foreground">
-                                  Lat: {merchantForm.watch("latitude")}, Lng: {merchantForm.watch("longitude")}
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Hidden fields for latitude/longitude */}
-                            <input type="hidden" {...merchantForm.register("latitude")} />
-                            <input type="hidden" {...merchantForm.register("longitude")} />
-                            
-                            {merchantForm.formState.errors.latitude && (
-                              <p className="text-sm text-destructive">
-                                {merchantForm.formState.errors.latitude.message}
                               </p>
                             )}
                           </div>
