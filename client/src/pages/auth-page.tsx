@@ -354,60 +354,31 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10">
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-2 gap-8 items-center min-h-screen">
-          {/* Hero Section */}
-          <div className="text-center lg:text-left">
-            <div className="flex items-center justify-center lg:justify-start mb-6">
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <Card>
+          <CardHeader className="text-center space-y-4">
+            {/* Logo */}
+            <div className="flex justify-center">
               {settings?.logo ? (
                 <img
                   src={settings.logo}
                   alt="App Logo"
-                  className="w-16 h-16 object-contain mr-4"
+                  className="w-20 h-20 object-contain"
                 />
               ) : (
-                <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mr-4">
-                  <Bike className="text-primary-foreground text-2xl" />
+                <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center">
+                  <Bike className="text-primary-foreground text-3xl" />
                 </div>
               )}
-              <div>
-                <h1 className="text-3xl font-bold text-foreground">Easy Buy Delivery</h1>
-                <p className="text-muted-foreground">Online Food Delivery Services</p>
-              </div>
             </div>
             
-            <h2 className="text-4xl lg:text-5xl font-bold mb-6 text-foreground">
-              Delicious Food, <span className="text-primary">Delivered Fast</span>
-            </h2>
-            
-            <p className="text-xl text-muted-foreground mb-8">
-              Join our comprehensive food delivery platform with multiple user portals for customers, riders and merchants.
-            </p>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
-              <div className="text-center p-4 bg-card rounded-lg border">
-                <Users className="mx-auto mb-2 text-primary" size={32} />
-                <p className="text-sm font-medium">Customers</p>
-              </div>
-              <div className="text-center p-4 bg-card rounded-lg border">
-                <Bike className="mx-auto mb-2 text-primary" size={32} />
-                <p className="text-sm font-medium">Riders</p>
-              </div>
-              <div className="text-center p-4 bg-card rounded-lg border">
-                <Store className="mx-auto mb-2 text-primary" size={32} />
-                <p className="text-sm font-medium">Merchants</p>
-              </div>
+            {/* Brand Title */}
+            <div>
+              <CardTitle className="text-2xl font-bold">Easy Buy Delivery</CardTitle>
+              <CardDescription className="text-base mt-2">Online Food Delivery Services</CardDescription>
             </div>
-          </div>
-
-          {/* Auth Forms */}
-          <div className="w-full max-w-md mx-auto">
-            <Card>
-              <CardHeader className="text-center">
-                <CardTitle>Welcome Back</CardTitle>
-                <CardDescription>Sign in to your account or create a new one</CardDescription>
-              </CardHeader>
+          </CardHeader>
               <CardContent>
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
                   <TabsList className="grid w-full grid-cols-2">
@@ -1176,8 +1147,6 @@ export default function AuthPage() {
                 </Tabs>
               </CardContent>
             </Card>
-          </div>
-        </div>
       </div>
     </div>
   );
