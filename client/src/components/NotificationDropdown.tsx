@@ -9,6 +9,41 @@ import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import type { Notification } from "@shared/schema";
 
+// Function to play notification bell sound
+const playNotificationSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    
+    // Create a pleasant bell-like sound
+    const createBellTone = (frequency: number, startTime: number, duration: number) => {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = frequency;
+      oscillator.type = 'sine';
+      
+      // Create envelope for bell sound (quick attack, gradual decay)
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.01);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+      
+      oscillator.start(startTime);
+      oscillator.stop(startTime + duration);
+    };
+    
+    // Create a multi-tone bell sound (more pleasant and recognizable)
+    const now = audioContext.currentTime;
+    createBellTone(800, now, 0.3);      // Main tone
+    createBellTone(1000, now, 0.25);    // Harmonic
+    createBellTone(1200, now, 0.2);     // Higher harmonic
+  } catch (error) {
+    console.error("Error playing notification sound:", error);
+  }
+};
+
 export function NotificationDropdown() {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
@@ -50,7 +85,7 @@ export function NotificationDropdown() {
       (notif) => !prevNotifications.some((prev) => prev.id === notif.id)
     );
 
-    // Show toast for each new unread notification
+    // Show toast and play sound for each new unread notification
     newNotifications.forEach((notif) => {
       if (!notif.isRead) {
         toast({
@@ -58,6 +93,8 @@ export function NotificationDropdown() {
           description: notif.message,
           duration: 5000,
         });
+        // Play notification sound
+        playNotificationSound();
       }
     });
 
