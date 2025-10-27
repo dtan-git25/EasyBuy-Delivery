@@ -1449,7 +1449,7 @@ export default function RiderPortal() {
                   <CardHeader>
                     <CardTitle className="text-lg">Motor Image</CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      Upload a clear photo of your motorcycle
+                      Upload a clear photo of your motorcycle with plate number
                     </p>
                   </CardHeader>
                   <CardContent>
