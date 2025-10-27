@@ -13,6 +13,7 @@ import { z } from "zod";
 import { Bike, Store, Users, Settings, Upload, Camera } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { InstallPrompt } from "@/components/InstallPrompt";
 import { 
   customerRegistrationSchema, 
   riderRegistrationSchema, 
@@ -213,6 +214,9 @@ export default function AuthPage() {
             </div>
           </CardHeader>
               <CardContent>
+                {/* Install App Prompt */}
+                <InstallPrompt />
+                
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
                   <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="login" data-testid="tab-login">Login</TabsTrigger>
