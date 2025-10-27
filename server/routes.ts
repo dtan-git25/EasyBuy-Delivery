@@ -3853,14 +3853,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Document not found" });
       }
 
-      const privateDir = process.env.PRIVATE_OBJECT_DIR || `/replit-objstore-b6259f98-6469-493b-b487-aa05cc12270a/.private`;
-      const fullPath = `${privateDir}/${documentPath}`;
+      // Files are stored locally in uploads directory
+      const uploadsBase = path.join(process.cwd(), 'uploads');
+      const fullPath = path.resolve(uploadsBase, documentPath);
+      
+      console.log(`[Admin Document View] Rider: ${riderId}, Type: ${documentType}, DB Path: ${documentPath}, Full Path: ${fullPath}`);
+      
+      // Security: Ensure the resolved path is within the uploads directory (prevent path traversal)
+      if (!fullPath.startsWith(uploadsBase + path.sep) && fullPath !== uploadsBase) {
+        console.error(`[Admin Document View] Path traversal attempt blocked: ${fullPath}`);
+        return res.status(400).json({ error: "Invalid document path" });
+      }
       
       if (!fs.existsSync(fullPath)) {
+        console.error(`[Admin Document View] File not found at: ${fullPath}`);
         return res.status(404).json({ error: "Document file not found" });
       }
 
-      res.sendFile(path.resolve(fullPath));
+      res.sendFile(fullPath);
     } catch (error) {
       console.error("Error downloading rider document:", error);
       res.status(500).json({ error: "Failed to download document" });

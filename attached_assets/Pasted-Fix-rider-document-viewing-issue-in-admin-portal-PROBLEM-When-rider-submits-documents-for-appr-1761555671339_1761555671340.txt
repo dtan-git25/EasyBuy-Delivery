@@ -1,0 +1,53 @@
+Fix rider document viewing issue in admin portal:
+
+PROBLEM:
+When rider submits documents for approval (OR/CR, Motor image, ID), admin cannot view them. Clicking the view buttons shows error: {"error":"Document file not found"}
+
+DEBUGGING NEEDED:
+
+1. CHECK FILE UPLOAD:
+   - Verify documents are actually being uploaded when rider submits
+   - Check if files are saved to storage/filesystem
+   - Console log the file paths when rider uploads
+   - Verify file upload is working correctly
+
+2. CHECK FILE STORAGE:
+   - Where are uploaded files being stored? (public folder, uploads folder, cloud storage?)
+   - Are file paths being saved correctly in the database?
+   - Check the database column storing document paths
+   - Verify the paths are absolute or relative correctly
+
+3. CHECK ADMIN VIEW ENDPOINT:
+   - Find the API endpoint that serves document files to admin
+   - Example: GET /api/admin/riders/:id/documents/:documentType
+   - Add logging to see what file path it's trying to access
+   - Log: console.log('Trying to access file:', filePath)
+
+4. COMMON ISSUES:
+   - File path saved in database doesn't match actual file location
+   - File permissions prevent reading
+   - Files uploaded to temp directory that gets cleared
+   - Incorrect file path format (missing / or wrong directory)
+   - File URL not publicly accessible
+
+5. FIX NEEDED:
+   - Ensure uploaded files are saved to persistent storage
+   - Save correct file paths/URLs in database
+   - Create proper file serving endpoint for admin
+   - Set correct file permissions
+   - Return file URL or stream file content to admin
+
+6. DATABASE CHECK:
+   Query riders table to see what's stored:
+   - SELECT or_cr_document, motor_image, id_document FROM riders WHERE id = ?
+   - Share what values are stored (file paths/URLs)
+
+7. TEST UPLOAD:
+   - Have a rider upload documents
+   - Check server console for upload logs
+   - Check filesystem to see if files actually saved
+   - Check database to see what paths were saved
+
+The issue is either files aren't being uploaded correctly, or the paths aren't being saved/retrieved correctly, or admin doesn't have access to read the files.
+
+Add extensive logging to the upload process and view process to identify where the issue is.
