@@ -735,7 +735,7 @@ export class DatabaseStorage implements IStorage {
         // Customer info (same for all in group)
         customerId: firstOrder.customerId,
         customerName,
-        customerPhone: firstOrder.phoneNumber,
+        customerPhone: customerUser?.phone || firstOrder.phoneNumber,
         deliveryAddress: firstOrder.deliveryAddress,
         deliveryLatitude: firstOrder.deliveryLatitude,
         deliveryLongitude: firstOrder.deliveryLongitude,
@@ -830,12 +830,12 @@ export class DatabaseStorage implements IStorage {
         markup: combinedMarkup.toFixed(2),
         deliveryFee: combinedDeliveryFee.toFixed(2),
         deliveryAddress: firstOrder.deliveryAddress,
-        phoneNumber: firstOrder.phoneNumber,
+        phoneNumber: customerUser?.phone || firstOrder.phoneNumber,
         createdAt: firstOrder.createdAt,
         customer: {
           name: customerName,
           address: firstOrder.deliveryAddress,
-          phone: firstOrder.phoneNumber,
+          phone: customerUser?.phone || firstOrder.phoneNumber,
         },
         restaurant: isGroup ? {
           name: restaurants.map(r => r.name).join(', '), // Comma-separated for simple display
