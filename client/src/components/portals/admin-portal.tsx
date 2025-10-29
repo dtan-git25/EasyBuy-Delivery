@@ -1502,15 +1502,15 @@ export default function AdminPortal() {
                       {merchantsForApproval.map((merchant: any) => (
                         <Card key={merchant.id} data-testid={`merchant-approval-${merchant.id}`}>
                           <CardContent className="p-6">
-                            <div className="flex items-center justify-between">
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                               <div className="flex items-center space-x-4">
-                                <Avatar className="w-12 h-12">
+                                <Avatar className="w-12 h-12 flex-shrink-0">
                                   <AvatarImage src={merchant.profileImage} />
                                   <AvatarFallback className="bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300">
                                     <Store className="h-6 w-6" />
                                   </AvatarFallback>
                                 </Avatar>
-                                <div>
+                                <div className="min-w-0">
                                   <h4 className="font-medium text-foreground">
                                     {merchant.firstName} {merchant.lastName}
                                   </h4>
@@ -1528,7 +1528,7 @@ export default function AdminPortal() {
                                   </p>
                                 </div>
                               </div>
-                              <div className="flex items-center space-x-3">
+                              <div className="flex items-center gap-3 flex-shrink-0 w-full md:w-auto justify-end md:justify-start">
                                 <Button 
                                   variant="destructive" 
                                   size="sm"
@@ -1577,15 +1577,15 @@ export default function AdminPortal() {
                       {ridersForApproval.map((rider: any) => (
                         <Card key={rider.id} className="border-l-4 border-l-yellow-500">
                           <CardHeader>
-                            <div className="flex items-center justify-between">
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                               <div className="flex items-center space-x-4">
-                                <Avatar>
+                                <Avatar className="flex-shrink-0">
                                   <AvatarImage src={rider.user?.profileImage} />
                                   <AvatarFallback>
                                     {rider.user?.firstName?.[0]}{rider.user?.lastName?.[0]}
                                   </AvatarFallback>
                                 </Avatar>
-                                <div>
+                                <div className="min-w-0">
                                   <h4 className="font-semibold">
                                     {rider.user?.firstName} {rider.user?.lastName}
                                   </h4>
@@ -1597,7 +1597,7 @@ export default function AdminPortal() {
                                   </p>
                                 </div>
                               </div>
-                              <Badge variant="secondary">
+                              <Badge variant="secondary" className="w-fit">
                                 <Clock className="w-3 h-3 mr-1" />
                                 Pending Review
                               </Badge>
