@@ -2241,7 +2241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Analytics Routes
   app.get("/api/admin/analytics/revenue", async (req, res) => {
-    if (!req.isAuthenticated() || req.user?.role !== 'admin') {
+    if (!req.isAuthenticated() || (req.user?.role !== 'admin' && req.user?.role !== 'owner')) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
@@ -2353,7 +2353,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/admin/analytics/orders", async (req, res) => {
-    if (!req.isAuthenticated() || req.user?.role !== 'admin') {
+    if (!req.isAuthenticated() || (req.user?.role !== 'admin' && req.user?.role !== 'owner')) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
@@ -2455,7 +2455,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/admin/analytics/users", async (req, res) => {
-    if (!req.isAuthenticated() || req.user?.role !== 'admin') {
+    if (!req.isAuthenticated() || (req.user?.role !== 'admin' && req.user?.role !== 'owner')) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
@@ -2592,7 +2592,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/admin/analytics/delivery", async (req, res) => {
-    if (!req.isAuthenticated() || req.user?.role !== 'admin') {
+    if (!req.isAuthenticated() || (req.user?.role !== 'admin' && req.user?.role !== 'owner')) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
@@ -2695,7 +2695,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/admin/analytics/products", async (req, res) => {
-    if (!req.isAuthenticated() || req.user?.role !== 'admin') {
+    if (!req.isAuthenticated() || (req.user?.role !== 'admin' && req.user?.role !== 'owner')) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
