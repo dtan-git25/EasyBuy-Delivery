@@ -2195,18 +2195,18 @@ export default function AdminPortal() {
                 </div>
 
                 <Tabs defaultValue="riders" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
+                  <TabsList className="w-full md:grid md:grid-cols-3">
                     <TabsTrigger value="riders" data-testid="tab-rider-management">
                       <Bike className="w-4 h-4 mr-2" />
-                      Rider Management
+                      Riders
                     </TabsTrigger>
                     <TabsTrigger value="stores" data-testid="tab-store-management">
                       <Store className="w-4 h-4 mr-2" />
-                      Store Management
+                      Stores
                     </TabsTrigger>
                     <TabsTrigger value="customers" data-testid="tab-customer-management">
                       <Users className="w-4 h-4 mr-2" />
-                      Customer Management
+                      Customers
                     </TabsTrigger>
                   </TabsList>
 
