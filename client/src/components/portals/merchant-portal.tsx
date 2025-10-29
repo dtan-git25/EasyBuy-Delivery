@@ -1890,7 +1890,7 @@ export default function MerchantPortal() {
                   {menuItems.map((item: any) => (
                     <Card key={item.id} data-testid={`card-menu-item-${item.id}`}>
                       <CardContent className="p-4">
-                        <div className="flex items-center gap-4">
+                        <div className="flex flex-col md:flex-row md:items-center gap-4">
                           {/* Menu Item Image */}
                           <div className="flex-shrink-0">
                             {item.image ? (
@@ -1908,16 +1908,16 @@ export default function MerchantPortal() {
                           </div>
 
                           {/* Menu Item Details */}
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <h4 className="font-semibold text-foreground" data-testid={`text-item-name-${item.id}`}>
                               {item.name}
                             </h4>
                             {item.description && (
-                              <p className="text-sm text-muted-foreground mt-1" data-testid={`text-item-description-${item.id}`}>
+                              <p className="text-sm text-muted-foreground mt-1 line-clamp-2" data-testid={`text-item-description-${item.id}`}>
                                 {item.description}
                               </p>
                             )}
-                            <div className="flex items-center gap-4 mt-2">
+                            <div className="flex flex-wrap items-center gap-2 md:gap-4 mt-2">
                               <span className="font-medium text-foreground" data-testid={`text-item-price-${item.id}`}>
                                 ₱{parseFloat(item.price).toFixed(2)}
                               </span>
@@ -1936,7 +1936,7 @@ export default function MerchantPortal() {
                           </div>
 
                           {/* Action Buttons */}
-                          <div className="flex gap-2 flex-shrink-0">
+                          <div className="flex gap-2 flex-shrink-0 w-full md:w-auto justify-end md:justify-start">
                             <Button 
                               variant="outline" 
                               size="sm" 
