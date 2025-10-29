@@ -1340,7 +1340,7 @@ export default function CustomerPortal() {
       {/* Main Content with Tabs */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-8">
+          <TabsList className="w-full md:grid md:grid-cols-3 mb-8">
             <TabsTrigger value="restaurants" data-testid="tab-restaurants">
               <ShoppingCart className="mr-2 h-4 w-4" />
               Restaurants

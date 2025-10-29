@@ -843,7 +843,7 @@ export default function RiderPortal() {
       <section className="py-6 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Tabs defaultValue="pending" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="w-full md:grid md:grid-cols-5">
               <TabsTrigger value="pending" data-testid="tab-pending">
                 <ClipboardList className="w-4 h-4 mr-2" />
                 Pending Orders 

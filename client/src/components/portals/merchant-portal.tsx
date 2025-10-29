@@ -1339,7 +1339,7 @@ export default function MerchantPortal() {
       <section className="bg-background py-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Tabs defaultValue="orders" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="w-full md:grid md:grid-cols-5">
               <TabsTrigger value="orders" data-testid="tab-orders">
                 <Package className="w-4 h-4 mr-2" />
                 Active Orders

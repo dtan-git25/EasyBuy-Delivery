@@ -1442,7 +1442,7 @@ export default function AdminPortal() {
 
           {/* Admin Navigation Tabs */}
           <Tabs defaultValue="reports" className="w-full">
-            <TabsList className={`grid w-full ${isOwner ? 'grid-cols-7' : 'grid-cols-6'}`}>
+            <TabsList className={`w-full md:grid ${isOwner ? 'md:grid-cols-7' : 'md:grid-cols-6'}`}>
               <TabsTrigger value="reports" data-testid="tab-reports">
                 <BarChart3 className="w-4 h-4 mr-2" />
                 Reports
