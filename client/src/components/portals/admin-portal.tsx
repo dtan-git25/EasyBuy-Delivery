@@ -1283,10 +1283,11 @@ export default function AdminPortal() {
         </div>
       </section>
 
-      {/* Key Metrics */}
-      <section className="py-6 bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      {/* Key Metrics - Only for Admin */}
+      {!isOwner && (
+        <section className="py-6 bg-background">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <Card data-testid="card-total-orders">
               <CardContent className="p-6">
                 <div className="flex items-center space-x-3">
@@ -1438,40 +1439,49 @@ export default function AdminPortal() {
                 </div>
               </CardContent>
             </Card>
+            </div>
           </div>
+        </section>
+      )}
 
-          {/* Admin Navigation Tabs */}
-          <Tabs defaultValue="reports" className="w-full">
-            <TabsList className={`w-full md:grid ${isOwner ? 'md:grid-cols-7' : 'md:grid-cols-6'}`}>
-              <TabsTrigger value="reports" data-testid="tab-reports">
-                <BarChart3 className="w-4 h-4 mr-2" />
-                Reports
-              </TabsTrigger>
-              <TabsTrigger value="management" data-testid="tab-management">
-                <Users className="w-4 h-4 mr-2" />
-                Management
-              </TabsTrigger>
-              <TabsTrigger value="approvals" data-testid="tab-approvals">
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Approvals
-                {(merchantsForApproval.length > 0 || ridersForApproval.length > 0) && (
-                  <Badge className="ml-2" variant="destructive">
-                    {merchantsForApproval.length + ridersForApproval.length}
-                  </Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="menu-settings" data-testid="tab-menu-settings">
-                <Utensils className="w-4 h-4 mr-2" />
-                Menu Settings
-              </TabsTrigger>
-              <TabsTrigger value="settings" data-testid="tab-settings">
-                <SettingsIcon className="w-4 h-4 mr-2" />
-                Settings
-              </TabsTrigger>
-              <TabsTrigger value="profile" data-testid="tab-profile">
-                <User className="w-4 h-4 mr-2" />
-                My Account
-              </TabsTrigger>
+      {/* Admin Navigation Tabs */}
+      <section className="py-6 bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Tabs defaultValue={isOwner ? "user-management" : "reports"} className="w-full">
+            <TabsList className={`w-full md:grid ${isOwner ? 'md:grid-cols-1' : 'md:grid-cols-6'}`}>
+              {!isOwner && (
+                <>
+                  <TabsTrigger value="reports" data-testid="tab-reports">
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    Reports
+                  </TabsTrigger>
+                  <TabsTrigger value="management" data-testid="tab-management">
+                    <Users className="w-4 h-4 mr-2" />
+                    Management
+                  </TabsTrigger>
+                  <TabsTrigger value="approvals" data-testid="tab-approvals">
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Approvals
+                    {(merchantsForApproval.length > 0 || ridersForApproval.length > 0) && (
+                      <Badge className="ml-2" variant="destructive">
+                        {merchantsForApproval.length + ridersForApproval.length}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger value="menu-settings" data-testid="tab-menu-settings">
+                    <Utensils className="w-4 h-4 mr-2" />
+                    Menu Settings
+                  </TabsTrigger>
+                  <TabsTrigger value="settings" data-testid="tab-settings">
+                    <SettingsIcon className="w-4 h-4 mr-2" />
+                    Settings
+                  </TabsTrigger>
+                  <TabsTrigger value="profile" data-testid="tab-profile">
+                    <User className="w-4 h-4 mr-2" />
+                    My Account
+                  </TabsTrigger>
+                </>
+              )}
               {isOwner && (
                 <TabsTrigger value="user-management" data-testid="tab-user-management">
                   <Crown className="w-4 h-4 mr-2" />
