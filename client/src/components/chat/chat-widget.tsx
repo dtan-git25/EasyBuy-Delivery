@@ -308,7 +308,7 @@ export default function ChatWidget() {
         <div className="relative">
           <Button
             size="lg"
-            className="w-14 h-14 rounded-full shadow-lg"
+            className="w-14 h-14 md:w-14 md:h-14 rounded-full shadow-lg min-h-[56px] min-w-[56px] md:min-h-[56px] md:min-w-[56px]"
             onClick={() => setIsOpen(true)}
             data-testid="button-open-chat"
           >
@@ -328,29 +328,30 @@ export default function ChatWidget() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
-      <Card className="w-96 h-[500px] shadow-xl">
-        <CardHeader className="pb-3">
+    <div className="fixed bottom-0 right-0 md:bottom-6 md:right-6 z-50 w-full md:w-auto">
+      <Card className="w-full md:w-96 h-[100vh] md:h-[500px] shadow-xl md:rounded-lg rounded-none">
+        <CardHeader className="pb-2 md:pb-3 px-3 md:px-6 py-3 md:py-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Order Chat</CardTitle>
+            <CardTitle className="text-base md:text-lg">Order Chat</CardTitle>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsOpen(false)}
               data-testid="button-close-chat"
+              className="h-11 w-11 p-0 md:h-9 md:w-9"
             >
-              <X className="h-4 w-4" />
+              <X className="h-5 w-5 md:h-4 md:w-4" />
             </Button>
           </div>
           
           {/* Order Selector */}
           {chatableOrders.length > 0 && (
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Select Order:</label>
+            <div className="space-y-1 md:space-y-2">
+              <label className="text-xs md:text-sm font-medium text-muted-foreground">Select Order:</label>
               <select
                 value={selectedOrderId || ""}
                 onChange={(e) => setSelectedOrderId(e.target.value || null)}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background"
+                className="w-full px-3 md:px-3 py-3 md:py-2 text-sm md:text-sm border border-border rounded-lg bg-background min-h-[44px]"
                 data-testid="select-order-chat"
               >
                 <option value="">Choose an order...</option>
@@ -372,7 +373,7 @@ export default function ChatWidget() {
           )}
         </CardHeader>
 
-        <CardContent className="p-0 flex flex-col h-[400px]">
+        <CardContent className="p-0 flex flex-col h-[calc(100vh-140px)] md:h-[400px]">
           {!selectedOrderId ? (
             <div className="flex-1 flex items-center justify-center p-6">
               {chatableOrders.length === 0 ? (
@@ -396,25 +397,25 @@ export default function ChatWidget() {
                 
                 if (hasRider) {
                   return (
-                    <div className="border-b border-border bg-muted/30 px-4 py-3">
+                    <div className="border-b border-border bg-muted/30 px-3 md:px-4 py-2 md:py-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          <User className="h-4 w-4 text-muted-foreground" />
+                          <User className="h-3 md:h-4 w-3 md:w-4 text-muted-foreground" />
                           <div>
-                            <p className="text-sm font-medium" data-testid="text-rider-name-chat">
+                            <p className="text-xs md:text-sm font-medium" data-testid="text-rider-name-chat">
                               {(selectedOrder as any).riderName}
                             </p>
-                            <p className="text-xs text-muted-foreground">Delivery Rider</p>
+                            <p className="text-[10px] md:text-xs text-muted-foreground">Delivery Rider</p>
                           </div>
                         </div>
                         {(selectedOrder as any).riderPhone && (
                           <a
                             href={`tel:${(selectedOrder as any).riderPhone}`}
-                            className="flex items-center space-x-1 text-sm text-primary hover:underline"
+                            className="flex items-center space-x-1 text-xs md:text-sm text-primary hover:underline"
                             data-testid="link-rider-phone-chat"
                           >
-                            <Phone className="h-4 w-4" />
-                            <span>{(selectedOrder as any).riderPhone}</span>
+                            <Phone className="h-3 md:h-4 w-3 md:w-4" />
+                            <span className="hidden sm:inline">{(selectedOrder as any).riderPhone}</span>
                           </a>
                         )}
                       </div>
@@ -425,7 +426,7 @@ export default function ChatWidget() {
               })()}
 
               {/* Messages Area */}
-              <div className="flex-1 overflow-y-auto px-4 py-2 space-y-3">
+              <div className="flex-1 overflow-y-auto px-3 md:px-4 py-2 space-y-2 md:space-y-3">
                 {messages.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground text-sm">No messages yet. Start the conversation!</p>
@@ -434,42 +435,42 @@ export default function ChatWidget() {
                   messages.map((message) => (
                     <div
                       key={message.id}
-                      className={`flex items-start space-x-2 ${
+                      className={`flex items-start space-x-1 md:space-x-2 ${
                         message.sender.id === user?.id ? 'justify-end' : 'justify-start'
                       }`}
                       data-testid={`message-${message.id}`}
                     >
                       {message.sender.id !== user?.id && (
-                        <Avatar className="w-8 h-8">
-                          <AvatarFallback className="text-xs">
+                        <Avatar className="w-6 h-6 md:w-8 md:h-8">
+                          <AvatarFallback className="text-[10px] md:text-xs">
                             {message.sender.firstName[0]}{message.sender.lastName[0]}
                           </AvatarFallback>
                         </Avatar>
                       )}
                       
-                      <div className={`max-w-xs ${message.sender.id === user?.id ? 'order-2' : 'order-1'}`}>
+                      <div className={`max-w-[70%] md:max-w-xs ${message.sender.id === user?.id ? 'order-2' : 'order-1'}`}>
                         <div
-                          className={`rounded-lg p-3 ${
+                          className={`rounded-lg p-2 md:p-3 ${
                             message.sender.id === user?.id
                               ? 'bg-primary text-primary-foreground'
                               : 'bg-muted text-foreground'
                           }`}
                         >
-                          <p className="text-sm">{message.message}</p>
+                          <p className="text-xs md:text-sm break-words">{message.message}</p>
                         </div>
-                        <div className="flex items-center justify-between mt-1">
-                          <Badge variant="outline" className="text-xs">
+                        <div className="flex items-center justify-between mt-1 gap-2">
+                          <Badge variant="outline" className="text-[10px] md:text-xs">
                             {message.sender.role}
                           </Badge>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(message.timestamp).toLocaleTimeString()}
+                          <p className="text-[10px] md:text-xs text-muted-foreground">
+                            {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </p>
                         </div>
                       </div>
 
                       {message.sender.id === user?.id && (
-                        <Avatar className="w-8 h-8 order-3">
-                          <AvatarFallback className="text-xs">
+                        <Avatar className="w-6 h-6 md:w-8 md:h-8 order-3">
+                          <AvatarFallback className="text-[10px] md:text-xs">
                             {user.firstName[0]}{user.lastName[0]}
                           </AvatarFallback>
                         </Avatar>
@@ -481,14 +482,14 @@ export default function ChatWidget() {
               </div>
 
               {/* Message Input */}
-              <div className="border-t border-border p-4">
+              <div className="border-t border-border p-3 md:p-4">
                 <div className="flex items-center space-x-2">
                   <Input
                     placeholder="Type a message..."
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    className="flex-1"
+                    className="flex-1 text-sm md:text-sm min-h-[44px] md:h-10"
                     data-testid="input-chat-message"
                   />
                   <Button
@@ -496,6 +497,7 @@ export default function ChatWidget() {
                     onClick={handleSendMessage}
                     disabled={!newMessage.trim() || sendMessageMutation.isPending}
                     data-testid="button-send-message"
+                    className="min-h-[44px] min-w-[44px] md:h-10 md:w-auto md:min-w-0 px-3"
                   >
                     <Send className="h-4 w-4" />
                   </Button>
