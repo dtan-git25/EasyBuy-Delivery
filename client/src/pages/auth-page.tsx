@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Bike, Store, Users, Settings, Upload, Camera } from "lucide-react";
+import { Bike, Store, Users, Settings, Upload, Camera, Eye, EyeOff } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { InstallPrompt } from "@/components/InstallPrompt";
@@ -38,6 +38,7 @@ export default function AuthPage() {
   const [registerRole, setRegisterRole] = useState<"customer" | "rider" | "merchant">("customer");
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotPasswordMessage, setForgotPasswordMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
 
   // Fetch system settings for app logo
@@ -243,13 +244,30 @@ export default function AuthPage() {
 
                       <div>
                         <Label htmlFor="login-password">Password</Label>
-                        <Input
-                          id="login-password"
-                          data-testid="input-login-password"
-                          {...loginForm.register("password")}
-                          type="password"
-                          placeholder="Enter your password"
-                        />
+                        <div className="relative">
+                          <Input
+                            id="login-password"
+                            data-testid="input-login-password"
+                            {...loginForm.register("password")}
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Enter your password"
+                            className="pr-10"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                            onClick={() => setShowPassword(!showPassword)}
+                            data-testid="button-toggle-password"
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <Eye className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </Button>
+                        </div>
                         {loginForm.formState.errors.password && (
                           <p className="text-sm text-destructive mt-1">
                             {loginForm.formState.errors.password.message}
