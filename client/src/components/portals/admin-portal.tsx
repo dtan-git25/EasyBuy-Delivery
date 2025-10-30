@@ -2575,19 +2575,11 @@ export default function AdminPortal() {
                     </div>
                   </div>
 
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="p-4 border rounded-lg">
-                      <p className="text-sm text-muted-foreground mb-1">Completion Rate</p>
-                      <p className="text-3xl font-bold text-green-600" data-testid="text-completion-rate">
-                        {formatNumber((orderAnalytics as any)?.completionRate, 1)}%
-                      </p>
-                    </div>
-                    <div className="p-4 border rounded-lg">
-                      <p className="text-sm text-muted-foreground mb-1">Avg Delivery Time</p>
-                      <p className="text-3xl font-bold text-blue-600" data-testid="text-avg-delivery-time">
-                        {Math.round((orderAnalytics as any)?.averageDeliveryTime || 0)} min
-                      </p>
-                    </div>
+                  <div className="p-4 border rounded-lg">
+                    <p className="text-sm text-muted-foreground mb-1">Completion Rate</p>
+                    <p className="text-3xl font-bold text-green-600" data-testid="text-completion-rate">
+                      {formatNumber((orderAnalytics as any)?.completionRate, 1)}%
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -2817,7 +2809,7 @@ export default function AdminPortal() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="p-4 border rounded-lg">
                       <p className="text-sm text-muted-foreground">Total Deliveries</p>
                       <p className="text-2xl font-bold" data-testid="text-total-deliveries">
@@ -2828,12 +2820,6 @@ export default function AdminPortal() {
                       <p className="text-sm text-muted-foreground">Success Rate</p>
                       <p className="text-2xl font-bold text-green-600" data-testid="text-success-rate">
                         {formatNumber((deliveryAnalytics as any)?.successRate, 1)}%
-                      </p>
-                    </div>
-                    <div className="p-4 border rounded-lg">
-                      <p className="text-sm text-muted-foreground">Avg Distance</p>
-                      <p className="text-2xl font-bold text-blue-600" data-testid="text-avg-distance">
-                        {formatNumber((deliveryAnalytics as any)?.averageDistance, 1)} km
                       </p>
                     </div>
                     <div className="p-4 border rounded-lg">
@@ -2855,19 +2841,11 @@ export default function AdminPortal() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 border rounded-lg">
-                      <p className="text-sm text-muted-foreground">Total Menu Items</p>
-                      <p className="text-2xl font-bold" data-testid="text-total-menu-items">
-                        {((productAnalytics as any)?.totalMenuItems || 0).toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="p-4 border rounded-lg">
-                      <p className="text-sm text-muted-foreground">Avg Item Price</p>
-                      <p className="text-2xl font-bold text-green-600" data-testid="text-avg-item-price">
-                        ₱{((productAnalytics as any)?.averageItemPrice || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </p>
-                    </div>
+                  <div className="p-4 border rounded-lg">
+                    <p className="text-sm text-muted-foreground">Total Menu Items</p>
+                    <p className="text-2xl font-bold" data-testid="text-total-menu-items">
+                      {((productAnalytics as any)?.totalMenuItems || 0).toLocaleString()}
+                    </p>
                   </div>
 
                   <div>
