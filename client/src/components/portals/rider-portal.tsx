@@ -1429,6 +1429,16 @@ export default function RiderPortal() {
                           {documentsStatus === 'approved' && (
                             <p className="text-xs text-green-600">Verified</p>
                           )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open('/api/rider/document/orcr', '_blank')}
+                            className="w-full"
+                            data-testid="button-view-orcr"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View OR/CR
+                          </Button>
                         </div>
                       ) : (
                         <input
@@ -1466,6 +1476,16 @@ export default function RiderPortal() {
                           {documentsStatus === 'approved' && (
                             <p className="text-xs text-green-600">Verified</p>
                           )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open('/api/rider/document/motor', '_blank')}
+                            className="w-full"
+                            data-testid="button-view-motor"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Motor
+                          </Button>
                         </div>
                       ) : (
                         <input
@@ -1503,6 +1523,16 @@ export default function RiderPortal() {
                           {documentsStatus === 'approved' && (
                             <p className="text-xs text-green-600">Verified</p>
                           )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open('/api/rider/document/id', '_blank')}
+                            className="w-full"
+                            data-testid="button-view-id"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View ID
+                          </Button>
                         </div>
                       ) : (
                         <input

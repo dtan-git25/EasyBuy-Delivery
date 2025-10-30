@@ -3877,6 +3877,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Document view route for riders to see their own documents
+  app.get("/api/rider/document/:documentType", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== 'rider') {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const { documentType } = req.params;
+      const rider = await storage.getRiderByUserId(req.user.id);
+      
+      if (!rider) {
+        return res.status(404).json({ error: "Rider profile not found" });
+      }
+
+      let documentPath: string | null = null;
+      switch (documentType) {
+        case 'orcr':
+          documentPath = rider.orcrDocument;
+          break;
+        case 'motor':
+          documentPath = rider.motorImage;
+          break;
+        case 'id':
+          documentPath = rider.idDocument;
+          break;
+        default:
+          return res.status(400).json({ error: "Invalid document type" });
+      }
+
+      if (!documentPath) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      // Files are stored locally in uploads directory
+      const uploadsBase = path.join(process.cwd(), 'uploads');
+      const fullPath = path.resolve(uploadsBase, documentPath);
+      
+      console.log(`[Rider Document View] User: ${req.user.id}, Type: ${documentType}, DB Path: ${documentPath}, Full Path: ${fullPath}`);
+      
+      // Security: Ensure the resolved path is within the uploads directory (prevent path traversal)
+      if (!fullPath.startsWith(uploadsBase + path.sep) && fullPath !== uploadsBase) {
+        console.error(`[Rider Document View] Path traversal attempt blocked: ${fullPath}`);
+        return res.status(400).json({ error: "Invalid document path" });
+      }
+      
+      if (!fs.existsSync(fullPath)) {
+        console.error(`[Rider Document View] File not found at: ${fullPath}`);
+        return res.status(404).json({ error: "Document file not found" });
+      }
+
+      res.sendFile(fullPath);
+    } catch (error) {
+      console.error("Error viewing rider document:", error);
+      res.status(500).json({ error: "Failed to view document" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // WebSocket server for real-time features
