@@ -2773,28 +2773,6 @@ export default function AdminPortal() {
                           </table>
                         </div>
                       </div>
-
-                      <div>
-                        <h4 className="text-sm font-semibold mb-2">Top Riders by Orders Completed</h4>
-                        <div className="h-[300px] border rounded-lg p-4">
-                          {((userAnalytics as any)?.riders?.topRiders || []).length > 0 ? (
-                            <ResponsiveContainer width="100%" height="100%">
-                              <BarChart data={((userAnalytics as any)?.riders?.topRiders || []).slice(0, 10)}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-                                <YAxis />
-                                <Tooltip />
-                                <Legend />
-                                <Bar dataKey="deliveryCount" fill="#3b82f6" name="Completed Orders" />
-                              </BarChart>
-                            </ResponsiveContainer>
-                          ) : (
-                            <div className="flex items-center justify-center h-full">
-                              <p className="text-muted-foreground">No rider data available</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
                     </TabsContent>
                   </Tabs>
                 </CardContent>
