@@ -2528,7 +2528,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
         return {
           merchantId: restaurant.id,
-          merchantName: restaurant.name,
+          name: restaurant.name,
           orderCount: restaurantOrders.length,
           revenue,
           rating: restaurant.rating || 0
@@ -2547,6 +2547,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const topRiders = Object.entries(riderDeliveryCounts)
         .map(([id, count]) => {
           const rider = riders.find((r: any) => r.userId === id);
+          const user = users.find((u: any) => u.id === id);
           const riderOrders = orders.filter((o: any) => o.riderId === id && o.status === 'delivered');
           const totalEarnings = riderOrders.reduce((sum: number, o: any) => {
             const deliveryFee = parseFloat(o.deliveryFee?.toString() || '0');
@@ -2556,9 +2557,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           return {
             riderId: id,
-            riderName: rider?.firstName + ' ' + rider?.lastName || 'Unknown',
+            name: user ? `${user.firstName} ${user.lastName}` : 'Unknown',
             deliveryCount: count,
-            totalEarnings,
+            earnings: totalEarnings,
             rating: rider?.rating || 0
           };
         })
