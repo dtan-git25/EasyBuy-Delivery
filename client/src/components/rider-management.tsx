@@ -429,16 +429,44 @@ export function RiderManagement() {
                     </Badge>
                   </div>
 
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => setViewingDocuments(true)}
-                    disabled={!viewingRider.orcrDocument && !viewingRider.motorImage && !viewingRider.idDocument}
-                    data-testid="button-view-documents"
-                  >
-                    <FileText className="mr-2 h-4 w-4" />
-                    View Uploaded Documents
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    {viewingRider.orcrDocument && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(`/api/admin/rider-document/${viewingRider.id}/orcr`, '_blank')}
+                        data-testid="button-view-orcr"
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        View OR/CR
+                      </Button>
+                    )}
+                    {viewingRider.motorImage && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(`/api/admin/rider-document/${viewingRider.id}/motor`, '_blank')}
+                        data-testid="button-view-motor"
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        View Motor
+                      </Button>
+                    )}
+                    {viewingRider.idDocument && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(`/api/admin/rider-document/${viewingRider.id}/id`, '_blank')}
+                        data-testid="button-view-id"
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        View ID
+                      </Button>
+                    )}
+                    {!viewingRider.orcrDocument && !viewingRider.motorImage && !viewingRider.idDocument && (
+                      <p className="text-sm text-muted-foreground py-2">No documents uploaded</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
