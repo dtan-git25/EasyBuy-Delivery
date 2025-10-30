@@ -2536,6 +2536,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }).sort((a, b) => b.revenue - a.revenue).slice(0, 10);
 
       // Rider analytics
+      const riderUsers = await storage.getUsersByRole('rider');
       const activeRiders = riders.filter((r: any) => r.status === 'active').length;
       const riderDeliveryCounts: any = {};
       orders.filter((o: any) => o.status === 'delivered').forEach((order: any) => {
@@ -2547,7 +2548,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const topRiders = Object.entries(riderDeliveryCounts)
         .map(([id, count]) => {
           const rider = riders.find((r: any) => r.userId === id);
-          const user = users.find((u: any) => u.id === id);
+          const user = riderUsers.find((u: any) => u.id === id);
           const riderOrders = orders.filter((o: any) => o.riderId === id && o.status === 'delivered');
           const totalEarnings = riderOrders.reduce((sum: number, o: any) => {
             const deliveryFee = parseFloat(o.deliveryFee?.toString() || '0');
