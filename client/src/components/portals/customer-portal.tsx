@@ -209,6 +209,7 @@ export default function CustomerPortal() {
   const [specialInstructions, setSpecialInstructions] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [calculatedDeliveryFees, setCalculatedDeliveryFees] = useState<Record<string, number>>({});
+  const [calculatedDistances, setCalculatedDistances] = useState<Record<string, number>>({});
   const [customerLocation, setCustomerLocation] = useState<{ lat: number; lng: number }>({ lat: 14.5995, lng: 120.9842 }); // Default to Manila
   
   // Enhanced tracking state
@@ -467,6 +468,7 @@ export default function CustomerPortal() {
     const customerLng = parseFloat(selectedAddress.longitude);
 
     // Calculate delivery fee for each restaurant in the cart
+    const distances: Record<string, number> = {};
     Object.values(cart.allCarts).forEach((restaurantCart) => {
       // Find the restaurant details to get coordinates
       const restaurant = restaurants.find(r => r.id === restaurantCart.restaurantId);
@@ -486,13 +488,16 @@ export default function CustomerPortal() {
         // Calculate delivery fee based on distance
         const deliveryFee = calculateDeliveryFee(distance, baseRate, succeedingRate);
         fees[restaurantCart.restaurantId] = deliveryFee;
+        distances[restaurantCart.restaurantId] = Math.ceil(distance); // Round up to whole number
       } else {
         // Fallback to default delivery fee if restaurant coordinates not available
         fees[restaurantCart.restaurantId] = baseRate;
+        distances[restaurantCart.restaurantId] = 0;
       }
     });
 
     setCalculatedDeliveryFees(fees);
+    setCalculatedDistances(distances);
   }, [selectedAddress, settings, cart.allCarts, restaurants]);
 
   // Get customer's current location using browser geolocation API
@@ -1227,6 +1232,7 @@ export default function CustomerPortal() {
                   const markupAmount = (subtotal * cart.markup) / 100;
                   const itemsSubtotal = subtotal + markupAmount;
                   const deliveryFee = cart.restaurantId ? (calculatedDeliveryFees[cart.restaurantId] || 0) : 0;
+                  const distance = cart.restaurantId ? (calculatedDistances[cart.restaurantId] || 0) : 0;
                   const convenienceFee = settings?.convenienceFee ? parseFloat(settings.convenienceFee) : 0;
                   const showConvenienceFee = settings?.showConvenienceFee !== false;
                   const total = itemsSubtotal + deliveryFee + (showConvenienceFee ? convenienceFee : 0);
@@ -1239,7 +1245,7 @@ export default function CustomerPortal() {
                           <span>₱{itemsSubtotal.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between text-sm">
-                          <span>Delivery Fee:</span>
+                          <span>Delivery Fee {distance > 0 ? `(${distance} km)` : ''}:</span>
                           <span>₱{deliveryFee.toFixed(2)}</span>
                         </div>
                         {showConvenienceFee && convenienceFee > 0 && (
@@ -2094,11 +2100,10 @@ export default function CustomerPortal() {
                       return total + subtotal + markupAmount;
                     }, 0);
                   
-                  const totalDeliveryFees = Object.values(cart.allCarts)
-                    .filter(c => c.items.length > 0)
-                    .reduce((total, restaurantCart) => {
-                      return total + (calculatedDeliveryFees[restaurantCart.restaurantId] || 0);
-                    }, 0);
+                  const activeCarts = Object.values(cart.allCarts).filter(c => c.items.length > 0);
+                  const totalDeliveryFees = activeCarts.reduce((total, restaurantCart) => {
+                    return total + (calculatedDeliveryFees[restaurantCart.restaurantId] || 0);
+                  }, 0);
                   
                   const convenienceFee = settings?.convenienceFee ? parseFloat(settings.convenienceFee) : 0;
                   const showConvenienceFee = settings?.showConvenienceFee !== false;
@@ -2111,9 +2116,21 @@ export default function CustomerPortal() {
                           <span>Items Subtotal:</span>
                           <span>₱{itemsSubtotal.toFixed(2)}</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span>Delivery Fee:</span>
-                          <span>₱{totalDeliveryFees.toFixed(2)}</span>
+                        <div className="space-y-1">
+                          <div className="flex justify-between font-medium">
+                            <span>Total Delivery Fees:</span>
+                            <span>₱{totalDeliveryFees.toFixed(2)}</span>
+                          </div>
+                          {activeCarts.map(restaurantCart => {
+                            const fee = calculatedDeliveryFees[restaurantCart.restaurantId] || 0;
+                            const distance = calculatedDistances[restaurantCart.restaurantId] || 0;
+                            return (
+                              <div key={restaurantCart.restaurantId} className="flex justify-between text-xs text-muted-foreground pl-3">
+                                <span>• {restaurantCart.restaurantName} {distance > 0 ? `(${distance} km)` : ''}</span>
+                                <span>₱{fee.toFixed(2)}</span>
+                              </div>
+                            );
+                          })}
                         </div>
                         {showConvenienceFee && convenienceFee > 0 && (
                           <div className="flex justify-between">
