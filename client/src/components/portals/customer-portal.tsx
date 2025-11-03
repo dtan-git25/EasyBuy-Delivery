@@ -457,10 +457,13 @@ export default function CustomerPortal() {
 
     // If customer coordinates are missing, use base rate fallback for all restaurants
     if (!selectedAddress?.latitude || !selectedAddress?.longitude) {
+      const distances: Record<string, number> = {};
       Object.values(cart.allCarts).forEach((restaurantCart) => {
         fees[restaurantCart.restaurantId] = baseRate;
+        distances[restaurantCart.restaurantId] = 0;
       });
       setCalculatedDeliveryFees(fees);
+      setCalculatedDistances(distances);
       return;
     }
 
