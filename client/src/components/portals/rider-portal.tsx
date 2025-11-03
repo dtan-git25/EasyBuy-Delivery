@@ -1041,26 +1041,35 @@ export default function RiderPortal() {
                               <span className="text-muted-foreground">Customer Name:</span>
                               <span className="font-medium">{order.customerName}</span>
                             </div>
-                            <div className="flex justify-between items-start">
-                              <span className="text-muted-foreground">Delivery Address:</span>
-                              <div className="flex items-center gap-2 flex-1 justify-end">
-                                <span className="font-medium text-right">{order.deliveryAddress}</span>
-                                {order.deliveryLatitude && order.deliveryLongitude && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 w-6 p-0 shrink-0"
-                                    onClick={() => {
-                                      setSelectedOrderForMap(order);
-                                      setMapLocationType('delivery');
-                                      setShowMapViewer(true);
-                                    }}
-                                    data-testid={`button-view-pin-${order.id}`}
-                                    title="View on map"
-                                  >
-                                    <MapPin className="h-4 w-4 text-primary" />
-                                  </Button>
-                                )}
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-start">
+                                <span className="text-muted-foreground">Delivery Address:</span>
+                                <div className="flex items-center gap-2 flex-1 justify-end">
+                                  <span className="font-medium text-right">{order.deliveryAddress}</span>
+                                  {order.deliveryLatitude && order.deliveryLongitude && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0 shrink-0"
+                                      onClick={() => {
+                                        setSelectedOrderForMap(order);
+                                        setMapLocationType('delivery');
+                                        setShowMapViewer(true);
+                                      }}
+                                      data-testid={`button-view-pin-${order.id}`}
+                                      title="View on map"
+                                    >
+                                      <MapPin className="h-4 w-4 text-primary" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                              {/* Landmark Display */}
+                              <div className="flex justify-between items-start">
+                                <span className="text-muted-foreground">Landmark:</span>
+                                <span className="font-bold text-green-600 text-base text-right">
+                                  {(order as any).landmark || 'No landmark provided'}
+                                </span>
                               </div>
                             </div>
                             {isGroupedOrder ? (

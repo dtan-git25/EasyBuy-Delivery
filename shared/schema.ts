@@ -269,6 +269,7 @@ export const orders = pgTable("orders", {
   deliveryAddress: text("delivery_address").notNull(),
   deliveryLatitude: decimal("delivery_latitude", { precision: 10, scale: 8 }),
   deliveryLongitude: decimal("delivery_longitude", { precision: 11, scale: 8 }),
+  landmark: text("landmark"),
   customerNotes: text("customer_notes"),
   paymentMethod: paymentMethodEnum("payment_method").notNull().default('cash'),
   phoneNumber: text("phone_number").notNull(),
