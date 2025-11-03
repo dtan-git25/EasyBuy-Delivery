@@ -1236,6 +1236,7 @@ export default function CustomerPortal() {
                   const itemsSubtotal = subtotal + markupAmount;
                   const deliveryFee = cart.restaurantId ? (calculatedDeliveryFees[cart.restaurantId] || 0) : 0;
                   const distance = cart.restaurantId ? (calculatedDistances[cart.restaurantId] || 0) : 0;
+                  console.log('CHECKOUT - restaurantId:', cart.restaurantId, 'distance:', distance, 'allDistances:', calculatedDistances, 'selectedAddress:', selectedAddress);
                   const convenienceFee = settings?.convenienceFee ? parseFloat(settings.convenienceFee) : 0;
                   const showConvenienceFee = settings?.showConvenienceFee !== false;
                   const total = itemsSubtotal + deliveryFee + (showConvenienceFee ? convenienceFee : 0);
