@@ -822,6 +822,11 @@ export default function CustomerPortal() {
         };
       });
 
+    console.log('=== CHECKOUT DATA ===');
+    console.log('Selected Address:', selectedAddress);
+    console.log('Landmark being sent:', selectedAddress.landmark);
+    console.log('Orders data:', ordersData);
+
     createOrderMutation.mutate(ordersData);
   };
 

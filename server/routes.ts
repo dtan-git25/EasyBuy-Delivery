@@ -967,6 +967,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { carts, deliveryAddress, deliveryLatitude, deliveryLongitude, landmark, phoneNumber, specialInstructions, paymentMethod } = req.body;
       
+      console.log('=== CHECKOUT REQUEST ===');
+      console.log('Landmark received:', landmark);
+      console.log('Delivery address:', deliveryAddress);
+      
       if (!carts || !Array.isArray(carts) || carts.length === 0) {
         return res.status(400).json({ error: "Invalid checkout data" });
       }
