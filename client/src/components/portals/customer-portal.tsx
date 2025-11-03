@@ -1168,11 +1168,11 @@ export default function CustomerPortal() {
               />
               
               <div>
-                <label className="block text-sm font-medium mb-2">Phone Number *</label>
+                <label className="block text-sm font-medium mb-2">Receiver's Phone Number *</label>
                 <Input
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="Enter your phone number"
+                  placeholder="Enter receiver's phone number"
                   data-testid="input-phone-number"
                 />
               </div>
@@ -2049,11 +2049,11 @@ export default function CustomerPortal() {
               />
 
               <div>
-                <label className="text-sm font-medium mb-2 block">Phone Number</label>
+                <label className="text-sm font-medium mb-2 block">Receiver's Phone Number</label>
                 <Input
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="Enter your phone number"
+                  placeholder="Enter receiver's phone number"
                   data-testid="input-phone-number"
                 />
               </div>
