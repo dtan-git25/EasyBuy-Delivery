@@ -1,0 +1,76 @@
+Make landmark field visible and displayed throughout the entire order lifecycle:
+
+REQUIREMENT:
+The landmark field (entered by customer during address setup or checkout) should be visible and displayed in all order-related views and statuses.
+
+DISPLAY LANDMARK IN:
+
+1. CUSTOMER VIEWS:
+   - My Orders (all statuses: pending, accepted, picked_up, in_transit, delivered, cancelled)
+   - Order details/tracking page
+   - Active orders
+   - Order history
+   - Completed orders
+   - Cancelled orders
+
+2. MERCHANT VIEWS:
+   - New orders (pending)
+   - Active orders (accepted, preparing, ready)
+   - Order history
+   - Show customer's delivery address with landmark
+
+3. RIDER VIEWS:
+   - Pending orders
+   - Active orders (most important - helps find customer)
+   - Completed orders
+   - Show delivery address with landmark prominently
+
+4. ADMIN VIEWS:
+   - All orders list
+   - Order details
+   - Reports showing delivery addresses
+
+FORMAT TO DISPLAY:
+
+Delivery Address:
+[Street Address]
+[Barangay, City]
+📍 Landmark: [Customer's landmark]
+[Phone number]
+
+Example:
+Delivery Address:
+062, Maniapig Capas, Manlapig, Tarlac
+📍 Landmark: Near Jollibee, White gate
+Contact: 0917-123-4567
+
+IMPLEMENTATION:
+
+1. Ensure landmark is saved to database:
+   - In customer_addresses table or orders table
+   - Field: landmark (text)
+
+2. Include landmark in all order queries:
+   - When fetching orders for any view
+   - SELECT landmark along with address fields
+
+3. Display landmark consistently:
+   - Always show after address
+   - Use landmark icon: 📍 or landmark emoji
+   - Label clearly: "Landmark:" or "Near:"
+   - Don't hide it even if empty (show "No landmark provided")
+
+4. Make it prominent for riders:
+   - Bold or highlighted in active orders
+   - Easy to read and find
+   - Helps riders locate delivery address
+
+5. Include in all order status displays:
+   - Pending → Show landmark
+   - Accepted → Show landmark
+   - Picked Up → Show landmark
+   - In Transit → Show landmark
+   - Delivered → Show landmark (for records)
+   - Cancelled → Show landmark (for records)
+
+The landmark field is crucial for successful deliveries - riders need this information to find customers easily, especially in areas with unclear addressing.
