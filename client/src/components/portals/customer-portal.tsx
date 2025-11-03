@@ -447,7 +447,14 @@ export default function CustomerPortal() {
 
   // Calculate delivery fees based on distance when address changes
   useEffect(() => {
+    console.log('=== DISTANCE CALC EFFECT ===');
+    console.log('selectedAddress:', selectedAddress);
+    console.log('settings:', settings);
+    console.log('cart.allCarts:', cart.allCarts);
+    console.log('restaurants count:', restaurants.length);
+    
     if (!settings) {
+      console.log('No settings, skipping');
       return;
     }
 
@@ -457,6 +464,7 @@ export default function CustomerPortal() {
 
     // If customer coordinates are missing, use base rate fallback for all restaurants
     if (!selectedAddress?.latitude || !selectedAddress?.longitude) {
+      console.log('NO COORDINATES - selectedAddress:', selectedAddress);
       const distances: Record<string, number> = {};
       Object.values(cart.allCarts).forEach((restaurantCart) => {
         fees[restaurantCart.restaurantId] = baseRate;
@@ -464,17 +472,20 @@ export default function CustomerPortal() {
       });
       setCalculatedDeliveryFees(fees);
       setCalculatedDistances(distances);
+      console.log('Set distances to 0 for all restaurants');
       return;
     }
 
     const customerLat = parseFloat(selectedAddress.latitude);
     const customerLng = parseFloat(selectedAddress.longitude);
+    console.log('Customer coords:', customerLat, customerLng);
 
     // Calculate delivery fee for each restaurant in the cart
     const distances: Record<string, number> = {};
     Object.values(cart.allCarts).forEach((restaurantCart) => {
       // Find the restaurant details to get coordinates
       const restaurant = restaurants.find(r => r.id === restaurantCart.restaurantId);
+      console.log('Restaurant:', restaurant?.name, 'has coords:', (restaurant as any)?.latitude, (restaurant as any)?.longitude);
       
       if (restaurant && (restaurant as any).latitude && (restaurant as any).longitude) {
         const restaurantLat = parseFloat((restaurant as any).latitude);
@@ -488,17 +499,21 @@ export default function CustomerPortal() {
           restaurantLng
         );
         
+        console.log('Calculated distance for', restaurant.name, ':', distance, 'km, rounded:', Math.ceil(distance));
+        
         // Calculate delivery fee based on distance
         const deliveryFee = calculateDeliveryFee(distance, baseRate, succeedingRate);
         fees[restaurantCart.restaurantId] = deliveryFee;
         distances[restaurantCart.restaurantId] = Math.ceil(distance); // Round up to whole number
       } else {
+        console.log('No coords for restaurant', restaurantCart.restaurantName, '- using base rate');
         // Fallback to default delivery fee if restaurant coordinates not available
         fees[restaurantCart.restaurantId] = baseRate;
         distances[restaurantCart.restaurantId] = 0;
       }
     });
 
+    console.log('Final distances:', distances);
     setCalculatedDeliveryFees(fees);
     setCalculatedDistances(distances);
   }, [selectedAddress, settings, cart.allCarts, restaurants]);
