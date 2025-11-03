@@ -464,7 +464,6 @@ export default function CustomerPortal() {
       });
       setCalculatedDeliveryFees(fees);
       setCalculatedDistances(distances);
-      console.log('No address selected, distances:', distances);
       return;
     }
 
@@ -493,18 +492,15 @@ export default function CustomerPortal() {
         const deliveryFee = calculateDeliveryFee(distance, baseRate, succeedingRate);
         fees[restaurantCart.restaurantId] = deliveryFee;
         distances[restaurantCart.restaurantId] = Math.ceil(distance); // Round up to whole number
-        console.log(`Distance for ${restaurantCart.restaurantName}: ${Math.ceil(distance)} km, fee: ${deliveryFee}`);
       } else {
         // Fallback to default delivery fee if restaurant coordinates not available
         fees[restaurantCart.restaurantId] = baseRate;
         distances[restaurantCart.restaurantId] = 0;
-        console.log(`No coordinates for restaurant ${restaurantCart.restaurantId}`);
       }
     });
 
     setCalculatedDeliveryFees(fees);
     setCalculatedDistances(distances);
-    console.log('Calculated distances:', distances);
   }, [selectedAddress, settings, cart.allCarts, restaurants]);
 
   // Get customer's current location using browser geolocation API
@@ -1243,8 +1239,6 @@ export default function CustomerPortal() {
                   const convenienceFee = settings?.convenienceFee ? parseFloat(settings.convenienceFee) : 0;
                   const showConvenienceFee = settings?.showConvenienceFee !== false;
                   const total = itemsSubtotal + deliveryFee + (showConvenienceFee ? convenienceFee : 0);
-                  
-                  console.log('Checkout modal - restaurantId:', cart.restaurantId, 'distance:', distance, 'allDistances:', calculatedDistances);
                   
                   return (
                     <>

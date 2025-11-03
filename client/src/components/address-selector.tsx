@@ -437,12 +437,14 @@ export function AddressSelector({ value, onChange, disabled }: AddressSelectorPr
   };
 
   const defaultAddress = addresses.find((a) => a.isDefault);
+  const firstAddress = addresses.length > 0 ? addresses[0] : null;
 
   useEffect(() => {
-    if (!value && defaultAddress) {
-      onChange(defaultAddress);
+    if (!value && (defaultAddress || firstAddress)) {
+      // Auto-select default address, or first address if no default exists
+      onChange(defaultAddress || firstAddress);
     }
-  }, [defaultAddress, value, onChange]);
+  }, [defaultAddress, firstAddress, value, onChange]);
 
   return (
     <div className="space-y-2">
