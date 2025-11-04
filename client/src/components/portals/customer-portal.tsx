@@ -310,13 +310,9 @@ export default function CustomerPortal() {
 
   // Create order mutation for all carts
   const createOrderMutation = useMutation({
-    mutationFn: async (ordersData: any[]) => {
-      const responses = await Promise.all(
-        ordersData.map(orderData => 
-          apiRequest("POST", "/api/orders", orderData).then(res => res.json())
-        )
-      );
-      return responses;
+    mutationFn: async (checkoutData: any) => {
+      const response = await apiRequest("POST", "/api/orders/checkout", checkoutData);
+      return response.json();
     },
     onSuccess: () => {
       cart.clearAllCarts();
@@ -777,11 +773,19 @@ export default function CustomerPortal() {
       return;
     }
 
-    // Create an order for each restaurant cart
+    // Prepare checkout data for the /api/orders/checkout endpoint
     const convenienceFee = settings?.convenienceFee ? parseFloat(settings.convenienceFee) : 0;
     const showConvenienceFee = settings?.showConvenienceFee !== false;
     
-    const ordersData = allCarts
+    const deliveryAddress = [
+      selectedAddress.lotHouseNo,
+      selectedAddress.street,
+      selectedAddress.barangay,
+      selectedAddress.cityMunicipality,
+      selectedAddress.province
+    ].filter(Boolean).join(", ");
+
+    const carts = allCarts
       .filter(restaurantCart => restaurantCart.items.length > 0)
       .map(restaurantCart => {
         const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -789,14 +793,6 @@ export default function CustomerPortal() {
         const deliveryFee = calculatedDeliveryFees[restaurantCart.restaurantId] || 0;
         const orderConvenienceFee = showConvenienceFee ? convenienceFee : 0;
         const total = subtotal + markupAmount + deliveryFee + orderConvenienceFee;
-
-        const deliveryAddress = [
-          selectedAddress.lotHouseNo,
-          selectedAddress.street,
-          selectedAddress.barangay,
-          selectedAddress.cityMunicipality,
-          selectedAddress.province
-        ].filter(Boolean).join(", ");
 
         return {
           restaurantId: restaurantCart.restaurantId,
@@ -811,23 +807,26 @@ export default function CustomerPortal() {
           deliveryFee: deliveryFee.toFixed(2),
           convenienceFee: orderConvenienceFee.toFixed(2),
           total: total.toFixed(2),
-          deliveryAddress,
-          deliveryLatitude: selectedAddress.latitude,
-          deliveryLongitude: selectedAddress.longitude,
-          landmark: selectedAddress.landmark,
-          phoneNumber,
-          specialInstructions,
-          paymentMethod,
-          status: 'pending'
         };
       });
+
+    const checkoutData = {
+      carts,
+      deliveryAddress,
+      deliveryLatitude: selectedAddress.latitude,
+      deliveryLongitude: selectedAddress.longitude,
+      landmark: selectedAddress.landmark,
+      phoneNumber,
+      specialInstructions,
+      paymentMethod,
+    };
 
     console.log('=== CHECKOUT DATA ===');
     console.log('Selected Address:', selectedAddress);
     console.log('Landmark being sent:', selectedAddress.landmark);
-    console.log('Orders data:', ordersData);
+    console.log('Checkout data:', checkoutData);
 
-    createOrderMutation.mutate(ordersData);
+    createOrderMutation.mutate(checkoutData);
   };
 
   // Extract restaurant values for use in modals (outside if block scope)
