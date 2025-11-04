@@ -1,0 +1,53 @@
+CRITICAL BUG - All customers are sharing the same addresses!
+
+PROBLEM:
+When Customer 1 saves an address (Capas), Customer 2 automatically gets that same address in their saved addresses. All customers are seeing each other's addresses.
+
+This is a SEVERE data privacy and security issue.
+
+ROOT CAUSE:
+The customer_addresses or addresses table is NOT properly filtering by customer_id, or addresses are being saved without a customer_id.
+
+IMMEDIATE FIX REQUIRED:
+
+1. CHECK ADDRESS SAVING:
+   When a customer saves an address, ensure it's saved WITH their customer_id:
+   - Address must be linked to specific customer
+   - customer_id must be included in the insert
+   - Verify customer_id is not null or default value
+
+2. CHECK ADDRESS FETCHING:
+   When displaying saved addresses, ensure query filters by logged-in customer:
+   - Must filter: WHERE customer_id = current_user_id
+   - NOT fetching all addresses from table
+   - Only show addresses belonging to that specific customer
+
+3. CHECK CHECKOUT ADDRESS SELECTION:
+   Same issue - ensure only showing addresses for current customer:
+   - Filter by customer_id
+   - Customer should only see their own addresses
+   - Not all addresses in system
+
+4. VERIFY DATABASE:
+   Check the addresses table:
+   - Does it have customer_id column?
+   - Are addresses being saved with correct customer_id?
+   - Or are all addresses saved with null or same customer_id?
+
+5. PRIVACY VIOLATION:
+   This means:
+   - Customers can see other customers' home addresses
+   - Customers can select other people's addresses for delivery
+   - Serious privacy and security breach
+   - Must be fixed immediately
+
+6. TEST THE FIX:
+   After fixing:
+   - Create Customer A, save Address 1
+   - Create Customer B, check saved addresses
+   - Customer B should have NO addresses
+   - Customer B saves Address 2
+   - Customer A should still only see Address 1
+   - Customer B should only see Address 2
+
+This is a critical bug that must be fixed before any real customers use the system. Every customer must only see and use their own saved addresses.
