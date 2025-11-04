@@ -1258,7 +1258,7 @@ export default function CustomerPortal() {
                         </div>
                         {showConvenienceFee && convenienceFee > 0 && (
                           <div className="flex justify-between text-sm">
-                            <span>Convenience Fee:</span>
+                            <span>Rider's Convenience Fee:</span>
                             <span>₱{convenienceFee.toFixed(2)}</span>
                           </div>
                         )}
@@ -1705,7 +1705,7 @@ export default function CustomerPortal() {
                           </div>
                           {parseFloat(order.convenienceFee || '0') > 0 && (
                             <div className="flex justify-between">
-                              <span>Convenience Fee:</span>
+                              <span>Rider's Convenience Fee:</span>
                               <span>₱{parseFloat(order.convenienceFee || '0').toFixed(2)}</span>
                             </div>
                           )}
@@ -2142,7 +2142,7 @@ export default function CustomerPortal() {
                         </div>
                         {showConvenienceFee && convenienceFee > 0 && (
                           <div className="flex justify-between">
-                            <span>Convenience Fee:</span>
+                            <span>Rider's Convenience Fee:</span>
                             <span>₱{convenienceFee.toFixed(2)}</span>
                           </div>
                         )}
