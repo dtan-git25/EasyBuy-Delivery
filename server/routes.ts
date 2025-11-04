@@ -4,6 +4,8 @@ import { WebSocketServer, WebSocket } from "ws";
 
 interface ExtendedWebSocket extends WebSocket {
   orderId?: string;
+  userId?: string;
+  userRole?: string;
 }
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
@@ -890,8 +892,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         orderId
       });
 
-      // Broadcast location update via WebSocket
-      if (wss) {
+      // Broadcast location update to admins and customers tracking this rider
+      if (wss && orderId) {
         const message = JSON.stringify({
           type: 'rider_location_update',
           riderId: rider.id,
@@ -899,9 +901,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           timestamp: new Date().toISOString()
         });
         
+        // Get customer ID from the order
+        const order = await storage.getOrder(orderId);
+        const customerId = order?.customerId;
+        
         wss.clients.forEach(client => {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(message);
+          const extendedClient = client as ExtendedWebSocket;
+          if (extendedClient.readyState === WebSocket.OPEN) {
+            // Send to admins, the customer who placed the order, and merchants
+            const isRelevantUser = 
+              extendedClient.userRole === 'admin' ||
+              (customerId && extendedClient.userId === customerId) ||
+              extendedClient.userRole === 'merchant';
+            
+            if (isRelevantUser) {
+              extendedClient.send(message);
+            }
           }
         });
       }
@@ -1037,7 +1052,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Broadcast new order group to connected riders via WebSocket
+      // Broadcast new order group to connected riders ONLY via WebSocket
       if (wss) {
         const message = JSON.stringify({
           type: 'new_order_group',
@@ -1047,8 +1062,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         
         wss.clients.forEach(client => {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(message);
+          const extendedClient = client as ExtendedWebSocket;
+          if (extendedClient.readyState === WebSocket.OPEN && 
+              extendedClient.userRole === 'rider') {
+            extendedClient.send(message);
           }
         });
       }
@@ -1173,7 +1190,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Broadcast new order to connected riders via WebSocket
+      // Broadcast new order to connected riders ONLY via WebSocket
       if (wss) {
         const message = JSON.stringify({
           type: 'new_order',
@@ -1181,8 +1198,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         
         wss.clients.forEach(client => {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(message);
+          const extendedClient = client as ExtendedWebSocket;
+          if (extendedClient.readyState === WebSocket.OPEN && 
+              extendedClient.userRole === 'rider') {
+            extendedClient.send(message);
           }
         });
       }
@@ -1466,9 +1485,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           timestamp: new Date().toISOString()
         });
         
+        // Get restaurant owner ID for merchant notifications
+        let merchantOwnerId: string | undefined;
+        if (order.restaurantId) {
+          const restaurant = await storage.getRestaurant(order.restaurantId);
+          merchantOwnerId = restaurant?.ownerId;
+        }
+        
+        // Only send to relevant users: customer, merchant, assigned rider, and admins
         wss.clients.forEach(client => {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(message);
+          const extendedClient = client as ExtendedWebSocket;
+          if (extendedClient.readyState === WebSocket.OPEN) {
+            const isRelevantUser = 
+              extendedClient.userId === order.customerId || // Customer who placed order
+              extendedClient.userId === order.riderId || // Assigned rider
+              extendedClient.userId === merchantOwnerId || // Merchant owner
+              extendedClient.userRole === 'admin'; // Admins
+            
+            if (isRelevantUser) {
+              extendedClient.send(message);
+            }
           }
         });
       }
@@ -3954,7 +3990,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   wss.on('connection', (ws: ExtendedWebSocket) => {
     console.log('WebSocket client connected');
 
-    ws.on('message', (message) => {
+    ws.on('message', async (message) => {
       try {
         const data = JSON.parse(message.toString());
         
@@ -4013,17 +4049,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
             break;
 
           case 'order_status_change':
-            // Handle real-time order status updates
-            wss.clients.forEach(client => {
-              const extendedClient = client as ExtendedWebSocket;
-              if (extendedClient !== ws && 
-                  extendedClient.readyState === WebSocket.OPEN) {
-                extendedClient.send(JSON.stringify({
-                  ...data,
-                  timestamp: new Date().toISOString()
-                }));
+            // Handle real-time order status updates - send only to relevant users
+            if (data.orderId) {
+              // Fetch order to get relevant user IDs
+              const order = await storage.getOrder(data.orderId);
+              if (order) {
+                let merchantOwnerId: string | undefined;
+                if (order.restaurantId) {
+                  const restaurant = await storage.getRestaurant(order.restaurantId);
+                  merchantOwnerId = restaurant?.ownerId;
+                }
+                
+                wss.clients.forEach(client => {
+                  const extendedClient = client as ExtendedWebSocket;
+                  if (extendedClient !== ws && 
+                      extendedClient.readyState === WebSocket.OPEN) {
+                    const isRelevantUser = 
+                      extendedClient.userId === order.customerId ||
+                      extendedClient.userId === order.riderId ||
+                      extendedClient.userId === merchantOwnerId ||
+                      extendedClient.userRole === 'admin';
+                    
+                    if (isRelevantUser) {
+                      extendedClient.send(JSON.stringify({
+                        ...data,
+                        timestamp: new Date().toISOString()
+                      }));
+                    }
+                  }
+                });
               }
-            });
+            }
             break;
 
           case 'location_update':

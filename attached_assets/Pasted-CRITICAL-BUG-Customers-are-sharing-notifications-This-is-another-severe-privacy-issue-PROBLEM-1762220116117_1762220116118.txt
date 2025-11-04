@@ -1,0 +1,74 @@
+CRITICAL BUG - Customers are sharing notifications! This is another severe privacy issue.
+
+PROBLEM:
+When Customer 1 places an order, Customer 2 also receives notifications about Customer 1's order. All customers are receiving each other's order notifications.
+
+This is a MAJOR privacy and security breach - customers can see other customers' order activities.
+
+ROOT CAUSE:
+Notifications are being broadcast to ALL customers instead of only the specific customer who placed the order.
+
+IMMEDIATE FIX REQUIRED:
+
+1. CHECK NOTIFICATION CREATION:
+   When creating notifications for orders, ensure they are targeted to specific users:
+   - Order notifications must go ONLY to the customer who placed the order
+   - Include customer_id or user_id when creating notification
+   - NOT broadcasting to all users of same role
+
+2. CHECK NOTIFICATION FETCHING:
+   When a customer views their notifications:
+   - Must filter: WHERE user_id = current_customer_id
+   - NOT fetching all notifications for role "customer"
+   - Only show notifications for that specific logged-in customer
+
+3. CHECK REAL-TIME NOTIFICATIONS:
+   If using WebSocket or real-time updates:
+   - Notifications must be sent to specific user socket/channel
+   - NOT broadcasting to all connected customers
+   - Each customer should have their own notification channel
+
+4. VERIFY WHO SHOULD RECEIVE ORDER NOTIFICATIONS:
+
+   When Customer 1 places an order, notifications should go to:
+   - Customer 1 (order confirmation, status updates) ✓
+   - Merchant (new order alert) ✓
+   - Admin (order monitoring) ✓
+   - Assigned Rider (when accepted) ✓
+   
+   Should NOT go to:
+   - Customer 2 ✗
+   - Customer 3 ✗
+   - Any other customers ✗
+
+5. CHECK NOTIFICATION TABLE/SYSTEM:
+   - Does notifications table have user_id or customer_id column?
+   - Are notifications being saved with correct recipient user_id?
+   - Or are they saved without user_id, making them visible to all?
+
+6. FIX BOTH ISSUES TOGETHER:
+   This is related to the address sharing bug - both indicate user data is not properly isolated:
+   - Addresses not filtered by customer_id
+   - Notifications not filtered by user_id
+   - General data isolation problem
+
+7. CHECK ALL USER-SPECIFIC DATA:
+   Verify these are also properly isolated per customer:
+   - Orders (customer should only see their own orders)
+   - Cart items (customer should only see their own cart)
+   - Payment history
+   - Order history
+   - Ratings/reviews
+
+8. TEST THE FIX:
+   After fixing:
+   - Customer A logs in, places order
+   - Customer A sees notification ✓
+   - Customer B logs in, checks notifications
+   - Customer B should NOT see Customer A's order notification ✗
+   - Each customer only sees their own notifications
+
+CRITICAL PRIORITY:
+These data isolation bugs (shared addresses + shared notifications) indicate a fundamental issue with user data filtering. This MUST be fixed before any production use - this is a serious privacy violation.
+
+All user-specific data must be properly filtered by user_id/customer_id throughout the entire application.
