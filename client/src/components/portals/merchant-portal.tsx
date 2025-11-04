@@ -1421,8 +1421,12 @@ export default function MerchantPortal() {
                             ))}
                             <hr className="border-border" />
                             <div className="flex justify-between items-center font-medium">
-                              <span className="text-foreground">Subtotal</span>
+                              <span className="text-foreground">Items Total</span>
                               <span className="text-foreground">₱{order.subtotal}</span>
+                            </div>
+                            <div className="flex justify-between items-center bg-green-50 dark:bg-green-950 p-2 rounded mt-2">
+                              <span className="font-semibold text-green-700 dark:text-green-400">Your Earnings</span>
+                              <span className="font-bold text-green-700 dark:text-green-400">₱{order.merchantEarningsAmount || order.subtotal}</span>
                             </div>
                           </div>
                         </div>

@@ -814,9 +814,29 @@ export default function RiderPortal() {
                   <div className="bg-green-500 bg-opacity-10 p-3 rounded-lg">
                     <DollarSign className="text-green-600 h-6 w-6" />
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Today's Earnings</p>
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground mb-1">Today's Earnings</p>
                     <p className="text-2xl font-bold text-foreground" data-testid="text-today-earnings">₱{todayEarnings.toFixed(2)}</p>
+                    {(() => {
+                      const deliveryShare = todayDeliveredOrders.reduce((sum: number, order: any) => {
+                        const appPercent = parseFloat(order.appEarningsPercentageUsed || '50') / 100;
+                        const share = parseFloat(order.deliveryFee || '0') * (1 - appPercent);
+                        return sum + share;
+                      }, 0);
+                      const convenienceFees = todayDeliveredOrders.reduce((sum: number, order: any) => {
+                        return sum + parseFloat(order.convenienceFee || '0');
+                      }, 0);
+                      
+                      if (todayDeliveredOrders.length > 0) {
+                        return (
+                          <div className="mt-2 text-xs text-muted-foreground space-y-0.5">
+                            <div>• Delivery Share: ₱{deliveryShare.toFixed(2)}</div>
+                            <div>• Convenience Fees: ₱{convenienceFees.toFixed(2)}</div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
                 </div>
               </CardContent>
