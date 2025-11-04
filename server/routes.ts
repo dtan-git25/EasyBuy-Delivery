@@ -1000,6 +1000,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const cart of carts) {
         const orderNumber = `EBD-${Date.now()}-${Math.random().toString(36).substring(7)}`;
         
+        // Calculate earnings distribution based on revenue model
+        const appEarningsPercentageUsed = parseFloat(settings?.appEarningsPercentage?.toString() || '50');
+        const appEarningsPercent = appEarningsPercentageUsed / 100;
+        
+        const subtotal = parseFloat(cart.subtotal);
+        const markup = parseFloat(cart.markup);
+        const deliveryFee = parseFloat(cart.deliveryFee);
+        const convenienceFee = parseFloat(cart.convenienceFee);
+        
+        const merchantEarningsAmount = subtotal; // Merchant gets base items cost
+        const appEarningsAmount = (deliveryFee * appEarningsPercent) + markup; // App gets % of delivery + all markup
+        const riderEarningsAmount = (deliveryFee * (1 - appEarningsPercent)) + convenienceFee; // Rider gets remaining delivery % + convenience
+        
         const orderData = {
           orderGroupId, // Server-generated group ID
           customerId: req.user.id,
@@ -1019,6 +1032,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           customerNotes: specialInstructions,
           paymentMethod,
           status: 'pending',
+          // Revenue model fields
+          appEarningsPercentageUsed: appEarningsPercentageUsed.toString(),
+          appEarningsAmount: appEarningsAmount.toFixed(2),
+          riderEarningsAmount: riderEarningsAmount.toFixed(2),
+          merchantEarningsAmount: merchantEarningsAmount.toFixed(2),
         };
         
         const parsedOrderData = insertOrderSchema.parse(orderData);
@@ -1159,6 +1177,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const merchantFee = parseFloat(orderData.merchantFee || '0');
       const convenienceFee = parseFloat(orderData.convenienceFee || '0');
       orderData.total = (subtotal + markup + calculatedDeliveryFee + merchantFee + convenienceFee).toFixed(2);
+      
+      // Calculate earnings distribution based on revenue model
+      const appEarningsPercentageUsed = parseFloat(settings?.appEarningsPercentage?.toString() || '50');
+      const appEarningsPercent = appEarningsPercentageUsed / 100;
+      
+      const merchantEarningsAmount = subtotal; // Merchant gets base items cost
+      const appEarningsAmount = (calculatedDeliveryFee * appEarningsPercent) + markup; // App gets % of delivery + all markup
+      const riderEarningsAmount = (calculatedDeliveryFee * (1 - appEarningsPercent)) + convenienceFee; // Rider gets remaining delivery % + convenience
+      
+      orderData.appEarningsPercentageUsed = appEarningsPercentageUsed.toString();
+      orderData.appEarningsAmount = appEarningsAmount.toFixed(2);
+      orderData.riderEarningsAmount = riderEarningsAmount.toFixed(2);
+      orderData.merchantEarningsAmount = merchantEarningsAmount.toFixed(2);
       
       const parsedOrderData = insertOrderSchema.parse(orderData);
       const order = await storage.createOrder(parsedOrderData);

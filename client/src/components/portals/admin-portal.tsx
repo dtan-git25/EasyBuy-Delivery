@@ -1079,12 +1079,12 @@ export default function AdminPortal() {
   const [tempSettings, setTempSettings] = useState({
     baseDeliveryFee: (settings as any)?.baseDeliveryFee || '25',
     perKmRate: (settings as any)?.perKmRate || '15',
-    convenienceFee: (settings as any)?.convenienceFee || '10',
+    convenienceFee: (settings as any)?.convenienceFee || '15',
     showConvenienceFee: (settings as any)?.showConvenienceFee ?? true,
     allowMultiMerchantCheckout: (settings as any)?.allowMultiMerchantCheckout ?? false,
     maxMerchantsPerOrder: (settings as any)?.maxMerchantsPerOrder || 2,
     maxMultipleOrderBooking: (settings as any)?.maxMultipleOrderBooking || 0,
-    riderCommissionPercentage: (settings as any)?.riderCommissionPercentage || '70',
+    appEarningsPercentage: (settings as any)?.appEarningsPercentage || '50',
     codEnabled: (settings as any)?.codEnabled ?? true,
     gcashEnabled: (settings as any)?.gcashEnabled ?? true,
     mayaEnabled: (settings as any)?.mayaEnabled ?? true,
@@ -1098,12 +1098,12 @@ export default function AdminPortal() {
       setTempSettings({
         baseDeliveryFee: (settings as any).baseDeliveryFee || '25',
         perKmRate: (settings as any).perKmRate || '15',
-        convenienceFee: (settings as any).convenienceFee || '10',
+        convenienceFee: (settings as any).convenienceFee || '15',
         showConvenienceFee: (settings as any).showConvenienceFee ?? true,
         allowMultiMerchantCheckout: (settings as any).allowMultiMerchantCheckout ?? false,
         maxMerchantsPerOrder: (settings as any).maxMerchantsPerOrder || 2,
         maxMultipleOrderBooking: (settings as any).maxMultipleOrderBooking || 0,
-        riderCommissionPercentage: (settings as any).riderCommissionPercentage || '70',
+        appEarningsPercentage: (settings as any).appEarningsPercentage || '50',
         codEnabled: (settings as any).codEnabled ?? true,
         gcashEnabled: (settings as any).gcashEnabled ?? true,
         mayaEnabled: (settings as any).mayaEnabled ?? true,
@@ -1854,35 +1854,65 @@ export default function AdminPortal() {
                     </div>
 
                     <div>
-                      <Label htmlFor="rider-commission">Rider Commission (%)</Label>
+                      <Label htmlFor="app-earnings">App Earnings (%)</Label>
                       <p className="text-xs text-muted-foreground mt-1 mb-2">
-                        Percentage of (delivery fee + markup) that riders earn per order
+                        Percentage of delivery fee that the app earns. Remaining percentage goes to rider. App also earns all order markup.
                       </p>
                       <div className="flex items-center space-x-2">
                         <Input
-                          id="rider-commission"
+                          id="app-earnings"
                           type="number"
                           min="0"
                           max="100"
                           step="1"
-                          value={tempSettings.riderCommissionPercentage}
-                          onChange={(e) => setTempSettings(prev => ({ ...prev, riderCommissionPercentage: e.target.value }))}
+                          value={tempSettings.appEarningsPercentage}
+                          onChange={(e) => setTempSettings(prev => ({ ...prev, appEarningsPercentage: e.target.value }))}
                           className="flex-1"
-                          data-testid="input-rider-commission"
+                          data-testid="input-app-earnings"
                         />
                         <span className="text-muted-foreground">%</span>
                         <Button 
                           size="sm"
-                          onClick={() => updateSetting('riderCommissionPercentage', tempSettings.riderCommissionPercentage)}
+                          onClick={() => updateSetting('appEarningsPercentage', tempSettings.appEarningsPercentage)}
                           disabled={updateSettingsMutation.isPending}
-                          data-testid="button-update-rider-commission"
+                          data-testid="button-update-app-earnings"
                         >
                           Update
                         </Button>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Example: If set to 70%, rider earns 70% of delivery fee + markup combined
-                      </p>
+                      
+                      {/* Preview Calculation */}
+                      <div className="mt-4 p-3 bg-muted/50 rounded-lg border">
+                        <p className="text-xs font-semibold text-foreground mb-2">Example Revenue Distribution:</p>
+                        <div className="text-xs space-y-1 text-muted-foreground">
+                          {(() => {
+                            const itemsCost = 500;
+                            const orderMarkup = 10;
+                            const deliveryFee = 100;
+                            const convenienceFee = parseFloat(tempSettings.convenienceFee || '15');
+                            const appPercent = parseFloat(tempSettings.appEarningsPercentage || '50') / 100;
+                            
+                            const merchantEarnings = itemsCost;
+                            const appEarnings = (deliveryFee * appPercent) + orderMarkup;
+                            const riderEarnings = (deliveryFee * (1 - appPercent)) + convenienceFee;
+                            const customerPays = itemsCost + orderMarkup + deliveryFee + convenienceFee;
+                            
+                            return (
+                              <>
+                                <p><span className="font-medium">Customer Pays:</span> ₱{customerPays.toFixed(2)}</p>
+                                <p className="pl-3">• Items: ₱{itemsCost.toFixed(2)}</p>
+                                <p className="pl-3">• Markup: ₱{orderMarkup.toFixed(2)}</p>
+                                <p className="pl-3">• Delivery: ₱{deliveryFee.toFixed(2)}</p>
+                                <p className="pl-3">• Convenience: ₱{convenienceFee.toFixed(2)}</p>
+                                <div className="h-px bg-border my-2"></div>
+                                <p><span className="font-medium text-green-600">Merchant Earns:</span> ₱{merchantEarnings.toFixed(2)}</p>
+                                <p><span className="font-medium text-blue-600">App Earns:</span> ₱{appEarnings.toFixed(2)} ({(appPercent * 100).toFixed(0)}% of delivery + markup)</p>
+                                <p><span className="font-medium text-orange-600">Rider Earns:</span> ₱{riderEarnings.toFixed(2)} ({((1 - appPercent) * 100).toFixed(0)}% of delivery + convenience)</p>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

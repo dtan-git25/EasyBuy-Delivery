@@ -258,13 +258,20 @@ export const orders = pgTable("orders", {
   riderId: varchar("rider_id").references(() => users.id, { onDelete: 'set null' }),
   orderNumber: text("order_number").notNull().unique(),
   items: jsonb("items").notNull(),
-  subtotal: decimal("subtotal", { precision: 8, scale: 2 }).notNull(),
-  markup: decimal("markup", { precision: 8, scale: 2 }).notNull(),
+  subtotal: decimal("subtotal", { precision: 8, scale: 2 }).notNull(), // Merchant earnings (items base cost)
+  markup: decimal("markup", { precision: 8, scale: 2 }).notNull(), // Order markup
   deliveryFee: decimal("delivery_fee", { precision: 8, scale: 2 }).notNull(),
   merchantFee: decimal("merchant_fee", { precision: 8, scale: 2 }).default('0'),
   convenienceFee: decimal("convenience_fee", { precision: 8, scale: 2 }).default('0'),
   total: decimal("total", { precision: 8, scale: 2 }).notNull(),
   commission: decimal("commission", { precision: 8, scale: 2 }).default('0'),
+  
+  // Revenue model tracking fields
+  appEarningsPercentageUsed: decimal("app_earnings_percentage_used", { precision: 5, scale: 2 }), // % used at order time
+  appEarningsAmount: decimal("app_earnings_amount", { precision: 8, scale: 2 }).default('0'), // (deliveryFee × %) + markup
+  riderEarningsAmount: decimal("rider_earnings_amount", { precision: 8, scale: 2 }).default('0'), // (deliveryFee × (100% - %)) + convenienceFee
+  merchantEarningsAmount: decimal("merchant_earnings_amount", { precision: 8, scale: 2 }).default('0'), // Same as subtotal
+  
   status: orderStatusEnum("status").default('pending'),
   deliveryAddress: text("delivery_address").notNull(),
   deliveryLatitude: decimal("delivery_latitude", { precision: 10, scale: 8 }),
@@ -339,11 +346,11 @@ export const systemSettings = pgTable("system_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   baseDeliveryFee: decimal("base_delivery_fee", { precision: 8, scale: 2 }).default('25'),
   perKmRate: decimal("per_km_rate", { precision: 8, scale: 2 }).default('15'),
-  convenienceFee: decimal("convenience_fee", { precision: 8, scale: 2 }).default('10'),
+  convenienceFee: decimal("convenience_fee", { precision: 8, scale: 2 }).default('15'),
   showConvenienceFee: boolean("show_convenience_fee").default(true),
   allowMultiMerchantCheckout: boolean("allow_multi_merchant_checkout").default(false),
   maxMerchantsPerOrder: integer("max_merchants_per_order").default(2),
-  riderCommissionPercentage: decimal("rider_commission_percentage", { precision: 5, scale: 2 }).default('70'),
+  appEarningsPercentage: decimal("app_earnings_percentage", { precision: 5, scale: 2 }).default('50'), // Percentage of delivery fee that app earns
   logo: text("logo"), // App logo path
   
   // Rider booking restrictions

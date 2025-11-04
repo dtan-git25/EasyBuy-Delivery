@@ -1,0 +1,119 @@
+Implement the complete revenue and earnings model app-wide:
+
+REVENUE MODEL:
+
+Customer Order Example:
+- Items (base cost): ₱500
+- Order Markup: ₱10
+- Delivery Fee: ₱100
+- Convenience Fee: ₱15
+- CUSTOMER PAYS TOTAL: ₱625
+
+Revenue Distribution:
+1. Merchant Earnings: ₱500 (base items cost)
+2. App Earnings: ₱60 (calculated as: (Delivery Fee × App Earnings %) + Total Markup)
+3. Rider Earnings: ₱65 (calculated as: (Delivery Fee × (100% - App Earnings %)) + Convenience Fee)
+
+Using Admin Settings:
+- App Earnings %: 50% (configurable by admin)
+- Convenience Fee: ₱15 (configurable by admin)
+
+Calculations:
+- App Earnings = (₱100 × 50%) + ₱10 = ₱50 + ₱10 = ₱60
+- Rider Earnings = (₱100 × 50%) + ₱15 = ₱50 + ₱15 = ₱65
+
+IMPLEMENTATION REQUIRED:
+
+1. ADMIN SETTINGS PAGE:
+   Add two configurable settings:
+   
+   App Earnings (%)
+   Input: [50] %
+   Description: "Percentage of delivery fee that the app earns. Remaining percentage goes to rider. App also earns all order markup."
+   
+   Convenience Fee
+   Input: ₱[15]
+   Description: "Fixed amount rider earns per delivery in addition to their delivery fee share."
+   
+   Show preview calculation based on example delivery fee.
+
+2. ORDER CALCULATIONS:
+   For every order, calculate and store:
+   - items_subtotal (base merchant price)
+   - order_markup (markup amount on items)
+   - delivery_fee (distance-based calculation)
+   - convenience_fee (from admin settings)
+   - app_earnings = (delivery_fee × app_earnings_percentage) + order_markup
+   - rider_earnings = (delivery_fee × (1 - app_earnings_percentage)) + convenience_fee
+   - merchant_earnings = items_subtotal
+   - total_amount = items_subtotal + order_markup + delivery_fee + convenience_fee
+
+3. CUSTOMER CHECKOUT DISPLAY:
+   Show breakdown:
+   Items Subtotal: ₱500.00
+   Delivery Fee: ₱100.00
+   Convenience Fee: ₱15.00
+   Total: ₱625.00
+   
+   Note: Markup is included in displayed item prices, not shown as separate line.
+
+4. RIDER VIEWS:
+   
+   In Pending Orders - dont' show potential earnings:
+   - Leave the card as it is
+   
+   In Active Orders - show earnings breakdown: (replace Rider's Earning section)
+   YOUR EARNINGS: ₱65
+   • Delivery Share: ₱50
+   • Convenience Fee: ₱15
+   
+   In Earnings Summary:
+   Total Deliveries: 10 orders
+   Delivery Share: ₱500
+   Convenience Fees: ₱150
+   TOTAL EARNINGS: ₱650
+
+5. MERCHANT VIEWS:
+   Show what merchant receives:
+   Order #EBD-12345
+   Items Total: ₱500
+   Your Earnings: ₱500
+   
+   Note: Merchant sees base prices without markup shown separately.
+
+6. ADMIN REPORTS:
+   Show complete revenue breakdown:
+   
+   Total Orders: 100
+   Total Revenue: ₱62,500
+   
+   Distribution:
+   - Merchant Payments: ₱50,000
+   - App Earnings: ₱6,000
+     * From Delivery Fees: ₱5,000
+     * From Markup: ₱1,000
+   - Rider Payments: ₱6,500
+     * Delivery Share: ₱5,000
+     * Convenience Fees: ₱1,500
+
+7. DATABASE STORAGE:
+   Store in orders table or related tables:
+   - items_subtotal
+   - order_markup
+   - delivery_fee
+   - convenience_fee
+   - app_earnings_percentage_used
+   - app_earnings_amount
+   - rider_earnings_amount
+   - merchant_earnings_amount
+
+8. ENSURE CONSISTENCY:
+   Apply this model across:
+   - Order creation
+   - Order display (all user types)
+   - Earnings calculations
+   - Financial reports
+   - Payout calculations
+   - All revenue tracking
+
+This revenue model must be implemented consistently throughout the entire application so all earnings calculations are accurate and properly distributed.

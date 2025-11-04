@@ -1224,13 +1224,37 @@ export default function RiderPortal() {
 
                         {/* Rider Earnings */}
                         <div className="bg-green-50 dark:bg-green-950 p-3 rounded-lg">
-                          <div className="flex justify-between items-center">
-                            <span className="font-semibold text-foreground">Rider Earnings:</span>
-                            <span className="text-xl font-bold text-green-600">₱{riderEarnings}</span>
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="font-semibold text-foreground">YOUR EARNINGS:</span>
+                            <span className="text-xl font-bold text-green-600">₱{order.riderEarningsAmount || riderEarnings}</span>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Auto-calculated as {rawCommission ?? 70}% of delivery fee + markup
-                          </p>
+                          {order.riderEarningsAmount ? (
+                            <div className="space-y-1 text-sm text-muted-foreground">
+                              {(() => {
+                                const appPercent = parseFloat(order.appEarningsPercentageUsed || '50') / 100;
+                                const deliveryShare = parseFloat(order.deliveryFee) * (1 - appPercent);
+                                const convenienceFee = parseFloat(order.convenienceFee || '0');
+                                return (
+                                  <>
+                                    <div className="flex justify-between">
+                                      <span>• Delivery Share:</span>
+                                      <span>₱{deliveryShare.toFixed(2)}</span>
+                                    </div>
+                                    {convenienceFee > 0 && (
+                                      <div className="flex justify-between">
+                                        <span>• Convenience Fee:</span>
+                                        <span>₱{convenienceFee.toFixed(2)}</span>
+                                      </div>
+                                    )}
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Auto-calculated based on delivery fee and convenience fee
+                            </p>
+                          )}
                         </div>
 
                         <Separator />
