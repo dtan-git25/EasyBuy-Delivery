@@ -793,7 +793,7 @@ export default function Dashboard() {
                         </div>
                         {showConvenienceFee && convenienceFee > 0 && (
                           <div className="flex justify-between">
-                            <span>Rider's Convenience Fee:</span>
+                            <span>Convenience Fee:</span>
                             <span>₱{convenienceFee.toFixed(2)}</span>
                           </div>
                         )}

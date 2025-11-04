@@ -1820,7 +1820,7 @@ export default function AdminPortal() {
                     </div>
 
                     <div>
-                      <Label htmlFor="convenience-fee">Rider's Convenience Fee</Label>
+                      <Label htmlFor="convenience-fee">Convenience Fee</Label>
                       <div className="flex items-center space-x-2 mt-1">
                         <span className="text-muted-foreground">₱</span>
                         <Input
@@ -2290,7 +2290,7 @@ export default function AdminPortal() {
                       csvData.push(['Delivery Fees', formatCurrencyForCSV((revenueAnalytics as any)?.deliveryFees || 0)]);
                       csvData.push(['Markup Earnings', formatCurrencyForCSV((revenueAnalytics as any)?.markupEarnings || 0)]);
                       csvData.push(['Merchant Fees', formatCurrencyForCSV((revenueAnalytics as any)?.merchantFees || 0)]);
-                      csvData.push(['Rider\'s Convenience Fees', formatCurrencyForCSV((revenueAnalytics as any)?.convenienceFees || 0)]);
+                      csvData.push(['Convenience Fees', formatCurrencyForCSV((revenueAnalytics as any)?.convenienceFees || 0)]);
                       csvData.push(['Average Order Value', formatCurrencyForCSV((revenueAnalytics as any)?.averageOrderValue || 0)]);
                       csvData.push([]);
                       
