@@ -2346,6 +2346,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const merchantFees = filteredOrders.reduce((sum: number, order: any) => 
         sum + parseFloat(order.merchantFee?.toString() || '0'), 0
       );
+      
+      // Calculate earnings breakdown by stakeholder
+      const merchantEarnings = filteredOrders.reduce((sum: number, order: any) => 
+        sum + parseFloat(order.merchantEarningsAmount?.toString() || order.subtotal.toString()), 0
+      );
+      const appEarnings = filteredOrders.reduce((sum: number, order: any) => 
+        sum + parseFloat(order.appEarningsAmount?.toString() || '0'), 0
+      );
+      const riderEarnings = filteredOrders.reduce((sum: number, order: any) => 
+        sum + parseFloat(order.riderEarningsAmount?.toString() || '0'), 0
+      );
 
       // Get settings for convenience fee
       const settingsRows = await db.select().from(systemSettings).limit(1);
@@ -2407,6 +2418,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         merchantFees,
         convenienceFees,
         averageOrderValue,
+        merchantEarnings,
+        appEarnings,
+        riderEarnings,
         revenueByPaymentMethod,
         revenueByMerchant: merchantRevenue,
         revenueTrends,
@@ -2416,6 +2430,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           markup: markupEarnings,
           merchantFees,
           convenienceFees
+        },
+        earningsBreakdown: {
+          merchantEarnings,
+          appEarnings,
+          riderEarnings
         }
       });
     } catch (error) {

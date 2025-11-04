@@ -2537,6 +2537,34 @@ export default function AdminPortal() {
                     </div>
                   </div>
 
+                  {/* Earnings Distribution Breakdown */}
+                  <div className="border-t pt-4">
+                    <h3 className="text-sm font-semibold mb-3">Earnings Distribution</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="p-4 bg-yellow-50 dark:bg-yellow-950 rounded-lg border-2 border-yellow-200 dark:border-yellow-800">
+                        <p className="text-sm text-muted-foreground">Merchant Earnings</p>
+                        <p className="text-2xl font-bold text-yellow-600" data-testid="text-merchant-earnings">
+                          ₱{((revenueAnalytics as any)?.merchantEarnings || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">Base items revenue</p>
+                      </div>
+                      <div className="p-4 bg-emerald-50 dark:bg-emerald-950 rounded-lg border-2 border-emerald-200 dark:border-emerald-800">
+                        <p className="text-sm text-muted-foreground">App Earnings</p>
+                        <p className="text-2xl font-bold text-emerald-600" data-testid="text-app-earnings">
+                          ₱{((revenueAnalytics as any)?.appEarnings || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">Delivery % + markup</p>
+                      </div>
+                      <div className="p-4 bg-cyan-50 dark:bg-cyan-950 rounded-lg border-2 border-cyan-200 dark:border-cyan-800">
+                        <p className="text-sm text-muted-foreground">Rider Earnings</p>
+                        <p className="text-2xl font-bold text-cyan-600" data-testid="text-rider-earnings">
+                          ₱{((revenueAnalytics as any)?.riderEarnings || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">Delivery % + convenience</p>
+                      </div>
+                    </div>
+                  </div>
+
                   <div>
                     <h3 className="text-sm font-semibold mb-2">Top Merchants by Revenue</h3>
                     <div className="h-[300px] border rounded-lg p-4">

@@ -2035,9 +2035,15 @@ export default function MerchantPortal() {
                           <p className="text-sm text-muted-foreground">No items</p>
                         )}
                         
-                        <div className="mt-4 pt-4 border-t flex justify-between items-center">
-                          <span className="font-semibold">Total:</span>
-                          <span className="text-lg font-bold">₱{order.subtotal}</span>
+                        <div className="mt-4 pt-4 border-t space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium">Items Total:</span>
+                            <span className="font-semibold">₱{order.subtotal}</span>
+                          </div>
+                          <div className="flex justify-between items-center bg-green-50 dark:bg-green-950 p-2 rounded">
+                            <span className="font-semibold text-green-700 dark:text-green-400">Your Earnings</span>
+                            <span className="font-bold text-green-700 dark:text-green-400">₱{order.merchantEarningsAmount || order.subtotal}</span>
+                          </div>
                         </div>
                       </div>
                     </CardContent>
