@@ -215,9 +215,11 @@ export function setupAuth(app: Express) {
             vehicleModel: 'To be specified',
             plateNumber: 'To be specified',
             licenseNumber: req.body.driversLicenseNo || 'To be specified',
-            documentsStatus: 'incomplete' // Documents not yet uploaded
+            documentsStatus: 'incomplete', // Documents not yet uploaded
+            homeLatitude: req.body.latitude || null, // Home/base location from registration map
+            homeLongitude: req.body.longitude || null // Home/base location from registration map
           });
-          console.log(`Created rider profile for user ${user.id}`);
+          console.log(`Created rider profile for user ${user.id} with home location (${req.body.latitude}, ${req.body.longitude})`);
         } catch (riderError) {
           console.error('Failed to create rider profile:', riderError);
           // Don't fail registration if rider profile creation fails

@@ -49,102 +49,6 @@ export default function AuthPage() {
     queryKey: ['/api/settings'],
   });
 
-  // Redirect to dashboard when user is authenticated
-  useEffect(() => {
-    if (user && !isLoading) {
-      setLocation("/");
-    }
-  }, [user, isLoading, setLocation]);
-
-  // Initialize map for rider registration
-  useEffect(() => {
-    if (activeTab !== "register" || registerRole !== "rider") {
-      // Cleanup map when not on rider registration
-      if (riderMapRef.current) {
-        riderMapRef.current.remove();
-        riderMapRef.current = null;
-        riderMarkerRef.current = null;
-      }
-      return;
-    }
-
-    // Wait for container to be ready
-    const initMap = setTimeout(() => {
-      if (riderMapContainerRef.current && !riderMapRef.current) {
-        try {
-          // Get initial coordinates from form or use Philippines default (Manila)
-          const latValue = riderForm.watch("latitude");
-          const lngValue = riderForm.watch("longitude");
-          const lat = latValue && latValue.trim() ? parseFloat(latValue) : 14.5995;
-          const lng = lngValue && lngValue.trim() ? parseFloat(lngValue) : 120.9842;
-          
-          // Create map instance
-          const map = L.map(riderMapContainerRef.current, {
-            center: [lat, lng],
-            zoom: 15,
-            zoomControl: true,
-          });
-          
-          // Add OpenStreetMap tiles
-          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-            attribution: '&copy; OpenStreetMap contributors',
-            maxZoom: 19,
-          }).addTo(map);
-          
-          // Create draggable marker if coordinates exist
-          let marker: L.Marker | null = null;
-          if (latValue && lngValue && latValue.trim() && lngValue.trim()) {
-            marker = L.marker([lat, lng], { 
-              draggable: true,
-              autoPan: true,
-            }).addTo(map);
-            
-            // Update coordinates when marker is dragged
-            marker.on("dragend", () => {
-              const position = marker!.getLatLng();
-              riderForm.setValue("latitude", position.lat.toFixed(6));
-              riderForm.setValue("longitude", position.lng.toFixed(6));
-            });
-          }
-          
-          // Allow clicking on map to place/move marker
-          map.on("click", (e) => {
-            if (!marker) {
-              marker = L.marker(e.latlng, { 
-                draggable: true,
-                autoPan: true,
-              }).addTo(map);
-              
-              marker.on("dragend", () => {
-                const position = marker!.getLatLng();
-                riderForm.setValue("latitude", position.lat.toFixed(6));
-                riderForm.setValue("longitude", position.lng.toFixed(6));
-              });
-              
-              riderMarkerRef.current = marker;
-            } else {
-              marker.setLatLng(e.latlng);
-            }
-            
-            riderForm.setValue("latitude", e.latlng.lat.toFixed(6));
-            riderForm.setValue("longitude", e.latlng.lng.toFixed(6));
-          });
-          
-          riderMapRef.current = map;
-          if (marker) {
-            riderMarkerRef.current = marker;
-          }
-        } catch (error) {
-          console.error("Failed to initialize map:", error);
-        }
-      }
-    }, 100);
-
-    return () => {
-      clearTimeout(initMap);
-    };
-  }, [activeTab, registerRole, riderForm]);
-
   // Initialize login form
   const loginForm = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -245,6 +149,102 @@ export default function AuthPage() {
       setForgotPasswordMessage(error.message);
     },
   });
+
+  // Redirect to dashboard when user is authenticated
+  useEffect(() => {
+    if (user && !isLoading) {
+      setLocation("/");
+    }
+  }, [user, isLoading, setLocation]);
+
+  // Initialize map for rider registration
+  useEffect(() => {
+    if (activeTab !== "register" || registerRole !== "rider") {
+      // Cleanup map when not on rider registration
+      if (riderMapRef.current) {
+        riderMapRef.current.remove();
+        riderMapRef.current = null;
+        riderMarkerRef.current = null;
+      }
+      return;
+    }
+
+    // Wait for container to be ready
+    const initMap = setTimeout(() => {
+      if (riderMapContainerRef.current && !riderMapRef.current) {
+        try {
+          // Get initial coordinates from form or use Philippines default (Manila)
+          const latValue = riderForm.watch("latitude");
+          const lngValue = riderForm.watch("longitude");
+          const lat = latValue && latValue.trim() ? parseFloat(latValue) : 14.5995;
+          const lng = lngValue && lngValue.trim() ? parseFloat(lngValue) : 120.9842;
+          
+          // Create map instance
+          const map = L.map(riderMapContainerRef.current, {
+            center: [lat, lng],
+            zoom: 15,
+            zoomControl: true,
+          });
+          
+          // Add OpenStreetMap tiles
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: '&copy; OpenStreetMap contributors',
+            maxZoom: 19,
+          }).addTo(map);
+          
+          // Create draggable marker if coordinates exist
+          let marker: L.Marker | null = null;
+          if (latValue && lngValue && latValue.trim() && lngValue.trim()) {
+            marker = L.marker([lat, lng], { 
+              draggable: true,
+              autoPan: true,
+            }).addTo(map);
+            
+            // Update coordinates when marker is dragged
+            marker.on("dragend", () => {
+              const position = marker!.getLatLng();
+              riderForm.setValue("latitude", position.lat.toFixed(6));
+              riderForm.setValue("longitude", position.lng.toFixed(6));
+            });
+          }
+          
+          // Allow clicking on map to place/move marker
+          map.on("click", (e) => {
+            if (!marker) {
+              marker = L.marker(e.latlng, { 
+                draggable: true,
+                autoPan: true,
+              }).addTo(map);
+              
+              marker.on("dragend", () => {
+                const position = marker!.getLatLng();
+                riderForm.setValue("latitude", position.lat.toFixed(6));
+                riderForm.setValue("longitude", position.lng.toFixed(6));
+              });
+              
+              riderMarkerRef.current = marker;
+            } else {
+              marker.setLatLng(e.latlng);
+            }
+            
+            riderForm.setValue("latitude", e.latlng.lat.toFixed(6));
+            riderForm.setValue("longitude", e.latlng.lng.toFixed(6));
+          });
+          
+          riderMapRef.current = map;
+          if (marker) {
+            riderMarkerRef.current = marker;
+          }
+        } catch (error) {
+          console.error("Failed to initialize map:", error);
+        }
+      }
+    }, 100);
+
+    return () => {
+      clearTimeout(initMap);
+    };
+  }, [activeTab, registerRole, riderForm]);
 
   // Show loading state during auth transitions or while redirecting
   if (isLoading || user) {
