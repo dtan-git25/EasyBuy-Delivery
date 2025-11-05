@@ -700,16 +700,7 @@ export default function AuthPage() {
                       {/* Rider Registration Form */}
                       {registerRole === 'rider' && (
                         <form onSubmit={riderForm.handleSubmit(onRegister)} className="space-y-4">
-                          <div className="grid grid-cols-4 gap-2">
-                            <div>
-                              <Label htmlFor="rider-prefix">Prefix</Label>
-                              <Input
-                                id="rider-prefix"
-                                data-testid="input-rider-prefix"
-                                {...riderForm.register("prefix")}
-                                placeholder="Mr."
-                              />
-                            </div>
+                          <div className="grid grid-cols-3 gap-2">
                             <div>
                               <Label htmlFor="rider-firstName">First Name *</Label>
                               <Input
