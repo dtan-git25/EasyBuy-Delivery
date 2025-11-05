@@ -781,7 +781,7 @@ export default function AuthPage() {
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-3 gap-4">
+                          <div className="grid grid-cols-2 gap-4">
                             <div>
                               <Label htmlFor="rider-barangay">Barangay *</Label>
                               <Input
@@ -810,20 +810,21 @@ export default function AuthPage() {
                                 </p>
                               )}
                             </div>
-                            <div>
-                              <Label htmlFor="rider-province">Province *</Label>
-                              <Input
-                                id="rider-province"
-                                data-testid="input-rider-province"
-                                {...riderForm.register("province")}
-                                placeholder="Metro Manila"
-                              />
-                              {riderForm.formState.errors.province && (
-                                <p className="text-sm text-destructive mt-1">
-                                  {riderForm.formState.errors.province.message}
-                                </p>
-                              )}
-                            </div>
+                          </div>
+
+                          <div>
+                            <Label htmlFor="rider-province">Province *</Label>
+                            <Input
+                              id="rider-province"
+                              data-testid="input-rider-province"
+                              {...riderForm.register("province")}
+                              placeholder="Metro Manila"
+                            />
+                            {riderForm.formState.errors.province && (
+                              <p className="text-sm text-destructive mt-1">
+                                {riderForm.formState.errors.province.message}
+                              </p>
+                            )}
                           </div>
 
                           <div className="grid grid-cols-2 gap-4">
