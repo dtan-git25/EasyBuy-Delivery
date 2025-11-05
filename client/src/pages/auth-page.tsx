@@ -10,10 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Bike, Store, Users, Settings, Upload, Camera, Eye, EyeOff } from "lucide-react";
+import { Bike, Store, Users, Settings, Upload, Camera, Eye, EyeOff, MapPin, Navigation } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import { useRef } from "react";
 import { 
   customerRegistrationSchema, 
   riderRegistrationSchema, 
@@ -52,6 +55,95 @@ export default function AuthPage() {
       setLocation("/");
     }
   }, [user, isLoading, setLocation]);
+
+  // Initialize map for rider registration
+  useEffect(() => {
+    if (activeTab !== "register" || registerRole !== "rider") {
+      // Cleanup map when not on rider registration
+      if (riderMapRef.current) {
+        riderMapRef.current.remove();
+        riderMapRef.current = null;
+        riderMarkerRef.current = null;
+      }
+      return;
+    }
+
+    // Wait for container to be ready
+    const initMap = setTimeout(() => {
+      if (riderMapContainerRef.current && !riderMapRef.current) {
+        try {
+          // Get initial coordinates from form or use Philippines default (Manila)
+          const latValue = riderForm.watch("latitude");
+          const lngValue = riderForm.watch("longitude");
+          const lat = latValue && latValue.trim() ? parseFloat(latValue) : 14.5995;
+          const lng = lngValue && lngValue.trim() ? parseFloat(lngValue) : 120.9842;
+          
+          // Create map instance
+          const map = L.map(riderMapContainerRef.current, {
+            center: [lat, lng],
+            zoom: 15,
+            zoomControl: true,
+          });
+          
+          // Add OpenStreetMap tiles
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: '&copy; OpenStreetMap contributors',
+            maxZoom: 19,
+          }).addTo(map);
+          
+          // Create draggable marker if coordinates exist
+          let marker: L.Marker | null = null;
+          if (latValue && lngValue && latValue.trim() && lngValue.trim()) {
+            marker = L.marker([lat, lng], { 
+              draggable: true,
+              autoPan: true,
+            }).addTo(map);
+            
+            // Update coordinates when marker is dragged
+            marker.on("dragend", () => {
+              const position = marker!.getLatLng();
+              riderForm.setValue("latitude", position.lat.toFixed(6));
+              riderForm.setValue("longitude", position.lng.toFixed(6));
+            });
+          }
+          
+          // Allow clicking on map to place/move marker
+          map.on("click", (e) => {
+            if (!marker) {
+              marker = L.marker(e.latlng, { 
+                draggable: true,
+                autoPan: true,
+              }).addTo(map);
+              
+              marker.on("dragend", () => {
+                const position = marker!.getLatLng();
+                riderForm.setValue("latitude", position.lat.toFixed(6));
+                riderForm.setValue("longitude", position.lng.toFixed(6));
+              });
+              
+              riderMarkerRef.current = marker;
+            } else {
+              marker.setLatLng(e.latlng);
+            }
+            
+            riderForm.setValue("latitude", e.latlng.lat.toFixed(6));
+            riderForm.setValue("longitude", e.latlng.lng.toFixed(6));
+          });
+          
+          riderMapRef.current = map;
+          if (marker) {
+            riderMarkerRef.current = marker;
+          }
+        } catch (error) {
+          console.error("Failed to initialize map:", error);
+        }
+      }
+    }, 100);
+
+    return () => {
+      clearTimeout(initMap);
+    };
+  }, [activeTab, registerRole, riderForm]);
 
   // Initialize login form
   const loginForm = useForm<LoginForm>({
@@ -103,10 +195,17 @@ export default function AuthPage() {
       phone: "",
       driversLicenseNo: "",
       licenseValidityDate: "",
+      latitude: "",
+      longitude: "",
       username: "",
       password: "",
     },
   });
+
+  // Map state for rider registration
+  const riderMapRef = useRef<L.Map | null>(null);
+  const riderMarkerRef = useRef<L.Marker | null>(null);
+  const riderMapContainerRef = useRef<HTMLDivElement | null>(null);
 
   const merchantForm = useForm<MerchantRegistration>({
     resolver: zodResolver(merchantRegistrationSchema),
@@ -186,6 +285,64 @@ export default function AuthPage() {
     } catch (error) {
       console.error("Registration failed:", error);
     }
+  };
+
+  // Helper function for rider to use current location
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast({
+        title: "Location Not Supported",
+        description: "Your browser doesn't support geolocation",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude.toFixed(6);
+        const lng = position.coords.longitude.toFixed(6);
+        
+        riderForm.setValue("latitude", lat);
+        riderForm.setValue("longitude", lng);
+        
+        // Update map view and marker
+        if (riderMapRef.current) {
+          const latNum = parseFloat(lat);
+          const lngNum = parseFloat(lng);
+          riderMapRef.current.setView([latNum, lngNum], 15);
+          
+          if (riderMarkerRef.current) {
+            riderMarkerRef.current.setLatLng([latNum, lngNum]);
+          } else {
+            const marker = L.marker([latNum, lngNum], {
+              draggable: true,
+              autoPan: true,
+            }).addTo(riderMapRef.current);
+            
+            marker.on("dragend", () => {
+              const position = marker.getLatLng();
+              riderForm.setValue("latitude", position.lat.toFixed(6));
+              riderForm.setValue("longitude", position.lng.toFixed(6));
+            });
+            
+            riderMarkerRef.current = marker;
+          }
+        }
+        
+        toast({
+          title: "Location Found",
+          description: "Using your current location. Drag the pin to adjust if needed.",
+        });
+      },
+      (error) => {
+        toast({
+          title: "Location Error",
+          description: "Could not get your location. Please click on the map to set it manually.",
+          variant: "destructive",
+        });
+      }
+    );
   };
 
   return (
@@ -725,6 +882,64 @@ export default function AuthPage() {
                                 </p>
                               )}
                             </div>
+                          </div>
+
+                          {/* Home Location Map Picker */}
+                          <div className="space-y-3">
+                            <Label className="flex items-center gap-2">
+                              <MapPin className="h-4 w-4 text-primary" />
+                              Pin Your Home Location on Map *
+                            </Label>
+                            <p className="text-sm text-muted-foreground">
+                              <strong>Required:</strong> Click anywhere on the map or drag the pin to mark your home/base location for delivery assignments.
+                            </p>
+                            
+                            <div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleUseCurrentLocation}
+                                data-testid="button-use-current-location-rider"
+                                className="w-full"
+                              >
+                                <Navigation className="h-4 w-4 mr-2" />
+                                Use Current Location
+                              </Button>
+                            </div>
+                            
+                            {/* Leaflet Map Container */}
+                            <div 
+                              ref={riderMapContainerRef} 
+                              className="h-80 w-full rounded-lg border-2 border-border overflow-hidden"
+                              style={{ minHeight: '320px', position: 'relative', zIndex: 1 }}
+                              data-testid="rider-map-container"
+                            />
+                            
+                            {/* Display current coordinates */}
+                            <div className="flex items-center gap-2 p-3 bg-muted rounded-md border">
+                              <MapPin className="h-4 w-4 text-primary" />
+                              <div className="flex-1 text-sm">
+                                {riderForm.watch("latitude") && riderForm.watch("longitude") ? (
+                                  <>
+                                    <span className="font-medium">Pin Location: </span>
+                                    <span className="text-muted-foreground">
+                                      Lat: {riderForm.watch("latitude")}, Lng: {riderForm.watch("longitude")}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <span className="text-muted-foreground italic">
+                                    No location pinned yet. Click the map or use the button above to set your home location.
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            
+                            {/* Validation error display */}
+                            {(riderForm.formState.errors.latitude || riderForm.formState.errors.longitude) && (
+                              <p className="text-sm text-destructive font-medium">
+                                {riderForm.formState.errors.latitude?.message || riderForm.formState.errors.longitude?.message}
+                              </p>
+                            )}
                           </div>
 
                           <div className="grid grid-cols-2 gap-4">
