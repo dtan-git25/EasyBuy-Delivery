@@ -3746,7 +3746,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Apply filters
       if (status && status !== 'all') {
-        riders = riders.filter(r => r.user?.approvalStatus === status);
+        riders = riders.filter(r => r.status === status);
       }
       
       if (province && province !== 'all') {
