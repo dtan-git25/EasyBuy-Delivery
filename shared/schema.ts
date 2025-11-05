@@ -180,8 +180,6 @@ export const riders = pgTable("riders", {
   status: riderStatusEnum("status").default('offline'),
   currentLatitude: decimal("current_latitude", { precision: 10, scale: 8 }),
   currentLongitude: decimal("current_longitude", { precision: 11, scale: 8 }),
-  homeLatitude: decimal("home_latitude", { precision: 10, scale: 8 }), // Base/registration location
-  homeLongitude: decimal("home_longitude", { precision: 11, scale: 8 }), // Base/registration location
   rating: decimal("rating", { precision: 3, scale: 2 }).default('0'),
   totalEarnings: decimal("total_earnings", { precision: 10, scale: 2 }).default('0'),
   createdAt: timestamp("created_at").defaultNow(),
