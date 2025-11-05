@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -522,20 +523,25 @@ export default function AuthPage() {
                     <div className="space-y-4">
                       {/* Role Selection */}
                       <div>
-                        <Label htmlFor="role-selection">Select Account Type</Label>
-                        <Select
+                        <Label>Select Account Type</Label>
+                        <RadioGroup
                           value={registerRole}
                           onValueChange={(value) => setRegisterRole(value as any)}
+                          className="flex gap-4 mt-2"
                         >
-                          <SelectTrigger data-testid="select-register-role">
-                            <SelectValue placeholder="Choose account type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="customer">Customer - Order food delivery</SelectItem>
-                            <SelectItem value="rider">Rider - Deliver orders and earn income</SelectItem>
-                            <SelectItem value="merchant">Merchant - Sell food through our platform</SelectItem>
-                          </SelectContent>
-                        </Select>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="customer" id="role-customer" data-testid="radio-customer" />
+                            <Label htmlFor="role-customer" className="cursor-pointer font-normal">Customer</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="rider" id="role-rider" data-testid="radio-rider" />
+                            <Label htmlFor="role-rider" className="cursor-pointer font-normal">Rider</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="merchant" id="role-merchant" data-testid="radio-merchant" />
+                            <Label htmlFor="role-merchant" className="cursor-pointer font-normal">Merchant</Label>
+                          </div>
+                        </RadioGroup>
                       </div>
 
                       {/* Customer Registration Form */}
