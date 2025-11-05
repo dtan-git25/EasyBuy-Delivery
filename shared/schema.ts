@@ -180,6 +180,8 @@ export const riders = pgTable("riders", {
   status: riderStatusEnum("status").default('offline'),
   currentLatitude: decimal("current_latitude", { precision: 10, scale: 8 }),
   currentLongitude: decimal("current_longitude", { precision: 11, scale: 8 }),
+  homeLatitude: decimal("home_latitude", { precision: 10, scale: 8 }), // Base/registration location
+  homeLongitude: decimal("home_longitude", { precision: 11, scale: 8 }), // Base/registration location
   rating: decimal("rating", { precision: 3, scale: 2 }).default('0'),
   totalEarnings: decimal("total_earnings", { precision: 10, scale: 2 }).default('0'),
   createdAt: timestamp("created_at").defaultNow(),
@@ -596,6 +598,10 @@ export const riderRegistrationSchema = z.object({
   // License
   driversLicenseNo: z.string().min(1, "Driver's license number is required"),
   licenseValidityDate: z.string().min(1, "License validity date is required"),
+  
+  // Location (Home/Base)
+  latitude: z.string().min(1, "Please pin your home location on the map"),
+  longitude: z.string().min(1, "Please pin your home location on the map"),
   
   // System
   username: z.string().min(3, "Username must be at least 3 characters"),
