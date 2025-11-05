@@ -100,17 +100,10 @@ export default function AuthPage() {
       phone: "",
       driversLicenseNo: "",
       licenseValidityDate: "",
-      latitude: "",
-      longitude: "",
       username: "",
       password: "",
     },
   });
-
-  // Map state for rider registration
-  const riderMapRef = useRef<L.Map | null>(null);
-  const riderMarkerRef = useRef<L.Marker | null>(null);
-  const riderMapContainerRef = useRef<HTMLDivElement | null>(null);
 
   const merchantForm = useForm<MerchantRegistration>({
     resolver: zodResolver(merchantRegistrationSchema),
@@ -122,10 +115,17 @@ export default function AuthPage() {
       storeAddress: "",
       storeContactNo: "",
       email: "",
+      latitude: "",
+      longitude: "",
       username: "",
       password: "",
     },
   });
+
+  // Map state for merchant registration
+  const merchantMapRef = useRef<L.Map | null>(null);
+  const merchantMarkerRef = useRef<L.Marker | null>(null);
+  const merchantMapContainerRef = useRef<HTMLDivElement | null>(null);
 
   const forgotPasswordMutation = useMutation({
     mutationFn: async (data: { email: string }) => {
@@ -158,30 +158,30 @@ export default function AuthPage() {
     }
   }, [user, isLoading, setLocation]);
 
-  // Initialize map for rider registration
+  // Initialize map for merchant registration
   useEffect(() => {
-    if (activeTab !== "register" || registerRole !== "rider") {
-      // Cleanup map when not on rider registration
-      if (riderMapRef.current) {
-        riderMapRef.current.remove();
-        riderMapRef.current = null;
-        riderMarkerRef.current = null;
+    if (activeTab !== "register" || registerRole !== "merchant") {
+      // Cleanup map when not on merchant registration
+      if (merchantMapRef.current) {
+        merchantMapRef.current.remove();
+        merchantMapRef.current = null;
+        merchantMarkerRef.current = null;
       }
       return;
     }
 
     // Wait for container to be ready
     const initMap = setTimeout(() => {
-      if (riderMapContainerRef.current && !riderMapRef.current) {
+      if (merchantMapContainerRef.current && !merchantMapRef.current) {
         try {
           // Get initial coordinates from form or use Philippines default (Manila)
-          const latValue = riderForm.watch("latitude");
-          const lngValue = riderForm.watch("longitude");
+          const latValue = merchantForm.watch("latitude");
+          const lngValue = merchantForm.watch("longitude");
           const lat = latValue && latValue.trim() ? parseFloat(latValue) : 14.5995;
           const lng = lngValue && lngValue.trim() ? parseFloat(lngValue) : 120.9842;
           
           // Create map instance
-          const map = L.map(riderMapContainerRef.current, {
+          const map = L.map(merchantMapContainerRef.current, {
             center: [lat, lng],
             zoom: 15,
             zoomControl: true,
@@ -204,8 +204,8 @@ export default function AuthPage() {
             // Update coordinates when marker is dragged
             marker.on("dragend", () => {
               const position = marker!.getLatLng();
-              riderForm.setValue("latitude", position.lat.toFixed(6));
-              riderForm.setValue("longitude", position.lng.toFixed(6));
+              merchantForm.setValue("latitude", position.lat.toFixed(6));
+              merchantForm.setValue("longitude", position.lng.toFixed(6));
             });
           }
           
@@ -219,22 +219,22 @@ export default function AuthPage() {
               
               marker.on("dragend", () => {
                 const position = marker!.getLatLng();
-                riderForm.setValue("latitude", position.lat.toFixed(6));
-                riderForm.setValue("longitude", position.lng.toFixed(6));
+                merchantForm.setValue("latitude", position.lat.toFixed(6));
+                merchantForm.setValue("longitude", position.lng.toFixed(6));
               });
               
-              riderMarkerRef.current = marker;
+              merchantMarkerRef.current = marker;
             } else {
               marker.setLatLng(e.latlng);
             }
             
-            riderForm.setValue("latitude", e.latlng.lat.toFixed(6));
-            riderForm.setValue("longitude", e.latlng.lng.toFixed(6));
+            merchantForm.setValue("latitude", e.latlng.lat.toFixed(6));
+            merchantForm.setValue("longitude", e.latlng.lng.toFixed(6));
           });
           
-          riderMapRef.current = map;
+          merchantMapRef.current = map;
           if (marker) {
-            riderMarkerRef.current = marker;
+            merchantMarkerRef.current = marker;
           }
         } catch (error) {
           console.error("Failed to initialize map:", error);
@@ -245,7 +245,7 @@ export default function AuthPage() {
     return () => {
       clearTimeout(initMap);
     };
-  }, [activeTab, registerRole, riderForm]);
+  }, [activeTab, registerRole, merchantForm]);
 
   // Show loading state during auth transitions or while redirecting
   if (isLoading || user) {
@@ -288,7 +288,7 @@ export default function AuthPage() {
     }
   };
 
-  // Helper function for rider to use current location
+  // Helper function for merchant to use current location
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
       toast({
@@ -304,30 +304,30 @@ export default function AuthPage() {
         const lat = position.coords.latitude.toFixed(6);
         const lng = position.coords.longitude.toFixed(6);
         
-        riderForm.setValue("latitude", lat);
-        riderForm.setValue("longitude", lng);
+        merchantForm.setValue("latitude", lat);
+        merchantForm.setValue("longitude", lng);
         
         // Update map view and marker
-        if (riderMapRef.current) {
+        if (merchantMapRef.current) {
           const latNum = parseFloat(lat);
           const lngNum = parseFloat(lng);
-          riderMapRef.current.setView([latNum, lngNum], 15);
+          merchantMapRef.current.setView([latNum, lngNum], 15);
           
-          if (riderMarkerRef.current) {
-            riderMarkerRef.current.setLatLng([latNum, lngNum]);
+          if (merchantMarkerRef.current) {
+            merchantMarkerRef.current.setLatLng([latNum, lngNum]);
           } else {
             const marker = L.marker([latNum, lngNum], {
               draggable: true,
               autoPan: true,
-            }).addTo(riderMapRef.current);
+            }).addTo(merchantMapRef.current);
             
             marker.on("dragend", () => {
               const position = marker.getLatLng();
-              riderForm.setValue("latitude", position.lat.toFixed(6));
-              riderForm.setValue("longitude", position.lng.toFixed(6));
+              merchantForm.setValue("latitude", position.lat.toFixed(6));
+              merchantForm.setValue("longitude", position.lng.toFixed(6));
             });
             
-            riderMarkerRef.current = marker;
+            merchantMarkerRef.current = marker;
           }
         }
         
@@ -882,64 +882,6 @@ export default function AuthPage() {
                             </div>
                           </div>
 
-                          {/* Home Location Map Picker */}
-                          <div className="space-y-3">
-                            <Label className="flex items-center gap-2">
-                              <MapPin className="h-4 w-4 text-primary" />
-                              Pin Your Home Location on Map *
-                            </Label>
-                            <p className="text-sm text-muted-foreground">
-                              <strong>Required:</strong> Click anywhere on the map or drag the pin to mark your home/base location for delivery assignments.
-                            </p>
-                            
-                            <div>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={handleUseCurrentLocation}
-                                data-testid="button-use-current-location-rider"
-                                className="w-full"
-                              >
-                                <Navigation className="h-4 w-4 mr-2" />
-                                Use Current Location
-                              </Button>
-                            </div>
-                            
-                            {/* Leaflet Map Container */}
-                            <div 
-                              ref={riderMapContainerRef} 
-                              className="h-80 w-full rounded-lg border-2 border-border overflow-hidden"
-                              style={{ minHeight: '320px', position: 'relative', zIndex: 1 }}
-                              data-testid="rider-map-container"
-                            />
-                            
-                            {/* Display current coordinates */}
-                            <div className="flex items-center gap-2 p-3 bg-muted rounded-md border">
-                              <MapPin className="h-4 w-4 text-primary" />
-                              <div className="flex-1 text-sm">
-                                {riderForm.watch("latitude") && riderForm.watch("longitude") ? (
-                                  <>
-                                    <span className="font-medium">Pin Location: </span>
-                                    <span className="text-muted-foreground">
-                                      Lat: {riderForm.watch("latitude")}, Lng: {riderForm.watch("longitude")}
-                                    </span>
-                                  </>
-                                ) : (
-                                  <span className="text-muted-foreground italic">
-                                    No location pinned yet. Click the map or use the button above to set your home location.
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            
-                            {/* Validation error display */}
-                            {(riderForm.formState.errors.latitude || riderForm.formState.errors.longitude) && (
-                              <p className="text-sm text-destructive font-medium">
-                                {riderForm.formState.errors.latitude?.message || riderForm.formState.errors.longitude?.message}
-                              </p>
-                            )}
-                          </div>
-
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <Label htmlFor="rider-username">Username *</Label>
@@ -1077,6 +1019,64 @@ export default function AuthPage() {
                             {merchantForm.formState.errors.storeAddress && (
                               <p className="text-sm text-destructive mt-1">
                                 {merchantForm.formState.errors.storeAddress.message}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Store Location Map Picker */}
+                          <div className="space-y-3">
+                            <Label className="flex items-center gap-2">
+                              <MapPin className="h-4 w-4 text-primary" />
+                              Pin Your Store Location on Map *
+                            </Label>
+                            <p className="text-sm text-muted-foreground">
+                              <strong>Required:</strong> Click anywhere on the map or drag the pin to mark your store's exact location.
+                            </p>
+                            
+                            <div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleUseCurrentLocation}
+                                data-testid="button-use-current-location-merchant"
+                                className="w-full"
+                              >
+                                <Navigation className="h-4 w-4 mr-2" />
+                                Use Current Location
+                              </Button>
+                            </div>
+                            
+                            {/* Leaflet Map Container */}
+                            <div 
+                              ref={merchantMapContainerRef} 
+                              className="h-80 w-full rounded-lg border-2 border-border overflow-hidden"
+                              style={{ minHeight: '320px', position: 'relative', zIndex: 1 }}
+                              data-testid="merchant-map-container"
+                            />
+                            
+                            {/* Display current coordinates */}
+                            <div className="flex items-center gap-2 p-3 bg-muted rounded-md border">
+                              <MapPin className="h-4 w-4 text-primary" />
+                              <div className="flex-1 text-sm">
+                                {merchantForm.watch("latitude") && merchantForm.watch("longitude") ? (
+                                  <>
+                                    <span className="font-medium">Pin Location: </span>
+                                    <span className="text-muted-foreground">
+                                      Lat: {merchantForm.watch("latitude")}, Lng: {merchantForm.watch("longitude")}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <span className="text-muted-foreground italic">
+                                    No location pinned yet. Click the map or use the button above to set your store location.
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            
+                            {/* Validation error display */}
+                            {(merchantForm.formState.errors.latitude || merchantForm.formState.errors.longitude) && (
+                              <p className="text-sm text-destructive font-medium">
+                                {merchantForm.formState.errors.latitude?.message || merchantForm.formState.errors.longitude?.message}
                               </p>
                             )}
                           </div>
