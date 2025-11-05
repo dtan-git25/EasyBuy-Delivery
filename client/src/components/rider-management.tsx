@@ -171,15 +171,16 @@ export function RiderManagement() {
           </div>
 
           <div className="w-full sm:w-48">
-            <Label>Rider Status</Label>
+            <Label>Status</Label>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="mt-1" data-testid="select-status-filter">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="online">Online</SelectItem>
-                <SelectItem value="offline">Offline</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -226,7 +227,7 @@ export function RiderManagement() {
             <TableHeader>
               <TableRow>
                 <TableHead>Rider Name</TableHead>
-                <TableHead>Rider Status</TableHead>
+                <TableHead>Account Status</TableHead>
                 <TableHead>Province</TableHead>
                 <TableHead>Deliveries</TableHead>
                 <TableHead>Rating</TableHead>
@@ -256,13 +257,13 @@ export function RiderManagement() {
                     <TableCell>
                       <Badge 
                         variant={
-                          rider.status === 'online' ? 'default' : 
-                          rider.status === 'offline' ? 'secondary' : 
-                          'outline'
+                          rider.user?.approvalStatus === 'approved' ? 'default' : 
+                          rider.user?.approvalStatus === 'rejected' ? 'destructive' : 
+                          'secondary'
                         }
                         data-testid={`badge-status-${rider.id}`}
                       >
-                        {rider.status || 'offline'}
+                        {rider.user?.approvalStatus || 'pending'}
                       </Badge>
                     </TableCell>
                     <TableCell>{rider.user?.province || '-'}</TableCell>
