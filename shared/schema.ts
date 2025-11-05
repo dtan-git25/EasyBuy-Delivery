@@ -597,10 +597,6 @@ export const riderRegistrationSchema = z.object({
   driversLicenseNo: z.string().min(1, "Driver's license number is required"),
   licenseValidityDate: z.string().min(1, "License validity date is required"),
   
-  // Location (Home/Base)
-  latitude: z.string().min(1, "Please pin your home location on the map"),
-  longitude: z.string().min(1, "Please pin your home location on the map"),
-  
   // System
   username: z.string().min(3, "Username must be at least 3 characters"),
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -620,6 +616,10 @@ export const merchantRegistrationSchema = z.object({
   
   // Contact
   email: z.string().email("Invalid email address"),
+  
+  // Location (Store)
+  latitude: z.string().min(1, "Please pin your store location on the map"),
+  longitude: z.string().min(1, "Please pin your store location on the map"),
   
   // System
   username: z.string().min(3, "Username must be at least 3 characters"),
