@@ -117,6 +117,20 @@ export function RiderManagement() {
     },
   });
 
+  // Update account status mutation
+  const updateAccountStatusMutation = useMutation({
+    mutationFn: async ({ userId, approvalStatus }: { userId: string; approvalStatus: string }) => {
+      await apiRequest("PATCH", `/api/users/${userId}/approval`, { approvalStatus });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/riders"] });
+      toast({ title: "Account status updated successfully!" });
+    },
+    onError: () => {
+      toast({ title: "Failed to update account status", variant: "destructive" });
+    },
+  });
+
   // Get unique provinces for filter dropdown
   const provinces = Array.from(new Set(riders.map((r: Rider) => r.user?.province).filter((p): p is string => Boolean(p))));
 
@@ -366,18 +380,24 @@ export function RiderManagement() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-sm text-muted-foreground">Account Status</Label>
-                    <div className="mt-1">
-                      <Badge 
-                        variant={
-                          viewingRider.user?.approvalStatus === 'approved' ? 'default' : 
-                          viewingRider.user?.approvalStatus === 'rejected' ? 'destructive' : 
-                          'secondary'
-                        }
-                        data-testid="badge-rider-status"
-                      >
-                        {viewingRider.user?.approvalStatus || 'pending'}
-                      </Badge>
-                    </div>
+                    <Select
+                      value={viewingRider.user?.approvalStatus || 'pending'}
+                      onValueChange={(value) => {
+                        updateAccountStatusMutation.mutate({
+                          userId: viewingRider.userId,
+                          approvalStatus: value
+                        });
+                      }}
+                    >
+                      <SelectTrigger className="mt-1" data-testid="select-account-status">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="approved">Approved</SelectItem>
+                        <SelectItem value="rejected">Rejected</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <Label className="text-sm text-muted-foreground">Account Created</Label>
