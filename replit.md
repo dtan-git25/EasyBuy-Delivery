@@ -6,7 +6,8 @@ This project is a comprehensive food delivery web application with Customer, Rid
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
-## Recent Changes (October 2025)
+## Recent Changes (November 2025)
+- **Renamed "Convenience Fee" to "Rider's Convenience Fee"**: Updated all user-facing text across the application to display "Rider's Convenience Fee" instead of "Convenience Fee" for clarity. This change reflects in Admin settings, checkout views (single and multi-restaurant), order details, rider earnings breakdown, and CSV export reports. The terminology change better communicates that this fee is part of the rider's earnings.
 - **Fixed Multi-Merchant Order Filtering in Rider Portal**: Corrected the order tab filtering logic to properly handle multi-merchant orders. Previously, a multi-merchant order group would incorrectly move to "Order History" when only ONE merchant order was delivered. Now correctly remains in "Active Orders" until ALL merchant orders in the group are delivered or cancelled. Updated filtering uses `.some()` for active orders (ANY merchant order still active) and `.every()` for historical orders (ALL merchant orders delivered/cancelled). Also fixed stats calculations (today's earnings, success rate) to properly account for multi-merchant order completion status.
 
 ## System Architecture

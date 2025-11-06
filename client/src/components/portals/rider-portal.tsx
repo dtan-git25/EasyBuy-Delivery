@@ -831,7 +831,7 @@ export default function RiderPortal() {
                         return (
                           <div className="mt-2 text-xs text-muted-foreground space-y-0.5">
                             <div>• Delivery Share: ₱{deliveryShare.toFixed(2)}</div>
-                            <div>• Convenience Fees: ₱{convenienceFees.toFixed(2)}</div>
+                            <div>• Rider's Convenience Fees: ₱{convenienceFees.toFixed(2)}</div>
                           </div>
                         );
                       }
@@ -1262,7 +1262,7 @@ export default function RiderPortal() {
                                     </div>
                                     {convenienceFee > 0 && (
                                       <div className="flex justify-between">
-                                        <span>• Convenience Fee:</span>
+                                        <span>• Rider's Convenience Fee:</span>
                                         <span>₱{convenienceFee.toFixed(2)}</span>
                                       </div>
                                     )}
