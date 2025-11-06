@@ -1241,6 +1241,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async reviewRiderDocuments(riderId: string, approved: boolean, reviewedBy: string, reason?: string): Promise<Rider | undefined> {
+    // Get rider to find userId
+    const rider = await this.getRider(riderId);
+    if (!rider) {
+      throw new Error('Rider not found');
+    }
+
+    // Update rider documents status
     const [result] = await db.update(riders)
       .set({ 
         documentsStatus: approved ? 'approved' : 'rejected',
@@ -1251,6 +1258,26 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(riders.id, riderId))
       .returning();
+
+    // Also update user's approval status when documents are approved/rejected
+    if (approved) {
+      await db.update(users)
+        .set({ 
+          approvalStatus: 'approved',
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, rider.userId));
+    } else {
+      // If rejected, set account status to rejected with reason
+      await db.update(users)
+        .set({ 
+          approvalStatus: 'rejected',
+          rejectionReason: reason,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, rider.userId));
+    }
+
     return result;
   }
 
