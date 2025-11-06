@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Bike, Wallet, Clock, Star, MapPin, Phone, User, Upload, FileText, CheckCircle, XCircle, AlertCircle, Map, Users, Download, Eye, Package, DollarSign, ClipboardList, History } from "lucide-react";
+import { Bike, Wallet, Clock, Star, MapPin, Phone, User, Upload, FileText, CheckCircle, XCircle, AlertCircle, Map, Users, Download, Eye, Package, DollarSign, ClipboardList, History, RefreshCw } from "lucide-react";
 import { apiRequest, queryClient as globalQueryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useWebSocket } from "@/lib/websocket";
@@ -1773,7 +1773,20 @@ export default function RiderPortal() {
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold">My Account</h2>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-2xl font-bold">My Account</h2>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+                          toast({ title: "Account information refreshed" });
+                        }}
+                        data-testid="button-refresh-account"
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                      </Button>
+                    </div>
                     {!isEditingProfile ? (
                       <Button onClick={() => setIsEditingProfile(true)} data-testid="button-edit-profile">
                         Edit Contact Info
