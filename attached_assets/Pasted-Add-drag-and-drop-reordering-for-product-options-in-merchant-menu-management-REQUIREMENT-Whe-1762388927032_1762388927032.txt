@@ -1,0 +1,94 @@
+Add drag-and-drop reordering for product options in merchant menu management:
+
+REQUIREMENT:
+
+When merchant creates or edits a menu item with options, allow them to reorder the option types so the same order is displayed to customers.
+
+MERCHANT VIEW - Menu Creation/Edit:
+
+Product: Iced Coffee
+
+Product Options:
+[Drag handles for reordering]
+1. ☰ Size (Small, Medium, Large)      [▲] [▼] [Delete]
+2. ☰ Flavor (Vanilla, Caramel, Mocha) [▲] [▼] [Delete]
+3. ☰ Add-ons (Extra Shot, Whipped Cream) [▲] [▼] [Delete]
+
+Merchant can:
+- Drag and drop to reorder
+- Or use up/down arrow buttons
+- Reorder affects customer view
+
+CUSTOMER VIEW - Add to Cart Modal:
+
+Shows options in merchant's specified order:
+
+Iced Coffee - ₱120
+
+Size:
+○ Small (₱0)
+○ Medium (₱20)
+○ Large (₱40)
+
+Flavor:
+○ Vanilla (₱10)
+○ Caramel (₱15)
+○ Mocha (₱20)
+
+Add-ons:
+□ Extra Shot (₱30)
+□ Whipped Cream (₱15)
+
+CUSTOMER VIEW - Checkout/Cart:
+
+Item details show in same order:
+Iced Coffee - Medium, Caramel, Extra Shot
+
+IMPLEMENTATION:
+
+1. MERCHANT MENU EDIT:
+   - Add drag handles to each option type
+   - Allow reordering via drag-and-drop
+   - Or provide up/down arrow buttons
+   - Save display order to database
+
+2. DATABASE:
+   Store option order in menu items:
+   - Add "display_order" or "sort_order" field to product options
+   - Values: 1, 2, 3, etc.
+   - Lower number displays first
+
+3. CUSTOMER DISPLAY:
+   - Fetch options ordered by display_order ASC
+   - Show in merchant's specified sequence
+   - Maintain order in cart, checkout, order details
+
+4. DRAG-AND-DROP FUNCTIONALITY:
+   - Use drag handle icon (☰ or ⋮⋮)
+   - Visual feedback while dragging
+   - Update order numbers on drop
+   - Save new order to database
+
+5. ALTERNATIVE - UP/DOWN BUTTONS:
+   If drag-and-drop is complex, use simple buttons:
+   - [▲] Move up
+   - [▼] Move down
+   - Swap positions with adjacent option
+
+6. DEFAULT ORDER:
+   When adding new options, assign order based on:
+   - Order they were added
+   - Or merchant can set order after adding all options
+
+7. CONSISTENT DISPLAY:
+   Show same order in:
+   - Customer menu browsing
+   - Add to cart modal
+   - Cart display
+   - Checkout
+   - Order confirmation
+   - Order history
+   - Merchant order view
+   - Rider order view
+
+This gives merchants control over how customers see and select product options, allowing them to prioritize important options first.

@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Store, MapPin, Star, Clock, User, Phone, MessageCircle, Edit, Plus, AlertCircle, CheckCircle, XCircle, Power, Trash2, Camera, Utensils, X, Package, History, BarChart3, Navigation, Search } from "lucide-react";
+import { Store, MapPin, Star, Clock, User, Phone, MessageCircle, Edit, Plus, AlertCircle, CheckCircle, XCircle, Power, Trash2, Camera, Utensils, X, Package, History, BarChart3, Navigation, Search, ChevronUp, ChevronDown } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import L from "leaflet";
@@ -173,6 +173,7 @@ export default function MerchantPortal() {
   const [restaurantImagePreview, setRestaurantImagePreview] = useState<string>('');
   const [isRestaurantPhotoDialogOpen, setIsRestaurantPhotoDialogOpen] = useState(false);
   const [optionValues, setOptionValues] = useState<Array<{optionTypeId: number, value: string, price: string}>>([]);
+  const [selectedOptionTypes, setSelectedOptionTypes] = useState<Array<{id: string, name: string}>>([]);
   const [availableItemOptions, setAvailableItemOptions] = useState<any[]>([]);
   const [selectedItemOptions, setSelectedItemOptions] = useState<Record<string, string>>({});
   const [newItemQuantity, setNewItemQuantity] = useState(1);
@@ -524,14 +525,24 @@ export default function MerchantPortal() {
       return response.json();
     },
     onSuccess: async (data) => {
-      // Save option values if any
+      // Save option values if any, ordered by selected option types
       if (optionValues.length > 0 && data.id) {
-        for (const optionValue of optionValues) {
-          await apiRequest("POST", `/api/menu-items/${data.id}/options`, {
-            optionTypeId: optionValue.optionTypeId,
-            value: optionValue.value,
-            price: optionValue.price
-          });
+        let displayOrderCounter = 0;
+        
+        // Iterate through selected types in order
+        for (const selectedType of selectedOptionTypes) {
+          const typeId = parseInt(selectedType.id);
+          const valuesForType = optionValues.filter(v => v.optionTypeId === typeId);
+          
+          // Save all values for this type with sequential displayOrder
+          for (const optionValue of valuesForType) {
+            await apiRequest("POST", `/api/menu-items/${data.id}/options`, {
+              optionTypeId: optionValue.optionTypeId,
+              value: optionValue.value,
+              price: optionValue.price,
+              displayOrder: displayOrderCounter++
+            });
+          }
         }
       }
       
@@ -541,6 +552,7 @@ export default function MerchantPortal() {
       setSelectedImage(null);
       setImagePreview('');
       setOptionValues([]);
+      setSelectedOptionTypes([]);
       toast({
         title: "Menu item created",
         description: "Your menu item has been added successfully.",
@@ -575,14 +587,24 @@ export default function MerchantPortal() {
         }
       }
       
-      // Create new option values only if any exist
+      // Create new option values only if any exist, ordered by selected option types
       if (optionValues.length > 0) {
-        for (const optionValue of optionValues) {
-          await apiRequest("POST", `/api/menu-items/${variables.id}/options`, {
-            optionTypeId: optionValue.optionTypeId,
-            value: optionValue.value,
-            price: optionValue.price
-          });
+        let displayOrderCounter = 0;
+        
+        // Iterate through selected types in order
+        for (const selectedType of selectedOptionTypes) {
+          const typeId = parseInt(selectedType.id);
+          const valuesForType = optionValues.filter(v => v.optionTypeId === typeId);
+          
+          // Save all values for this type with sequential displayOrder
+          for (const optionValue of valuesForType) {
+            await apiRequest("POST", `/api/menu-items/${variables.id}/options`, {
+              optionTypeId: optionValue.optionTypeId,
+              value: optionValue.value,
+              price: optionValue.price,
+              displayOrder: displayOrderCounter++
+            });
+          }
         }
       }
       
@@ -593,6 +615,7 @@ export default function MerchantPortal() {
       setSelectedImage(null);
       setImagePreview('');
       setOptionValues([]);
+      setSelectedOptionTypes([]);
       toast({
         title: "Menu item updated",
         description: "Your menu item has been updated successfully.",
@@ -1002,8 +1025,18 @@ export default function MerchantPortal() {
         value: opt.value,
         price: opt.price
       })));
+      
+      // Extract unique option types from existing options (in order by displayOrder)
+      const uniqueTypes: {id: string, name: string}[] = [];
+      for (const opt of existingOptions) {
+        if (!uniqueTypes.find(t => t.id === opt.optionTypeId.toString())) {
+          uniqueTypes.push({ id: opt.optionTypeId.toString(), name: opt.optionType.name });
+        }
+      }
+      setSelectedOptionTypes(uniqueTypes);
     } else {
       setOptionValues([]);
+      setSelectedOptionTypes([]);
     }
     
     setIsEditMenuItemOpen(true);
@@ -1056,6 +1089,14 @@ export default function MerchantPortal() {
 
   const addOptionValue = (optionTypeId: number, optionTypeName: string) => {
     setOptionValues(prev => [...prev, { optionTypeId, value: '', price: '' }]);
+    
+    // Add to selected types if not already there
+    setSelectedOptionTypes(prev => {
+      if (!prev.find(t => t.id === optionTypeId.toString())) {
+        return [...prev, { id: optionTypeId.toString(), name: optionTypeName }];
+      }
+      return prev;
+    });
   };
 
   const updateOptionValue = (index: number, field: 'value' | 'price', newValue: string) => {
@@ -1065,7 +1106,38 @@ export default function MerchantPortal() {
   };
 
   const removeOptionValue = (index: number) => {
-    setOptionValues(prev => prev.filter((_, i) => i !== index));
+    const removedValue = optionValues[index];
+    const remaining = optionValues.filter((_, i) => i !== index);
+    const hasMoreOfType = remaining.some(v => v.optionTypeId === removedValue.optionTypeId);
+    
+    setOptionValues(remaining);
+    
+    // Remove from selected types if this was the last value of this type
+    if (!hasMoreOfType) {
+      setSelectedOptionTypes(prevTypes => 
+        prevTypes.filter(t => t.id !== removedValue.optionTypeId.toString())
+      );
+    }
+  };
+
+  const moveOptionTypeUp = (typeId: string) => {
+    setSelectedOptionTypes(prev => {
+      const index = prev.findIndex(t => t.id === typeId);
+      if (index <= 0) return prev;
+      const newTypes = [...prev];
+      [newTypes[index - 1], newTypes[index]] = [newTypes[index], newTypes[index - 1]];
+      return newTypes;
+    });
+  };
+
+  const moveOptionTypeDown = (typeId: string) => {
+    setSelectedOptionTypes(prev => {
+      const index = prev.findIndex(t => t.id === typeId);
+      if (index < 0 || index >= prev.length - 1) return prev;
+      const newTypes = [...prev];
+      [newTypes[index], newTypes[index + 1]] = [newTypes[index + 1], newTypes[index]];
+      return newTypes;
+    });
   };
 
   const fetchItemOptions = async (menuItemId: string) => {
@@ -1611,57 +1683,117 @@ export default function MerchantPortal() {
                       {activeOptionTypes.length > 0 && (
                         <div className="space-y-3">
                           <Label>Product Options (Optional)</Label>
+                          <p className="text-xs text-muted-foreground">
+                            Add option types and use up/down arrows to set the order shown to customers
+                          </p>
+                          
+                          {/* Add New Option Type Dropdown */}
+                          {activeOptionTypes.filter((type: any) => 
+                            !selectedOptionTypes.find(st => st.id === type.id.toString())
+                          ).length > 0 && (
+                            <Select onValueChange={(value) => {
+                              const type = activeOptionTypes.find((t: any) => t.id.toString() === value);
+                              if (type) addOptionValue(type.id, type.name);
+                            }}>
+                              <SelectTrigger data-testid="select-add-option-type">
+                                <SelectValue placeholder="+ Add option type..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {activeOptionTypes
+                                  .filter((type: any) => !selectedOptionTypes.find(st => st.id === type.id.toString()))
+                                  .map((optionType: any) => (
+                                    <SelectItem key={optionType.id} value={optionType.id.toString()}>
+                                      {optionType.name}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                          
+                          {/* Display selected option types in order */}
                           <div className="space-y-4">
-                            {activeOptionTypes.map((optionType: any) => (
-                              <div key={optionType.id} className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <p className="text-sm font-medium" data-testid={`label-option-type-${optionType.id}`}>
-                                    {optionType.name}
-                                  </p>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => addOptionValue(optionType.id, optionType.name)}
-                                    data-testid={`button-add-option-${optionType.id}`}
-                                  >
-                                    <Plus className="h-3 w-3 mr-1" />
-                                    Add {optionType.name}
-                                  </Button>
+                            {selectedOptionTypes.map((selectedType, typeIndex) => {
+                              const fullType = activeOptionTypes.find((t: any) => t.id.toString() === selectedType.id);
+                              if (!fullType) return null;
+                              
+                              return (
+                                <div key={selectedType.id} className="space-y-2 border rounded-lg p-3">
+                                  <div className="flex items-center gap-2">
+                                    {/* Reorder buttons for option type */}
+                                    <div className="flex flex-col gap-1">
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-5 px-1"
+                                        onClick={() => moveOptionTypeUp(selectedType.id)}
+                                        disabled={typeIndex === 0}
+                                        data-testid={`button-move-type-up-${selectedType.id}`}
+                                      >
+                                        <ChevronUp className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-5 px-1"
+                                        onClick={() => moveOptionTypeDown(selectedType.id)}
+                                        disabled={typeIndex === selectedOptionTypes.length - 1}
+                                        data-testid={`button-move-type-down-${selectedType.id}`}
+                                      >
+                                        <ChevronDown className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                    
+                                    <p className="text-sm font-medium flex-1" data-testid={`label-option-type-${selectedType.id}`}>
+                                      {selectedType.name}
+                                    </p>
+                                    
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => addOptionValue(parseInt(selectedType.id), selectedType.name)}
+                                      data-testid={`button-add-option-${selectedType.id}`}
+                                    >
+                                      <Plus className="h-3 w-3 mr-1" />
+                                      Add Value
+                                    </Button>
+                                  </div>
+                                  <div className="space-y-2">
+                                    {optionValues
+                                      .map((opt, index) => ({ ...opt, index }))
+                                      .filter(opt => opt.optionTypeId === parseInt(selectedType.id))
+                                      .map(({ index }) => (
+                                        <div key={index} className="flex gap-2 items-center">
+                                          <Input
+                                            placeholder="Value (e.g., Small)"
+                                            value={optionValues[index].value}
+                                            onChange={(e) => updateOptionValue(index, 'value', e.target.value)}
+                                            data-testid={`input-option-value-${index}`}
+                                          />
+                                          <Input
+                                            type="number"
+                                            placeholder="Price (₱)"
+                                            value={optionValues[index].price}
+                                            onChange={(e) => updateOptionValue(index, 'price', e.target.value)}
+                                            data-testid={`input-option-price-${index}`}
+                                          />
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => removeOptionValue(index)}
+                                            data-testid={`button-remove-option-${index}`}
+                                          >
+                                            <Trash2 className="h-4 w-4" />
+                                          </Button>
+                                        </div>
+                                      ))}
+                                  </div>
                                 </div>
-                                <div className="space-y-2">
-                                  {optionValues
-                                    .map((opt, index) => ({ ...opt, index }))
-                                    .filter(opt => opt.optionTypeId === optionType.id)
-                                    .map(({ index }) => (
-                                      <div key={index} className="flex gap-2 items-center">
-                                        <Input
-                                          placeholder="Value (e.g., Small)"
-                                          value={optionValues[index].value}
-                                          onChange={(e) => updateOptionValue(index, 'value', e.target.value)}
-                                          data-testid={`input-option-value-${index}`}
-                                        />
-                                        <Input
-                                          type="number"
-                                          placeholder="Price (₱)"
-                                          value={optionValues[index].price}
-                                          onChange={(e) => updateOptionValue(index, 'price', e.target.value)}
-                                          data-testid={`input-option-price-${index}`}
-                                        />
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => removeOptionValue(index)}
-                                          data-testid={`button-remove-option-${index}`}
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                      </div>
-                                    ))}
-                                </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -1671,7 +1803,7 @@ export default function MerchantPortal() {
                           variant="outline" 
                           className="flex-1"
                           data-testid="button-cancel"
-                          onClick={() => { setIsAddMenuItemOpen(false); setOptionValues([]); }}
+                          onClick={() => { setIsAddMenuItemOpen(false); setOptionValues([]); setSelectedOptionTypes([]); }}
                         >
                           Cancel
                         </Button>
@@ -1841,7 +1973,7 @@ export default function MerchantPortal() {
                         variant="outline" 
                         className="flex-1"
                         data-testid="button-cancel-edit"
-                        onClick={() => { setIsEditMenuItemOpen(false); setOptionValues([]); }}
+                        onClick={() => { setIsEditMenuItemOpen(false); setOptionValues([]); setSelectedOptionTypes([]); }}
                       >
                         Cancel
                       </Button>

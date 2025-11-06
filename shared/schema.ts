@@ -155,6 +155,7 @@ export const menuItemOptionValues = pgTable("menu_item_option_values", {
   optionTypeId: varchar("option_type_id").notNull().references(() => optionTypes.id, { onDelete: 'cascade' }),
   value: text("value").notNull(), // e.g., "Large", "Apple", "Extra Cheese"
   price: decimal("price", { precision: 8, scale: 2 }).notNull(), // Additional price for this option
+  displayOrder: integer("display_order").default(0), // Order in which options are displayed to customers
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

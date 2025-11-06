@@ -58,6 +58,7 @@ export interface IStorage {
   updateMenuItemOptionValue(id: string, updates: Partial<MenuItemOptionValue>): Promise<MenuItemOptionValue | undefined>;
   deleteMenuItemOptionValue(id: string): Promise<void>;
   deleteMenuItemOptionValues(menuItemId: string, optionTypeId: string): Promise<void>;
+  updateOptionValuesDisplayOrder(updates: { id: string; displayOrder: number }[]): Promise<void>;
 
   // Rider operations
   getRiders(): Promise<(Rider & { user: User })[]>;
@@ -362,7 +363,8 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(menuItemOptionValues)
       .leftJoin(optionTypes, eq(menuItemOptionValues.optionTypeId, optionTypes.id))
-      .where(eq(menuItemOptionValues.menuItemId, menuItemId));
+      .where(eq(menuItemOptionValues.menuItemId, menuItemId))
+      .orderBy(asc(menuItemOptionValues.displayOrder));
     
     return result.map(row => ({
       ...row.menu_item_option_values,
@@ -396,6 +398,15 @@ export class DatabaseStorage implements IStorage {
         eq(menuItemOptionValues.optionTypeId, optionTypeId)
       )
     );
+  }
+
+  async updateOptionValuesDisplayOrder(updates: { id: string; displayOrder: number }[]): Promise<void> {
+    // Update each option value's display order in a transaction
+    for (const update of updates) {
+      await db.update(menuItemOptionValues)
+        .set({ displayOrder: update.displayOrder, updatedAt: new Date() })
+        .where(eq(menuItemOptionValues.id, update.id));
+    }
   }
 
   async getRiders(): Promise<(Rider & { user: User })[]> {
