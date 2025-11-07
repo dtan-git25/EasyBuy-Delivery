@@ -1,0 +1,92 @@
+Show selected product options in customer cart and checkout modal:
+
+PROBLEM:
+When customer adds menu item with selected options (Size, Flavor, Add-ons) to cart, the options are not displayed in:
+- Cart modal
+- Checkout modal
+
+Only showing:
+- Item name
+- Total price
+- Delivery fee
+- Convenience fee
+
+REQUIRED FIX:
+
+Display the customer's selected options for each menu item in cart and checkout.
+
+CUSTOMER CART MODAL - Should show:
+
+Burger × 1                           ₱155.00
+  Size: Medium (₱20)
+  Flavor: BBQ (₱10)
+  Add-ons: Extra Cheese (₱15)
+
+Iced Coffee × 2                      ₱300.00
+  Size: Large (₱40 each)
+  Flavor: Caramel (₱15 each)
+
+Subtotal:                            ₱455.00
+[Proceed to Checkout]
+
+CHECKOUT MODAL - Should show:
+
+Order Summary
+
+Merchant: Burger King
+  Burger × 1                         ₱155.00
+    • Size: Medium (₱20)
+    • Flavor: BBQ (₱10)
+    • Add-ons: Extra Cheese (₱15)
+
+Merchant: Coffee Shop
+  Iced Coffee × 2                    ₱300.00
+    • Size: Large (₱40 each)
+    • Flavor: Caramel (₱15 each)
+
+Items Subtotal:                      ₱455.00
+Delivery Fee:                        ₱100.00
+Convenience Fee:                     ₱15.00
+─────────────────────
+Total:                               ₱570.00
+
+DISPLAY FORMAT:
+
+For each cart item, show:
+1. Item name and quantity
+2. Indented list of selected options below
+3. Each option shows: option type name, value name, and price (if not zero)
+4. Total item price includes all option prices
+
+IMPLEMENTATION:
+
+1. SAVE OPTIONS WITH CART ITEMS:
+   When customer adds item to cart, save:
+   - Base item info
+   - Array of selected options with: option_type_name, option_value_name, option_price
+
+2. DISPLAY IN CART:
+   For each cart item, show:
+   - Item name and quantity
+   - Loop through selected options and display each one
+   - Show option prices if greater than 0
+   - Calculate total including all option prices
+
+3. DISPLAY IN CHECKOUT:
+   Same format as cart
+   - Group by merchant if multi-merchant order
+   - Show all items with their selected options
+   - Clear itemized view of what customer is ordering
+
+4. HANDLE DIFFERENT OPTION TYPES:
+   - Single selection (Size, Flavor): Show selected value
+   - Multiple selection (Add-ons): Show all selected values
+   - Free options: Show name without price or show (₱0)
+
+5. FORMATTING:
+   Use clear visual hierarchy:
+   - Item name: Bold, larger
+   - Options: Indented, smaller font, gray color
+   - Prices: Right-aligned
+
+This allows customers to review exactly what they're ordering with all customizations visible before placing the order.
