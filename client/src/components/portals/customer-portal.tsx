@@ -989,11 +989,17 @@ export default function CustomerPortal() {
                             </div>
                             {item.selectedOptions && item.selectedOptions.length > 0 && (
                               <div className="ml-3 space-y-0.5 mb-2">
-                                {item.selectedOptions.map((opt, idx) => (
-                                  <p key={idx} className="text-xs text-muted-foreground">
-                                    {opt.optionTypeName}: {opt.valueName}{opt.price > 0 ? ` (₱${opt.price.toFixed(2)})` : ''}
-                                  </p>
-                                ))}
+                                {item.selectedOptions.map((opt, idx) => {
+                                  console.log(`Option ${idx}:`, opt);
+                                  console.log(`  - optionTypeName: "${opt.optionTypeName}"`);
+                                  console.log(`  - valueName: "${opt.valueName}"`);
+                                  console.log(`  - price: ${opt.price}`);
+                                  return (
+                                    <p key={idx} className="text-xs text-muted-foreground">
+                                      {opt.optionTypeName}: {opt.valueName}{opt.price > 0 ? ` (₱${opt.price.toFixed(2)})` : ''}
+                                    </p>
+                                  );
+                                })}
                               </div>
                             )}
                             <p className="text-xs text-muted-foreground">₱{markedUpPrice.toFixed(2)} each</p>
