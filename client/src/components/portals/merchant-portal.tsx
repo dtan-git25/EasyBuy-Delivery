@@ -78,10 +78,10 @@ function SortableOptionType({
   removeOptionType,
 }: {
   selectedType: { id: string; name: string };
-  optionValues: Array<{optionTypeId: number, value: string, price: string}>;
+  optionValues: Array<{optionTypeId: string, value: string, price: string}>;
   updateOptionValue: (index: number, field: 'value' | 'price', newValue: string) => void;
   removeOptionValue: (index: number) => void;
-  addOptionValue: (optionTypeId: number) => void;
+  addOptionValue: (optionTypeId: string) => void;
   removeOptionType: (typeId: string) => void;
 }) {
   const {
@@ -99,7 +99,7 @@ function SortableOptionType({
 
   const typeValues = optionValues
     .map((opt, index) => ({ ...opt, index }))
-    .filter(opt => opt.optionTypeId === parseInt(selectedType.id));
+    .filter(opt => opt.optionTypeId === selectedType.id);
 
   return (
     <div ref={setNodeRef} style={style} className="border rounded-lg p-4 bg-card">
@@ -121,7 +121,7 @@ function SortableOptionType({
           type="button"
           variant="outline"
           size="sm"
-          onClick={() => addOptionValue(parseInt(selectedType.id))}
+          onClick={() => addOptionValue(selectedType.id)}
           data-testid={`button-add-option-${selectedType.id}`}
         >
           <Plus className="h-3 w-3 mr-1" />
@@ -287,7 +287,7 @@ export default function MerchantPortal() {
   const [selectedRestaurantImage, setSelectedRestaurantImage] = useState<File | null>(null);
   const [restaurantImagePreview, setRestaurantImagePreview] = useState<string>('');
   const [isRestaurantPhotoDialogOpen, setIsRestaurantPhotoDialogOpen] = useState(false);
-  const [optionValues, setOptionValues] = useState<Array<{optionTypeId: number, value: string, price: string}>>([]);
+  const [optionValues, setOptionValues] = useState<Array<{optionTypeId: string, value: string, price: string}>>([]);
   const [selectedOptionTypes, setSelectedOptionTypes] = useState<Array<{id: string, name: string}>>([]);
   const [availableItemOptions, setAvailableItemOptions] = useState<any[]>([]);
   const [selectedItemOptions, setSelectedItemOptions] = useState<Record<string, string>>({});
@@ -646,13 +646,12 @@ export default function MerchantPortal() {
         
         // Iterate through selected types in order
         for (const selectedType of selectedOptionTypes) {
-          const typeId = parseInt(selectedType.id);
-          const valuesForType = optionValues.filter(v => v.optionTypeId === typeId);
+          const valuesForType = optionValues.filter(v => v.optionTypeId === selectedType.id);
           
           // Save all values for this type with sequential displayOrder
           for (const optionValue of valuesForType) {
             await apiRequest("POST", `/api/menu-items/${data.id}/options`, {
-              optionTypeId: optionValue.optionTypeId.toString(),
+              optionTypeId: optionValue.optionTypeId,
               value: optionValue.value,
               price: optionValue.price,
               displayOrder: displayOrderCounter++
@@ -708,13 +707,12 @@ export default function MerchantPortal() {
         
         // Iterate through selected types in order
         for (const selectedType of selectedOptionTypes) {
-          const typeId = parseInt(selectedType.id);
-          const valuesForType = optionValues.filter(v => v.optionTypeId === typeId);
+          const valuesForType = optionValues.filter(v => v.optionTypeId === selectedType.id);
           
           // Save all values for this type with sequential displayOrder
           for (const optionValue of valuesForType) {
             await apiRequest("POST", `/api/menu-items/${variables.id}/options`, {
-              optionTypeId: optionValue.optionTypeId.toString(),
+              optionTypeId: optionValue.optionTypeId,
               value: optionValue.value,
               price: optionValue.price,
               displayOrder: displayOrderCounter++
@@ -1099,8 +1097,7 @@ export default function MerchantPortal() {
 
     // Validate option types have at least one value
     for (const selectedType of selectedOptionTypes) {
-      const typeId = parseInt(selectedType.id);
-      const valuesForType = optionValues.filter(v => v.optionTypeId === typeId);
+      const valuesForType = optionValues.filter(v => v.optionTypeId === selectedType.id);
       
       if (valuesForType.length === 0) {
         toast({
@@ -1165,8 +1162,9 @@ export default function MerchantPortal() {
     const response = await fetch(`/api/menu-items/${item.id}/options`);
     if (response.ok) {
       const existingOptions = await response.json();
+      // Normalize optionTypeId to string to ensure type safety
       setOptionValues(existingOptions.map((opt: any) => ({
-        optionTypeId: opt.optionTypeId,
+        optionTypeId: String(opt.optionTypeId),
         value: opt.value,
         price: opt.price
       })));
@@ -1174,8 +1172,9 @@ export default function MerchantPortal() {
       // Extract unique option types from existing options (in order by displayOrder)
       const uniqueTypes: {id: string, name: string}[] = [];
       for (const opt of existingOptions) {
-        if (!uniqueTypes.find(t => t.id === opt.optionTypeId.toString())) {
-          uniqueTypes.push({ id: opt.optionTypeId.toString(), name: opt.optionType.name });
+        const typeId = String(opt.optionTypeId);
+        if (!uniqueTypes.find(t => t.id === typeId)) {
+          uniqueTypes.push({ id: typeId, name: opt.optionType.name });
         }
       }
       setSelectedOptionTypes(uniqueTypes);
@@ -1201,8 +1200,7 @@ export default function MerchantPortal() {
 
     // Validate option types have at least one value
     for (const selectedType of selectedOptionTypes) {
-      const typeId = parseInt(selectedType.id);
-      const valuesForType = optionValues.filter(v => v.optionTypeId === typeId);
+      const valuesForType = optionValues.filter(v => v.optionTypeId === selectedType.id);
       
       if (valuesForType.length === 0) {
         toast({
@@ -1259,22 +1257,27 @@ export default function MerchantPortal() {
   };
 
   // Add a new option type and automatically add one empty value for it
-  const addOptionType = (optionTypeId: number, optionTypeName: string) => {
+  const addOptionType = (optionTypeId: string | number, optionTypeName: string) => {
+    // Ensure ID is a string (defensive programming)
+    const stringId = String(optionTypeId);
+    
     // Add the option type to selectedOptionTypes
     setSelectedOptionTypes(prev => {
-      if (!prev.find(t => t.id === optionTypeId.toString())) {
-        return [...prev, { id: optionTypeId.toString(), name: optionTypeName }];
+      if (!prev.find(t => t.id === stringId)) {
+        return [...prev, { id: stringId, name: optionTypeName }];
       }
       return prev;
     });
     
     // Automatically add one empty value for this option type
-    setOptionValues(prev => [...prev, { optionTypeId, value: '', price: '' }]);
+    setOptionValues(prev => [...prev, { optionTypeId: stringId, value: '', price: '' }]);
   };
 
   // Add another value to an existing option type
-  const addOptionValue = (optionTypeId: number) => {
-    setOptionValues(prev => [...prev, { optionTypeId, value: '', price: '' }]);
+  const addOptionValue = (optionTypeId: string | number) => {
+    // Ensure ID is a string (defensive programming)
+    const stringId = String(optionTypeId);
+    setOptionValues(prev => [...prev, { optionTypeId: stringId, value: '', price: '' }]);
   };
 
   const updateOptionValue = (index: number, field: 'value' | 'price', newValue: string) => {
@@ -1343,7 +1346,7 @@ export default function MerchantPortal() {
   // Remove entire option type
   const removeOptionType = (typeId: string) => {
     // Remove all values for this type
-    setOptionValues(prev => prev.filter(v => v.optionTypeId !== parseInt(typeId)));
+    setOptionValues(prev => prev.filter(v => v.optionTypeId !== typeId));
     // Remove from selected types
     setSelectedOptionTypes(prev => prev.filter(t => t.id !== typeId));
   };
