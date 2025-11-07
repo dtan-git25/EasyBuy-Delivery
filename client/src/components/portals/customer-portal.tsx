@@ -974,11 +974,6 @@ export default function CustomerPortal() {
                 <>
                   <div className="space-y-3">
                     {cart.items.map((item) => {
-                      console.log('=== RENDERING CART ITEM ===');
-                      console.log('Item:', item);
-                      console.log('Item has selectedOptions?', !!item.selectedOptions);
-                      console.log('selectedOptions:', item.selectedOptions);
-                      
                       const markedUpPrice = Number(item.price) * (1 + selectedRestaurant.markup / 100);
                       return (
                         <div key={item.id} className="flex items-start justify-between p-3 border rounded-lg">
@@ -987,12 +982,18 @@ export default function CustomerPortal() {
                               <h4 className="font-medium">{item.name} × {item.quantity}</h4>
                               <span className="font-semibold">₱{(markedUpPrice * item.quantity).toFixed(2)}</span>
                             </div>
+                            
+                            {/* Always show this to test */}
+                            <div className="ml-3 mb-2 bg-yellow-200 p-2">
+                              <p className="text-xs font-bold">TEST: Has options? {item.selectedOptions ? 'YES' : 'NO'}</p>
+                              <p className="text-xs">Count: {item.selectedOptions?.length || 0}</p>
+                            </div>
+                            
                             {item.selectedOptions && item.selectedOptions.length > 0 && (
-                              <div className="ml-3 space-y-0.5 mb-2" style={{ backgroundColor: 'yellow', padding: '4px' }}>
-                                <p className="text-xs font-bold text-red-600">OPTIONS FOUND: {item.selectedOptions.length}</p>
+                              <div className="ml-3 space-y-0.5 mb-2 bg-green-200 p-2">
                                 {item.selectedOptions.map((opt, idx) => (
-                                  <p key={idx} className="text-xs text-muted-foreground" style={{ backgroundColor: 'lightblue' }}>
-                                    {opt.optionTypeName}: {opt.valueName}{opt.price > 0 ? ` (₱${opt.price.toFixed(2)})` : ''}
+                                  <p key={idx} className="text-xs text-gray-700">
+                                    • {opt.optionTypeName}: {opt.valueName} {opt.price > 0 ? `(₱${opt.price.toFixed(2)})` : ''}
                                   </p>
                                 ))}
                               </div>
