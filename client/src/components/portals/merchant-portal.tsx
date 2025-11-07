@@ -537,7 +537,7 @@ export default function MerchantPortal() {
           // Save all values for this type with sequential displayOrder
           for (const optionValue of valuesForType) {
             await apiRequest("POST", `/api/menu-items/${data.id}/options`, {
-              optionTypeId: optionValue.optionTypeId,
+              optionTypeId: optionValue.optionTypeId.toString(),
               value: optionValue.value,
               price: optionValue.price,
               displayOrder: displayOrderCounter++
@@ -599,7 +599,7 @@ export default function MerchantPortal() {
           // Save all values for this type with sequential displayOrder
           for (const optionValue of valuesForType) {
             await apiRequest("POST", `/api/menu-items/${variables.id}/options`, {
-              optionTypeId: optionValue.optionTypeId,
+              optionTypeId: optionValue.optionTypeId.toString(),
               value: optionValue.value,
               price: optionValue.price,
               displayOrder: displayOrderCounter++
