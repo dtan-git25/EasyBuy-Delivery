@@ -159,6 +159,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const addItem = (newItem: Omit<CartItem, 'id' | 'quantity'>) => {
+    console.log('=== CART CONTEXT addItem RECEIVED ===');
+    console.log('Item received:', newItem);
+    console.log('selectedOptions in received item:', newItem.selectedOptions);
+    
     const targetRestaurantId = newItem.restaurant.id;
     
     setAllCarts(currentCarts => {
@@ -186,17 +190,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       if (existingItemIndex >= 0) {
         // Update quantity of existing item
+        console.log('Found existing item, incrementing quantity');
         cart.items[existingItemIndex].quantity += 1;
       } else {
         // Add new item
-        cart.items.push({
+        const newCartItem = {
           ...newItem,
           price: parseFloat(newItem.price.toString()),
           id: `${newItem.menuItemId}-${Date.now()}`,
           quantity: 1
-        });
+        };
+        console.log('Adding new item to cart:', newCartItem);
+        cart.items.push(newCartItem);
       }
       
+      console.log('Updated cart items:', cart.items);
       return updatedCarts;
     });
     

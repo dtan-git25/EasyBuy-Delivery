@@ -719,6 +719,10 @@ export default function CustomerPortal() {
         price: opt.price
       }));
 
+    console.log('=== ADDING TO CART WITH OPTIONS ===');
+    console.log('Selected options from modal:', selectedOptions);
+    console.log('Filtered cart options:', cartSelectedOptions);
+
     // Calculate price per item (including options but not quantity)
     const basePrice = parseFloat(selectedMenuItemForOptions.price.toString());
     const optionsPrice = selectedOptions.reduce((sum, opt) => sum + opt.price, 0);
@@ -726,7 +730,7 @@ export default function CustomerPortal() {
 
     // Add item to cart with proper quantity
     for (let i = 0; i < quantity; i++) {
-      cart.addItem({
+      const itemToAdd = {
         menuItemId: selectedMenuItemForOptions.id,
         name: selectedMenuItemForOptions.name,
         price: pricePerItem,
@@ -738,7 +742,9 @@ export default function CustomerPortal() {
         },
         variants: Object.keys(variants).length > 0 ? variants : undefined,
         selectedOptions: cartSelectedOptions.length > 0 ? cartSelectedOptions : undefined
-      });
+      };
+      console.log('Item being added to cart:', itemToAdd);
+      cart.addItem(itemToAdd);
     }
     
     // Filter "None" options from toast message
@@ -968,6 +974,11 @@ export default function CustomerPortal() {
                 <>
                   <div className="space-y-3">
                     {cart.items.map((item) => {
+                      console.log('=== RENDERING CART ITEM ===');
+                      console.log('Item:', item);
+                      console.log('Item has selectedOptions?', !!item.selectedOptions);
+                      console.log('selectedOptions:', item.selectedOptions);
+                      
                       const markedUpPrice = Number(item.price) * (1 + selectedRestaurant.markup / 100);
                       return (
                         <div key={item.id} className="flex items-start justify-between p-3 border rounded-lg">
