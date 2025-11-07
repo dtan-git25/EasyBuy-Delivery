@@ -81,7 +81,7 @@ function SortableOptionType({
   optionValues: Array<{optionTypeId: number, value: string, price: string}>;
   updateOptionValue: (index: number, field: 'value' | 'price', newValue: string) => void;
   removeOptionValue: (index: number) => void;
-  addOptionValue: (optionTypeId: number, optionTypeName: string) => void;
+  addOptionValue: (optionTypeId: number) => void;
   removeOptionType: (typeId: string) => void;
 }) {
   const {
@@ -121,7 +121,7 @@ function SortableOptionType({
           type="button"
           variant="outline"
           size="sm"
-          onClick={() => addOptionValue(parseInt(selectedType.id), selectedType.name)}
+          onClick={() => addOptionValue(parseInt(selectedType.id))}
           data-testid={`button-add-option-${selectedType.id}`}
         >
           <Plus className="h-3 w-3 mr-1" />
@@ -1258,16 +1258,23 @@ export default function MerchantPortal() {
     setMenuItemForm(prev => ({ ...prev, [field]: value }));
   };
 
-  const addOptionValue = (optionTypeId: number, optionTypeName: string) => {
-    setOptionValues(prev => [...prev, { optionTypeId, value: '', price: '' }]);
-    
-    // Add to selected types if not already there
+  // Add a new option type and automatically add one empty value for it
+  const addOptionType = (optionTypeId: number, optionTypeName: string) => {
+    // Add the option type to selectedOptionTypes
     setSelectedOptionTypes(prev => {
       if (!prev.find(t => t.id === optionTypeId.toString())) {
         return [...prev, { id: optionTypeId.toString(), name: optionTypeName }];
       }
       return prev;
     });
+    
+    // Automatically add one empty value for this option type
+    setOptionValues(prev => [...prev, { optionTypeId, value: '', price: '' }]);
+  };
+
+  // Add another value to an existing option type
+  const addOptionValue = (optionTypeId: number) => {
+    setOptionValues(prev => [...prev, { optionTypeId, value: '', price: '' }]);
   };
 
   const updateOptionValue = (index: number, field: 'value' | 'price', newValue: string) => {
@@ -1894,7 +1901,7 @@ export default function MerchantPortal() {
                           ).length > 0 && (
                             <Select onValueChange={(value) => {
                               const type = activeOptionTypes.find((t: any) => t.id.toString() === value);
-                              if (type) addOptionValue(type.id, type.name);
+                              if (type) addOptionType(type.id, type.name);
                             }}>
                               <SelectTrigger data-testid="select-add-option-type">
                                 <SelectValue placeholder="+ Add option type..." />
@@ -2066,7 +2073,7 @@ export default function MerchantPortal() {
                         ).length > 0 && (
                           <Select onValueChange={(value) => {
                             const type = activeOptionTypes.find((t: any) => t.id.toString() === value);
-                            if (type) addOptionValue(type.id, type.name);
+                            if (type) addOptionType(type.id, type.name);
                           }}>
                             <SelectTrigger data-testid="select-edit-add-option-type">
                               <SelectValue placeholder="+ Add option type..." />

@@ -1,0 +1,66 @@
+Fix option type creation - value and price fields not showing automatically:
+
+PROBLEM:
+When merchant adds an option type for the first time:
+- Value and price fields do NOT appear automatically
+- Merchant has to click "Add Value" button
+- When clicking "Add Value", it creates a NEW option type instead of just adding value fields
+- Results in duplicate option types instead of values under one option type
+
+REQUIRED FIX:
+
+When merchant clicks "Add Option Type" and selects/creates option type name (e.g., "Size"):
+- IMMEDIATELY show one value and price input field automatically
+- Do NOT require clicking another button
+- Do NOT create duplicate option types
+
+CORRECT FLOW:
+
+Step 1: Merchant clicks [+ Add Option Type]
+Step 2: Merchant enters or selects option type name: "Size"
+Step 3: AUTOMATICALLY show (without any button click):
+   - Value input field: [______]
+   - Price input field: ₱[______]
+   - [+ Add Another Value] button
+   - Delete icon for this value row
+
+Step 4: Merchant can fill in the first value immediately
+Step 5: Click [+ Add Another Value] to add MORE values under the SAME option type
+
+WHAT SHOULD HAPPEN:
+
+Add Option Type → "Size" entered → AUTOMATIC DISPLAY:
+┌─────────────────────────────────────────────────┐
+│ Size                           [Remove Type]     │
+│ Value: [_______] Price: ₱[___] [🗑]             │
+│ [+ Add Another Value]                            │
+└─────────────────────────────────────────────────┘
+
+Clicking [+ Add Another Value] → Adds new row UNDER same option type:
+┌─────────────────────────────────────────────────┐
+│ Size                           [Remove Type]     │
+│ Value: [Small   ] Price: ₱[0  ] [🗑]            │
+│ Value: [_______] Price: ₱[___] [🗑]  ← NEW ROW  │
+│ [+ Add Another Value]                            │
+└─────────────────────────────────────────────────┘
+
+WHAT SHOULD NOT HAPPEN:
+
+Do NOT create duplicate option types like this (WRONG):
+┌─────────────────────────────────────────────────┐
+│ Size                                             │
+│ (no values shown)                                │
+└─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────┐
+│ Size  ← DUPLICATE (WRONG)                       │
+│ Value: [Small   ] Price: ₱[0  ]                 │
+└─────────────────────────────────────────────────┘
+
+FIX REQUIREMENTS:
+
+1. As soon as option type name is entered, show first value/price fields
+2. "Add Value" button should add values to SAME option type, not create new option type
+3. Only create new option type when [+ Add Option Type] button is clicked
+4. Each option type should contain multiple values, not multiple option types with same name
+
+This ensures one option type can have multiple values, not multiple duplicate option types.
