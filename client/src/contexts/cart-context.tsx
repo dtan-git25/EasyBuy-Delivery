@@ -14,6 +14,11 @@ export interface CartItem {
     markup: number;
   };
   variants?: Record<string, string>;
+  selectedOptions?: Array<{
+    optionTypeName: string;
+    valueName: string;
+    price: number;
+  }>;
   specialInstructions?: string;
 }
 
@@ -61,6 +66,21 @@ interface CartContextType {
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
+
+// Helper function to normalize selectedOptions for comparison
+function normalizeSelectedOptions(options?: Array<{ optionTypeName: string; valueName: string; price: number }>): string {
+  // Default to empty array if undefined
+  const normalized = options || [];
+  
+  // Sort by optionTypeName, then valueName to ensure consistent ordering
+  const sorted = [...normalized].sort((a, b) => {
+    const typeCompare = a.optionTypeName.localeCompare(b.optionTypeName);
+    if (typeCompare !== 0) return typeCompare;
+    return a.valueName.localeCompare(b.valueName);
+  });
+  
+  return JSON.stringify(sorted);
+}
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [allCarts, setAllCarts] = useState<Record<string, RestaurantCart>>({});
@@ -157,10 +177,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       
       const cart = updatedCarts[targetRestaurantId];
       
-      // Check if item with same menu item and variants already exists
+      // Check if item with same menu item, variants, and selected options already exists
       const existingItemIndex = cart.items.findIndex(
         item => item.menuItemId === newItem.menuItemId && 
-        JSON.stringify(item.variants) === JSON.stringify(newItem.variants)
+        JSON.stringify(item.variants) === JSON.stringify(newItem.variants) &&
+        normalizeSelectedOptions(item.selectedOptions) === normalizeSelectedOptions(newItem.selectedOptions)
       );
 
       if (existingItemIndex >= 0) {

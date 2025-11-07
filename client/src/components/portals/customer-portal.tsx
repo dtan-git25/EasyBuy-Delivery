@@ -710,6 +710,15 @@ export default function CustomerPortal() {
       }
     });
 
+    // Prepare selectedOptions array for display (filter out "None" selections)
+    const cartSelectedOptions = selectedOptions
+      .filter(opt => opt.valueName !== "None")
+      .map(opt => ({
+        optionTypeName: opt.optionTypeName,
+        valueName: opt.valueName,
+        price: opt.price
+      }));
+
     // Calculate price per item (including options but not quantity)
     const basePrice = parseFloat(selectedMenuItemForOptions.price.toString());
     const optionsPrice = selectedOptions.reduce((sum, opt) => sum + opt.price, 0);
@@ -727,7 +736,8 @@ export default function CustomerPortal() {
           deliveryFee: parseFloat(selectedRestaurant.deliveryFee.toString()),
           markup: parseFloat(selectedRestaurant.markup.toString())
         },
-        variants: Object.keys(variants).length > 0 ? variants : undefined
+        variants: Object.keys(variants).length > 0 ? variants : undefined,
+        selectedOptions: cartSelectedOptions.length > 0 ? cartSelectedOptions : undefined
       });
     }
     
@@ -960,45 +970,52 @@ export default function CustomerPortal() {
                     {cart.items.map((item) => {
                       const markedUpPrice = Number(item.price) * (1 + selectedRestaurant.markup / 100);
                       return (
-                        <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div key={item.id} className="flex items-start justify-between p-3 border rounded-lg">
                           <div className="flex-1">
-                            <h4 className="font-medium">{item.name}</h4>
-                            {item.variants && Object.keys(item.variants).length > 0 && (
-                              <p className="text-xs text-muted-foreground">
-                                {Object.entries(item.variants).map(([key, value]) => `${key}: ${value}`).join(', ')}
-                              </p>
+                            <div className="flex items-start justify-between mb-1">
+                              <h4 className="font-medium">{item.name} × {item.quantity}</h4>
+                              <span className="font-semibold">₱{(markedUpPrice * item.quantity).toFixed(2)}</span>
+                            </div>
+                            {item.selectedOptions && item.selectedOptions.length > 0 && (
+                              <div className="ml-3 space-y-0.5 mb-2">
+                                {item.selectedOptions.map((opt, idx) => (
+                                  <p key={idx} className="text-xs text-muted-foreground">
+                                    {opt.optionTypeName}: {opt.valueName}{opt.price > 0 ? ` (₱${opt.price.toFixed(2)})` : ''}
+                                  </p>
+                                ))}
+                              </div>
                             )}
-                            <p className="text-sm text-muted-foreground">₱{markedUpPrice.toFixed(2)} each</p>
+                            <p className="text-xs text-muted-foreground">₱{markedUpPrice.toFixed(2)} each</p>
                           </div>
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => cart.updateQuantity(item.id, item.quantity - 1)}
-                            data-testid={`button-decrease-${item.id}`}
-                          >
-                            <Minus className="h-4 w-4" />
-                          </Button>
-                          <span className="w-8 text-center">{item.quantity}</span>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => cart.updateQuantity(item.id, item.quantity + 1)}
-                            data-testid={`button-increase-${item.id}`}
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => cart.removeItem(item.id)}
-                            data-testid={`button-remove-${item.id}`}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center space-x-2 ml-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => cart.updateQuantity(item.id, item.quantity - 1)}
+                              data-testid={`button-decrease-${item.id}`}
+                            >
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                            <span className="w-8 text-center">{item.quantity}</span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => cart.updateQuantity(item.id, item.quantity + 1)}
+                              data-testid={`button-increase-${item.id}`}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => cart.removeItem(item.id)}
+                              data-testid={`button-remove-${item.id}`}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    );
+                      );
                     })}
                   </div>
                   
@@ -1077,9 +1094,20 @@ export default function CustomerPortal() {
                       
                       <div className="space-y-2 text-sm">
                         {restaurantCart.items.map((item) => (
-                          <div key={item.id} className="flex justify-between">
-                            <span>{item.quantity}x {item.name}</span>
-                            <span>₱{(item.price * item.quantity).toFixed(2)}</span>
+                          <div key={item.id} className="space-y-0.5">
+                            <div className="flex justify-between font-medium">
+                              <span>{item.quantity}× {item.name}</span>
+                              <span>₱{(item.price * item.quantity).toFixed(2)}</span>
+                            </div>
+                            {item.selectedOptions && item.selectedOptions.length > 0 && (
+                              <div className="ml-3 space-y-0.5">
+                                {item.selectedOptions.map((opt, idx) => (
+                                  <div key={idx} className="text-xs text-muted-foreground">
+                                    • {opt.optionTypeName}: {opt.valueName}{opt.price > 0 ? ` (₱${opt.price.toFixed(2)})` : ''}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -1219,16 +1247,21 @@ export default function CustomerPortal() {
               
               <div className="space-y-2">
                 <h4 className="font-medium">Order Summary</h4>
-                <div className="text-sm space-y-1">
+                <div className="text-sm space-y-2">
                   {cart.items.map((item) => (
                     <div key={item.id} className="space-y-0.5">
-                      <div className="flex justify-between">
-                        <span>{item.name} x{item.quantity}</span>
+                      <div className="flex justify-between font-medium">
+                        <span>{item.name} × {item.quantity}</span>
                         <span>₱{(item.price * item.quantity).toFixed(2)}</span>
                       </div>
-                      {item.variants && Object.keys(item.variants).length > 0 && (
-                        <div className="text-xs text-muted-foreground pl-2">
-                          {Object.entries(item.variants).map(([key, value]) => `${key}: ${value}`).join(', ')}
+                      {item.selectedOptions && item.selectedOptions.length > 0 && (
+                        <div className="ml-3 space-y-0.5">
+                          {item.selectedOptions.map((opt, idx) => (
+                            <div key={idx} className="flex justify-between text-xs text-muted-foreground">
+                              <span>• {opt.optionTypeName}: {opt.valueName}</span>
+                              {opt.price > 0 && <span>(₱{opt.price.toFixed(2)})</span>}
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>
