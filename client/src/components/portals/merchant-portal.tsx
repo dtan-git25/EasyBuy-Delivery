@@ -14,8 +14,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Store, MapPin, Star, Clock, User, Phone, MessageCircle, Edit, Plus, AlertCircle, CheckCircle, XCircle, Power, Trash2, Camera, Utensils, X, Package, History, BarChart3, Navigation, Search, ChevronUp, ChevronDown } from "lucide-react";
+import { Store, MapPin, Star, Clock, User, Phone, MessageCircle, Edit, Plus, AlertCircle, CheckCircle, XCircle, Power, Trash2, Camera, Utensils, X, Package, History, BarChart3, Navigation, Search, ChevronUp, ChevronDown, GripVertical } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useToast } from "@/hooks/use-toast";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -27,6 +30,7 @@ interface Order {
   items: any[];
   subtotal: string;
   total: string;
+  merchantEarningsAmount?: string;
   customer: {
     name: string;
     phone: string;
@@ -61,6 +65,117 @@ function InlineMerchantRating({ merchantId }: { merchantId?: string }) {
     <span className="text-sm text-muted-foreground">
       ★ {avgRating.toFixed(1)} ({count} {count === 1 ? 'rating' : 'ratings'})
     </span>
+  );
+}
+
+// Sortable Option Type Component
+function SortableOptionType({
+  selectedType,
+  optionValues,
+  updateOptionValue,
+  removeOptionValue,
+  addOptionValue,
+  removeOptionType,
+}: {
+  selectedType: { id: string; name: string };
+  optionValues: Array<{optionTypeId: number, value: string, price: string}>;
+  updateOptionValue: (index: number, field: 'value' | 'price', newValue: string) => void;
+  removeOptionValue: (index: number) => void;
+  addOptionValue: (optionTypeId: number, optionTypeName: string) => void;
+  removeOptionType: (typeId: string) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: selectedType.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  const typeValues = optionValues
+    .map((opt, index) => ({ ...opt, index }))
+    .filter(opt => opt.optionTypeId === parseInt(selectedType.id));
+
+  return (
+    <div ref={setNodeRef} style={style} className="border rounded-lg p-4 bg-card">
+      <div className="flex items-center gap-3 mb-3">
+        <button
+          type="button"
+          className="cursor-grab active:cursor-grabbing p-1 hover:bg-accent rounded"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="h-5 w-5 text-muted-foreground" />
+        </button>
+        
+        <h4 className="text-sm font-semibold flex-1" data-testid={`label-option-type-${selectedType.id}`}>
+          {selectedType.name}
+        </h4>
+        
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => addOptionValue(parseInt(selectedType.id), selectedType.name)}
+          data-testid={`button-add-option-${selectedType.id}`}
+        >
+          <Plus className="h-3 w-3 mr-1" />
+          Add Value
+        </Button>
+        
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => removeOptionType(selectedType.id)}
+          className="text-destructive hover:text-destructive"
+          data-testid={`button-remove-type-${selectedType.id}`}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+      
+      <div className="space-y-2">
+        {typeValues.map(({ index }) => (
+          <div key={index} className="flex gap-2 items-center">
+            <Input
+              placeholder="Value (e.g., Small)"
+              value={optionValues[index].value}
+              onChange={(e) => updateOptionValue(index, 'value', e.target.value)}
+              className="flex-1"
+              data-testid={`input-option-value-${index}`}
+            />
+            <Input
+              type="number"
+              placeholder="Price (₱)"
+              value={optionValues[index].price}
+              onChange={(e) => updateOptionValue(index, 'price', e.target.value)}
+              className="w-32"
+              data-testid={`input-option-price-${index}`}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => removeOptionValue(index)}
+              className="text-destructive hover:text-destructive"
+              data-testid={`button-remove-option-${index}`}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+        
+        {typeValues.length === 0 && (
+          <p className="text-xs text-muted-foreground italic">Click "Add Value" to add options</p>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -974,8 +1089,38 @@ export default function MerchantPortal() {
     }
 
     if (!menuItemForm.name.trim() || !menuItemForm.price.trim()) {
-      console.error('Name and price are required');
+      toast({
+        title: "Validation error",
+        description: "Name and price are required",
+        variant: "destructive",
+      });
       return;
+    }
+
+    // Validate option types have at least one value
+    for (const selectedType of selectedOptionTypes) {
+      const typeId = parseInt(selectedType.id);
+      const valuesForType = optionValues.filter(v => v.optionTypeId === typeId);
+      
+      if (valuesForType.length === 0) {
+        toast({
+          title: "Validation error",
+          description: `Option type "${selectedType.name}" must have at least one value. Please add a value or remove the option type.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Check that all values have both name and price
+      const invalidValues = valuesForType.filter(v => !v.value.trim() || !v.price.trim());
+      if (invalidValues.length > 0) {
+        toast({
+          title: "Validation error",
+          description: `All option values for "${selectedType.name}" must have both a name and price.`,
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     let imageUrl = menuItemForm.image;
@@ -1052,6 +1197,32 @@ export default function MerchantPortal() {
         variant: "destructive",
       });
       return;
+    }
+
+    // Validate option types have at least one value
+    for (const selectedType of selectedOptionTypes) {
+      const typeId = parseInt(selectedType.id);
+      const valuesForType = optionValues.filter(v => v.optionTypeId === typeId);
+      
+      if (valuesForType.length === 0) {
+        toast({
+          title: "Validation error",
+          description: `Option type "${selectedType.name}" must have at least one value. Please add a value or remove the option type.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Check that all values have both name and price
+      const invalidValues = valuesForType.filter(v => !v.value.trim() || !v.price.trim());
+      if (invalidValues.length > 0) {
+        toast({
+          title: "Validation error",
+          description: `All option values for "${selectedType.name}" must have both a name and price.`,
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     let imageUrl = menuItemForm.image;
@@ -1138,6 +1309,36 @@ export default function MerchantPortal() {
       [newTypes[index], newTypes[index + 1]] = [newTypes[index + 1], newTypes[index]];
       return newTypes;
     });
+  };
+
+  // Drag-and-drop sensors for option types
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Handle drag end for option types
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      setSelectedOptionTypes((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
+  // Remove entire option type
+  const removeOptionType = (typeId: string) => {
+    // Remove all values for this type
+    setOptionValues(prev => prev.filter(v => v.optionTypeId !== parseInt(typeId)));
+    // Remove from selected types
+    setSelectedOptionTypes(prev => prev.filter(t => t.id !== typeId));
   };
 
   const fetchItemOptions = async (menuItemId: string) => {
@@ -1684,7 +1885,7 @@ export default function MerchantPortal() {
                         <div className="space-y-3">
                           <Label>Product Options (Optional)</Label>
                           <p className="text-xs text-muted-foreground">
-                            Add option types and use up/down arrows to set the order shown to customers
+                            Drag option types to reorder how they appear to customers
                           </p>
                           
                           {/* Add New Option Type Dropdown */}
@@ -1710,91 +1911,33 @@ export default function MerchantPortal() {
                             </Select>
                           )}
                           
-                          {/* Display selected option types in order */}
-                          <div className="space-y-4">
-                            {selectedOptionTypes.map((selectedType, typeIndex) => {
-                              const fullType = activeOptionTypes.find((t: any) => t.id.toString() === selectedType.id);
-                              if (!fullType) return null;
-                              
-                              return (
-                                <div key={selectedType.id} className="space-y-2 border rounded-lg p-3">
-                                  <div className="flex items-center gap-2">
-                                    {/* Reorder buttons for option type */}
-                                    <div className="flex flex-col gap-1">
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-5 px-1"
-                                        onClick={() => moveOptionTypeUp(selectedType.id)}
-                                        disabled={typeIndex === 0}
-                                        data-testid={`button-move-type-up-${selectedType.id}`}
-                                      >
-                                        <ChevronUp className="h-3 w-3" />
-                                      </Button>
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-5 px-1"
-                                        onClick={() => moveOptionTypeDown(selectedType.id)}
-                                        disabled={typeIndex === selectedOptionTypes.length - 1}
-                                        data-testid={`button-move-type-down-${selectedType.id}`}
-                                      >
-                                        <ChevronDown className="h-3 w-3" />
-                                      </Button>
-                                    </div>
-                                    
-                                    <p className="text-sm font-medium flex-1" data-testid={`label-option-type-${selectedType.id}`}>
-                                      {selectedType.name}
-                                    </p>
-                                    
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => addOptionValue(parseInt(selectedType.id), selectedType.name)}
-                                      data-testid={`button-add-option-${selectedType.id}`}
-                                    >
-                                      <Plus className="h-3 w-3 mr-1" />
-                                      Add Value
-                                    </Button>
-                                  </div>
-                                  <div className="space-y-2">
-                                    {optionValues
-                                      .map((opt, index) => ({ ...opt, index }))
-                                      .filter(opt => opt.optionTypeId === parseInt(selectedType.id))
-                                      .map(({ index }) => (
-                                        <div key={index} className="flex gap-2 items-center">
-                                          <Input
-                                            placeholder="Value (e.g., Small)"
-                                            value={optionValues[index].value}
-                                            onChange={(e) => updateOptionValue(index, 'value', e.target.value)}
-                                            data-testid={`input-option-value-${index}`}
-                                          />
-                                          <Input
-                                            type="number"
-                                            placeholder="Price (₱)"
-                                            value={optionValues[index].price}
-                                            onChange={(e) => updateOptionValue(index, 'price', e.target.value)}
-                                            data-testid={`input-option-price-${index}`}
-                                          />
-                                          <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => removeOptionValue(index)}
-                                            data-testid={`button-remove-option-${index}`}
-                                          >
-                                            <Trash2 className="h-4 w-4" />
-                                          </Button>
-                                        </div>
-                                      ))}
-                                  </div>
+                          {/* Display selected option types with drag-and-drop */}
+                          {selectedOptionTypes.length > 0 && (
+                            <DndContext
+                              sensors={sensors}
+                              collisionDetection={closestCenter}
+                              onDragEnd={handleDragEnd}
+                            >
+                              <SortableContext
+                                items={selectedOptionTypes.map(t => t.id)}
+                                strategy={verticalListSortingStrategy}
+                              >
+                                <div className="space-y-3">
+                                  {selectedOptionTypes.map((selectedType) => (
+                                    <SortableOptionType
+                                      key={selectedType.id}
+                                      selectedType={selectedType}
+                                      optionValues={optionValues}
+                                      updateOptionValue={updateOptionValue}
+                                      removeOptionValue={removeOptionValue}
+                                      addOptionValue={addOptionValue}
+                                      removeOptionType={removeOptionType}
+                                    />
+                                  ))}
                                 </div>
-                              );
-                            })}
-                          </div>
+                              </SortableContext>
+                            </DndContext>
+                          )}
                         </div>
                       )}
 
@@ -1913,58 +2056,60 @@ export default function MerchantPortal() {
                     {activeOptionTypes.length > 0 && (
                       <div className="space-y-3">
                         <Label>Product Options (Optional)</Label>
-                        <div className="space-y-4">
-                          {activeOptionTypes.map((optionType: any) => (
-                            <div key={optionType.id} className="space-y-2">
-                              <div className="flex items-center justify-between">
-                                <p className="text-sm font-medium" data-testid={`label-edit-option-type-${optionType.id}`}>
-                                  {optionType.name}
-                                </p>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => addOptionValue(optionType.id, optionType.name)}
-                                  data-testid={`button-edit-add-option-${optionType.id}`}
-                                >
-                                  <Plus className="h-3 w-3 mr-1" />
-                                  Add {optionType.name}
-                                </Button>
+                        <p className="text-xs text-muted-foreground">
+                          Drag option types to reorder how they appear to customers
+                        </p>
+                        
+                        {/* Add New Option Type Dropdown */}
+                        {activeOptionTypes.filter((type: any) => 
+                          !selectedOptionTypes.find(st => st.id === type.id.toString())
+                        ).length > 0 && (
+                          <Select onValueChange={(value) => {
+                            const type = activeOptionTypes.find((t: any) => t.id.toString() === value);
+                            if (type) addOptionValue(type.id, type.name);
+                          }}>
+                            <SelectTrigger data-testid="select-edit-add-option-type">
+                              <SelectValue placeholder="+ Add option type..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {activeOptionTypes
+                                .filter((type: any) => !selectedOptionTypes.find(st => st.id === type.id.toString()))
+                                .map((optionType: any) => (
+                                  <SelectItem key={optionType.id} value={optionType.id.toString()}>
+                                    {optionType.name}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                        
+                        {/* Display selected option types with drag-and-drop */}
+                        {selectedOptionTypes.length > 0 && (
+                          <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={handleDragEnd}
+                          >
+                            <SortableContext
+                              items={selectedOptionTypes.map(t => t.id)}
+                              strategy={verticalListSortingStrategy}
+                            >
+                              <div className="space-y-3">
+                                {selectedOptionTypes.map((selectedType) => (
+                                  <SortableOptionType
+                                    key={selectedType.id}
+                                    selectedType={selectedType}
+                                    optionValues={optionValues}
+                                    updateOptionValue={updateOptionValue}
+                                    removeOptionValue={removeOptionValue}
+                                    addOptionValue={addOptionValue}
+                                    removeOptionType={removeOptionType}
+                                  />
+                                ))}
                               </div>
-                              <div className="space-y-2">
-                                {optionValues
-                                  .map((opt, index) => ({ ...opt, index }))
-                                  .filter(opt => opt.optionTypeId === optionType.id)
-                                  .map(({ index }) => (
-                                    <div key={index} className="flex gap-2 items-center">
-                                      <Input
-                                        placeholder="Value (e.g., Small)"
-                                        value={optionValues[index].value}
-                                        onChange={(e) => updateOptionValue(index, 'value', e.target.value)}
-                                        data-testid={`input-edit-option-value-${index}`}
-                                      />
-                                      <Input
-                                        type="number"
-                                        placeholder="Price (₱)"
-                                        value={optionValues[index].price}
-                                        onChange={(e) => updateOptionValue(index, 'price', e.target.value)}
-                                        data-testid={`input-edit-option-price-${index}`}
-                                      />
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => removeOptionValue(index)}
-                                        data-testid={`button-edit-remove-option-${index}`}
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                  ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                            </SortableContext>
+                          </DndContext>
+                        )}
                       </div>
                     )}
 

@@ -1,0 +1,84 @@
+Fix and improve the option type management when merchant adds menu items:
+
+REQUIREMENTS:
+
+1. WHEN MERCHANT ADDS OPTION TYPE:
+   Automatically show input fields for:
+   - Option type value (name)
+   - Price for that value
+   - Delete button for each value
+
+2. AUTOMATIC FIELDS:
+   When merchant selects or creates option type (e.g., "Size"), immediately show:
+   - First value input field
+   - Price input field
+   - [+ Add Another Value] button
+   - Delete icon for that value
+
+3. ADDING MORE VALUES:
+   When merchant clicks [+ Add Another Value]:
+   - Add new row with value input and price input
+   - Each row has its own delete button
+   - Can add unlimited values
+
+4. DELETING VALUES:
+   - Each value row has delete icon/button
+   - Click to remove that specific value
+   - When LAST value is deleted → Remove entire option type
+
+5. DELETING OPTION TYPE:
+   Two ways to remove:
+   - Delete all values one by one (removes option type when last value deleted)
+   - Or have separate "Remove Option Type" button that deletes entire section
+
+6. REORDERING OPTION TYPES:
+   - Add drag handles to each option type section
+   - Merchant can drag to reorder option types
+   - Order is saved and shown to customers
+
+7. LAYOUT EXAMPLE:
+
+   Product: Burger
+
+   Option Types:
+   
+   [☰ Size] ────────────────────────────── [Remove Option Type]
+   ┌─────────────────────────────────────────────────┐
+   │ Value: [Small        ] Price: ₱[0   ] [🗑]      │
+   │ Value: [Medium       ] Price: ₱[20  ] [🗑]      │
+   │ Value: [Large        ] Price: ₱[40  ] [🗑]      │
+   │ [+ Add Another Value]                            │
+   └─────────────────────────────────────────────────┘
+
+   [☰ Flavor] ──────────────────────────── [Remove Option Type]
+   ┌─────────────────────────────────────────────────┐
+   │ Value: [Cheese       ] Price: ₱[10  ] [🗑]      │
+   │ Value: [BBQ          ] Price: ₱[10  ] [🗑]      │
+   │ [+ Add Another Value]                            │
+   └─────────────────────────────────────────────────┘
+
+   [+ Add Option Type]
+
+8. USER FLOW:
+   Step 1: Merchant clicks [+ Add Option Type]
+   Step 2: Select or create option type name (Size, Flavor, etc.)
+   Step 3: Automatically shows first value/price input fields
+   Step 4: Merchant fills in value and price
+   Step 5: Click [+ Add Another Value] to add more
+   Step 6: Repeat for all values
+   Step 7: Can reorder option types by dragging
+   Step 8: Save menu item with all options
+
+9. VALIDATION:
+   - Option type must have at least one value
+   - Each value must have a name
+   - Price can be 0 or more
+   - Cannot save if option type has no values
+
+10. BEHAVIOR:
+    - Deleting last value → Removes entire option type automatically
+    - Drag handles for reordering work smoothly
+    - Changes save properly to database
+    - Order is preserved and shown to customers
+
+This makes option management intuitive and efficient for merchants while giving them full control over how options are structured and displayed.
