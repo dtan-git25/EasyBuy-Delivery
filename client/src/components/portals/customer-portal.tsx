@@ -982,18 +982,11 @@ export default function CustomerPortal() {
                               <h4 className="font-medium">{item.name} × {item.quantity}</h4>
                               <span className="font-semibold">₱{(markedUpPrice * item.quantity).toFixed(2)}</span>
                             </div>
-                            
-                            {/* Always show this to test */}
-                            <div className="ml-3 mb-2 bg-yellow-200 p-2">
-                              <p className="text-xs font-bold">TEST: Has options? {item.selectedOptions ? 'YES' : 'NO'}</p>
-                              <p className="text-xs">Count: {item.selectedOptions?.length || 0}</p>
-                            </div>
-                            
                             {item.selectedOptions && item.selectedOptions.length > 0 && (
-                              <div className="ml-3 space-y-0.5 mb-2 bg-green-200 p-2">
+                              <div className="ml-3 space-y-0.5 mb-2">
                                 {item.selectedOptions.map((opt, idx) => (
-                                  <p key={idx} className="text-xs text-gray-700">
-                                    • {opt.optionTypeName}: {opt.valueName} {opt.price > 0 ? `(₱${opt.price.toFixed(2)})` : ''}
+                                  <p key={idx} className="text-xs text-muted-foreground">
+                                    • {opt.optionTypeName}: {opt.valueName}{opt.price > 0 ? ` (₱${opt.price.toFixed(2)})` : ''}
                                   </p>
                                 ))}
                               </div>

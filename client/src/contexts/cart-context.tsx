@@ -86,6 +86,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [allCarts, setAllCarts] = useState<Record<string, RestaurantCart>>({});
   const [activeRestaurantId, setActiveRestaurantId] = useState<string | null>(null);
 
+  // Get current user from auth context to ensure cart isolation
+  const { data: currentUser } = useQuery<{ id: string; username: string; firstName: string; lastName: string; role: string } | null>({
+    queryKey: ["/api/user"],
+  });
+
   // Fetch system settings for multi-merchant rules
   const { data: settings } = useQuery({
     queryKey: ["/api/settings"],
@@ -94,28 +99,50 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const isMultiMerchantAllowed = (settings as any)?.allowMultiMerchantCheckout ?? false;
   const maxMerchantsPerOrder = (settings as any)?.maxMerchantsPerOrder ?? 2;
 
-  // Load all carts from localStorage on mount
+  // Load carts from localStorage on mount, but only if they belong to current user
   useEffect(() => {
     const savedCarts = localStorage.getItem('easyBuyMultiCarts');
-    if (savedCarts) {
+    if (savedCarts && currentUser) {
       try {
         const cartsData = JSON.parse(savedCarts);
-        setAllCarts(cartsData.carts || {});
-        setActiveRestaurantId(cartsData.activeRestaurantId || null);
+        
+        // SECURITY FIX: Check if cart belongs to current user
+        if (cartsData.userId === currentUser.id) {
+          setAllCarts(cartsData.carts || {});
+          setActiveRestaurantId(cartsData.activeRestaurantId || null);
+        } else {
+          // Cart belongs to different user - clear it
+          console.log('Cart belongs to different user, clearing...');
+          setAllCarts({});
+          setActiveRestaurantId(null);
+          localStorage.removeItem('easyBuyMultiCarts');
+        }
       } catch (error) {
         console.error('Error loading carts from localStorage:', error);
+        setAllCarts({});
+        setActiveRestaurantId(null);
       }
+    } else if (!currentUser) {
+      // No user logged in - clear cart
+      setAllCarts({});
+      setActiveRestaurantId(null);
     }
-  }, []);
+  }, [currentUser?.id]);
 
-  // Save all carts to localStorage whenever they change
+  // Save carts to localStorage with userId for proper isolation
   useEffect(() => {
-    const cartsData = {
-      carts: allCarts,
-      activeRestaurantId
-    };
-    localStorage.setItem('easyBuyMultiCarts', JSON.stringify(cartsData));
-  }, [allCarts, activeRestaurantId]);
+    if (currentUser) {
+      const cartsData = {
+        userId: currentUser.id, // Store user ID with cart data
+        carts: allCarts,
+        activeRestaurantId
+      };
+      localStorage.setItem('easyBuyMultiCarts', JSON.stringify(cartsData));
+    } else {
+      // No user - clear localStorage
+      localStorage.removeItem('easyBuyMultiCarts');
+    }
+  }, [allCarts, activeRestaurantId, currentUser?.id]);
 
   // Get current active cart
   const activeCart = activeRestaurantId ? allCarts[activeRestaurantId] : null;

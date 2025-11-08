@@ -1,0 +1,70 @@
+CRITICAL PRIVACY BUG - All customers sharing the same cart!
+
+PROBLEM:
+When Customer 1 adds items to cart (e.g., 3x Burger), ALL other customers also see those same items in their carts. Customers are sharing one cart instead of having individual carts.
+
+This is a SEVERE privacy and data isolation issue.
+
+ROOT CAUSE:
+Cart data is not being filtered by customer_id. All customers are seeing and sharing the same cart.
+
+IMMEDIATE FIX REQUIRED:
+
+1. CART STORAGE:
+   When saving cart items, ALWAYS include and check customer_id:
+   - Each cart item must be linked to specific customer
+   - Save customer_id with every cart item
+   - Cannot save cart without customer_id
+
+2. CART FETCHING:
+   When displaying cart, ALWAYS filter by logged-in customer:
+   - Query: WHERE customer_id = current_logged_in_customer_id
+   - NEVER fetch all cart items from database
+   - Only show items belonging to that specific customer
+
+3. CART OPERATIONS:
+   Every cart action must check customer_id:
+   - Add to cart: Save with customer_id
+   - Update quantity: Check customer_id
+   - Remove item: Check customer_id
+   - Clear cart: Only clear current customer's items
+
+4. SESSION/CONTEXT:
+   Ensure cart operations use correct customer context:
+   - Get customer_id from authenticated session
+   - Never use default or shared cart
+   - Each customer has isolated cart
+
+5. DATABASE VERIFICATION:
+   Check cart_items table:
+   - Does it have customer_id column?
+   - Are cart items saved with correct customer_id?
+   - Or are all items saved with null/same customer_id?
+
+6. SIMILAR TO ADDRESS BUG:
+   This is the SAME issue as customers sharing addresses:
+   - Lack of proper data isolation
+   - Not filtering by customer_id
+   - All customers seeing everyone's data
+
+7. CHECK ALL USER DATA:
+   Verify proper isolation for:
+   - Cart items ← Current issue
+   - Saved addresses ← Previous issue  
+   - Orders (customer should only see their orders)
+   - Notifications ← Previous issue
+   - Payment history
+   - Any customer-specific data
+
+8. TEST AFTER FIX:
+   - Customer A adds 3x Burger
+   - Customer B logs in
+   - Customer B should see EMPTY cart
+   - Customer B adds 2x Pizza
+   - Customer A should still see only 3x Burger
+   - Customer B should see only 2x Pizza
+
+CRITICAL PRIORITY:
+This is a data privacy violation. Customers can see and potentially order using other customers' cart items. This MUST be fixed immediately before any production use.
+
+All customer data must be properly filtered by customer_id throughout the entire application.
