@@ -101,50 +101,72 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Load carts from localStorage on mount, but only if they belong to current user
   useEffect(() => {
+    console.log('🔄 CART LOAD EFFECT - isUserLoading:', isUserLoading, 'currentUser:', currentUser?.id);
+    
     // Wait for user query to complete before loading/clearing cart
     if (isUserLoading) {
+      console.log('⏳ User query still loading, waiting...');
       return;
     }
 
     const savedCarts = localStorage.getItem('easyBuyMultiCarts');
+    console.log('💾 localStorage data:', savedCarts ? 'EXISTS' : 'EMPTY');
+    
     if (savedCarts && currentUser) {
       try {
         const cartsData = JSON.parse(savedCarts);
+        console.log('📦 Parsed cart data:', { 
+          userId: cartsData.userId, 
+          currentUserId: currentUser.id,
+          cartCount: Object.keys(cartsData.carts || {}).length 
+        });
         
         // SECURITY FIX: Check if cart belongs to current user
         if (cartsData.userId === currentUser.id) {
+          console.log('✅ Cart belongs to current user, loading...');
           setAllCarts(cartsData.carts || {});
           setActiveRestaurantId(cartsData.activeRestaurantId || null);
         } else {
           // Cart belongs to different user - clear it
-          console.log('Cart belongs to different user, clearing...');
+          console.log('❌ Cart belongs to different user, clearing...');
           setAllCarts({});
           setActiveRestaurantId(null);
           localStorage.removeItem('easyBuyMultiCarts');
         }
       } catch (error) {
-        console.error('Error loading carts from localStorage:', error);
+        console.error('⚠️ Error loading carts from localStorage:', error);
         setAllCarts({});
         setActiveRestaurantId(null);
       }
     } else if (!currentUser) {
       // No user logged in - clear cart
+      console.log('🚫 No user logged in, clearing cart');
       setAllCarts({});
       setActiveRestaurantId(null);
+    } else if (!savedCarts && currentUser) {
+      console.log('📭 No saved carts in localStorage for logged in user');
     }
   }, [currentUser?.id, isUserLoading]);
 
   // Save carts to localStorage with userId for proper isolation
   useEffect(() => {
+    console.log('💾 CART SAVE EFFECT - currentUser:', currentUser?.id, 'cartCount:', Object.keys(allCarts).length);
+    
     if (currentUser) {
       const cartsData = {
         userId: currentUser.id, // Store user ID with cart data
         carts: allCarts,
         activeRestaurantId
       };
+      console.log('✅ Saving to localStorage:', {
+        userId: cartsData.userId,
+        cartCount: Object.keys(cartsData.carts).length,
+        activeRestaurantId: cartsData.activeRestaurantId
+      });
       localStorage.setItem('easyBuyMultiCarts', JSON.stringify(cartsData));
     } else {
       // No user - clear localStorage
+      console.log('🗑️ No user, removing from localStorage');
       localStorage.removeItem('easyBuyMultiCarts');
     }
   }, [allCarts, activeRestaurantId, currentUser?.id]);
