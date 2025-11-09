@@ -1229,6 +1229,35 @@ export default function RiderPortal() {
 
                         <Separator />
 
+                        {/* Order Cost Breakdown */}
+                        <div>
+                          <h5 className="font-semibold text-foreground mb-2">Order Breakdown</h5>
+                          <div className="space-y-1 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Items Total:</span>
+                              <span>₱{(parseFloat(order.subtotal) + parseFloat(order.markup)).toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Delivery Fee:</span>
+                              <span>₱{parseFloat(order.deliveryFee).toFixed(2)}</span>
+                            </div>
+                            {parseFloat(order.multiMerchantFee || '0') > 0 && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Multi-Merchant Fee:</span>
+                                <span>₱{parseFloat(order.multiMerchantFee || '0').toFixed(2)}</span>
+                              </div>
+                            )}
+                            {parseFloat(order.convenienceFee || '0') > 0 && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Rider's Convenience Fee:</span>
+                                <span>₱{parseFloat(order.convenienceFee || '0').toFixed(2)}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <Separator />
+
                         {/* Collection Summary */}
                         <div className="bg-primary/5 p-3 rounded-lg">
                           <div className="flex justify-between items-center">
