@@ -87,7 +87,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [activeRestaurantId, setActiveRestaurantId] = useState<string | null>(null);
 
   // Get current user from auth context to ensure cart isolation
-  const { data: currentUser } = useQuery<{ id: string; username: string; firstName: string; lastName: string; role: string } | null>({
+  const { data: currentUser, isLoading: isUserLoading } = useQuery<{ id: string; username: string; firstName: string; lastName: string; role: string } | null>({
     queryKey: ["/api/user"],
   });
 
@@ -101,6 +101,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Load carts from localStorage on mount, but only if they belong to current user
   useEffect(() => {
+    // Wait for user query to complete before loading/clearing cart
+    if (isUserLoading) {
+      return;
+    }
+
     const savedCarts = localStorage.getItem('easyBuyMultiCarts');
     if (savedCarts && currentUser) {
       try {
@@ -127,7 +132,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setAllCarts({});
       setActiveRestaurantId(null);
     }
-  }, [currentUser?.id]);
+  }, [currentUser?.id, isUserLoading]);
 
   // Save carts to localStorage with userId for proper isolation
   useEffect(() => {
