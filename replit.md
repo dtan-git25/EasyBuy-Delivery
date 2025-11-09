@@ -7,6 +7,15 @@ This project is a comprehensive food delivery web application with Customer, Rid
 Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (November 2025)
+- **Added Admin Management to Owner Portal**: Implemented comprehensive admin account management exclusively for the Owner account in the User Management tab. Features include:
+  - **Admin List Display**: Shows all admin and owner accounts with name, email, role, creation date, and action buttons
+  - **View Admin Details**: Modal displaying complete admin information including personal details and account history
+  - **Delete Admin**: Ability to delete admin accounts with owner protection (owner account cannot be deleted)
+  - **Owner-Only Access**: All admin management routes restricted to owner role only (regular admins cannot access)
+  - **UI/UX Consistency**: Follows the same design pattern as Customer and Rider Management components
+  - **Backend API**: Three owner-only endpoints: GET /api/admin/admins (list), GET /api/admin/admins/:id (details), DELETE /api/admin/admins/:id (delete with owner protection)
+  - **Storage Layer**: New methods getAdmins(), getAdminDetails(), deleteAdmin() with data sanitization and owner protection
+  - **Security**: Owner account (david.jthan@gmail.com) protected from deletion at both frontend and backend levels
 - **Implemented Multi-Merchant Fee System**: Added configurable fee charged when customers order from multiple restaurants in a single checkout (default ₱20 per additional merchant). The fee calculation is (merchant_count - 1) × fee_amount, so ordering from 2 restaurants = ₱20, from 3 restaurants = ₱40, etc. This fee goes entirely to app earnings to offset the operational complexity of coordinating multiple pickups. Features include:
   - **Admin Configuration**: New "Multi-Merchant Fee" field in Admin Settings > Multi-Merchant Checkout Settings to configure the per-merchant fee amount
   - **Database Schema**: Added `multiMerchantFee` column to both `orders` and `system_settings` tables with decimal precision
