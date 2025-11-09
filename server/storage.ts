@@ -1,6 +1,6 @@
 import { users, restaurants, menuItems, categories, riders, wallets, orders, chatMessages, systemSettings, walletTransactions, orderStatusHistory, riderLocationHistory, optionTypes, menuItemOptionValues, savedAddresses, ratings, notifications, type User, type InsertUser, type Restaurant, type RestaurantWithOwner, type InsertRestaurant, type MenuItem, type InsertMenuItem, type Category, type InsertCategory, type Rider, type InsertRider, type Order, type InsertOrder, type ChatMessage, type InsertChatMessage, type Wallet, type SystemSettings, type WalletTransaction, type InsertWalletTransaction, type OrderStatusHistory, type InsertOrderStatusHistory, type RiderLocationHistory, type InsertRiderLocationHistory, type OptionType, type InsertOptionType, type MenuItemOptionValue, type InsertMenuItemOptionValue, type SavedAddress, type InsertSavedAddress, type Rating, type InsertRating, type Notification, type InsertNotification } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, asc } from "drizzle-orm";
+import { eq, and, or, like, desc, asc } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
