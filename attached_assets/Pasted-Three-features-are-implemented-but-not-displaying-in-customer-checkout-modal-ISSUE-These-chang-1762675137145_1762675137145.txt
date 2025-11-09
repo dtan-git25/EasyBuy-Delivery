@@ -1,0 +1,81 @@
+Three features are implemented but not displaying in customer checkout modal:
+
+ISSUE:
+These changes have been implemented in the code but are NOT visible in the customer checkout modal:
+
+1. Contact Number renamed to "Receiver Phone Number"
+2. Delivery km not showing in Delivery Fee line
+3. Multi-Merchant Fee not appearing for multi-merchant orders
+
+The functionality is working but the UI is not displaying correctly.
+
+DEBUGGING NEEDED:
+
+1. CHECK CHECKOUT MODAL COMPONENT:
+   - Find the exact component file that renders customer checkout modal
+   - Verify the code changes are in the CORRECT component
+   - There might be multiple checkout components (single vs multi-merchant)
+
+2. VERIFY CHANGES ARE IN RIGHT PLACE:
+   - Check if you edited the customer checkout modal component
+   - Not merchant or rider checkout views
+   - Not cart modal (different from checkout modal)
+
+3. CHECK BROWSER CACHE:
+   - Clear browser cache completely
+   - Hard refresh (Ctrl+Shift+R)
+   - Try in incognito mode
+   - The old version might be cached
+
+4. CHECK BUILD/DEPLOYMENT:
+   - Verify changes were saved
+   - Check if development server restarted
+   - If production, verify new code was deployed
+   - Check Replit deployment status
+
+5. CONSOLE ERRORS:
+   - Open browser console
+   - Look for JavaScript errors
+   - Check if component is rendering
+   - Any errors preventing display
+
+6. CHECK DATA:
+   - Log the checkout data in console
+   - Verify distance/km is calculated
+   - Verify multi-merchant fee is calculated
+   - Check if data exists but just not displaying
+
+7. SPECIFIC CHECKS:
+
+   For "Receiver Phone Number":
+   - Search for "Contact Number" text in code
+   - Make sure ALL instances are changed
+   - Check both single and multi-merchant modals
+
+   For Delivery km:
+   - Check if distance variable exists
+   - Log: console.log('Distance for display:', distance)
+   - Verify it's being passed to the display component
+
+   For Multi-Merchant Fee:
+   - Check if fee is calculated
+   - Log: console.log('Multi-merchant fee:', multiMerchantFee)
+   - Check if conditional display logic is correct
+
+8. CHECK COMPONENT STRUCTURE:
+   - Is checkout modal a shared component?
+   - Or separate components for single vs multi-merchant?
+   - Make sure you edited all necessary components
+
+9. VERIFY CONDITIONAL RENDERING:
+   - Check if there's a condition hiding these elements
+   - Look for if statements that might be false
+   - Check display logic
+
+The changes are likely in the code but either:
+- Not in the right component file
+- Cached old version showing
+- Conditional logic preventing display
+- JavaScript error preventing render
+
+Add console logs to verify the data exists and component is rendering with correct values.
