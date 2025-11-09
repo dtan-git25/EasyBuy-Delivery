@@ -1,0 +1,94 @@
+Fix blank page issue - App only loads in incognito or after hard refresh:
+
+PROBLEM:
+Web app shows blank/empty page on normal browser visits, but works when:
+- Opening in incognito/private mode
+- Doing hard refresh (Ctrl+Shift+R or Cmd+Shift+R)
+
+This indicates a caching issue.
+
+ROOT CAUSE:
+Browser is caching old/broken assets and not loading new versions properly.
+
+SOLUTIONS TO IMPLEMENT:
+
+1. DISABLE AGGRESSIVE CACHING:
+   Add proper cache control headers to prevent stale cache:
+   - Set Cache-Control headers appropriately
+   - Ensure index.html is not cached
+   - Static assets can be cached but with proper versioning
+
+2. ADD VERSION HASH TO ASSETS:
+   Ensure build process adds unique hashes to filenames:
+   - app.js → app.abc123.js
+   - styles.css → styles.def456.css
+   - New deployments get new hashes
+   - Browser fetches new files automatically
+
+3. ADD META TAGS TO PREVENT CACHING:
+   In index.html, add:
+   - Cache-Control meta tags
+   - Pragma: no-cache
+   - Expires headers
+
+4. IMPLEMENT SERVICE WORKER PROPERLY:
+   If using service worker or PWA:
+   - Update service worker on new deployments
+   - Clear old cache on update
+   - Force service worker refresh
+
+5. ADD LOADING STATE:
+   Add visible loading indicator while app initializes:
+   - Shows user app is loading
+   - Better than blank page
+   - Loading spinner or skeleton screen
+
+6. ADD ERROR BOUNDARY:
+   Catch JavaScript errors and show message:
+   - If app fails to load, show error message
+   - Include refresh button
+   - Better than silent blank page
+
+7. CACHE BUSTING STRATEGY:
+   Add version query parameter to main bundle:
+   - script.js?v=timestamp
+   - Forces reload on each deployment
+   - Simple but effective solution
+
+8. CLEAR CACHE ON DEPLOYMENT:
+   Implement automatic cache clearing:
+   - On new deployment, clear browser cache programmatically
+   - Use service worker update mechanism
+   - Notify users to refresh if needed
+
+9. CHECK VITE BUILD CONFIGURATION:
+   Ensure Vite is configured properly:
+   - Output filenames have content hashes
+   - Build optimization enabled
+   - Proper chunking strategy
+
+10. ADD VERSION CHECK:
+    Implement version checking:
+    - Store app version in local storage
+    - Compare on load with server version
+    - Force reload if versions don't match
+
+IMMEDIATE FIX (Temporary):
+
+Add a visible message for users experiencing blank page:
+"If page appears blank, please refresh (Ctrl+R) or clear browser cache"
+
+Or add auto-refresh detection:
+- If page blank after 3 seconds
+- Automatically trigger hard refresh once
+- Show message: "Loading latest version..."
+
+RECOMMENDED IMPLEMENTATION:
+
+1. Ensure Vite builds with content hashes
+2. Set proper cache headers
+3. Add loading indicator
+4. Implement service worker cache update
+5. Add version checking mechanism
+
+This will ensure users always get the latest version without needing manual refresh or incognito mode.

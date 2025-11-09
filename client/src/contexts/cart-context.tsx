@@ -150,7 +150,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Save carts to localStorage with userId for proper isolation
   useEffect(() => {
-    console.log('💾 CART SAVE EFFECT - currentUser:', currentUser?.id, 'cartCount:', Object.keys(allCarts).length);
+    console.log('💾 CART SAVE EFFECT - currentUser:', currentUser?.id, 'cartCount:', Object.keys(allCarts).length, 'isUserLoading:', isUserLoading);
+    
+    // CRITICAL FIX: Don't save/clear while user is still loading
+    // This prevents clearing localStorage before the load effect has a chance to restore the cart
+    if (isUserLoading) {
+      console.log('⏳ User still loading, skipping save/clear to prevent data loss');
+      return;
+    }
     
     if (currentUser) {
       const cartsData = {
@@ -165,11 +172,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       });
       localStorage.setItem('easyBuyMultiCarts', JSON.stringify(cartsData));
     } else {
-      // No user - clear localStorage
-      console.log('🗑️ No user, removing from localStorage');
+      // No user - clear localStorage (only after user query completes)
+      console.log('🗑️ No user (after load complete), removing from localStorage');
       localStorage.removeItem('easyBuyMultiCarts');
     }
-  }, [allCarts, activeRestaurantId, currentUser?.id]);
+  }, [allCarts, activeRestaurantId, currentUser?.id, isUserLoading]);
 
   // Get current active cart
   const activeCart = activeRestaurantId ? allCarts[activeRestaurantId] : null;
