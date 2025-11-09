@@ -17,11 +17,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ShoppingCart, DollarSign, Bike, Store, Download, Eye, Check, X, Clock, Users, TrendingUp, FileText, AlertCircle, Crown, UserPlus, Trash2, Mail, Phone, MapPin, Calendar, CheckCircle, Utensils, Star, ImageIcon, CreditCard, BarChart3, Settings as SettingsIcon, User } from "lucide-react";
+import { ShoppingCart, DollarSign, Bike, Store, Download, Eye, Check, X, Clock, Users, TrendingUp, FileText, AlertCircle, Crown, UserPlus, Trash2, Mail, Phone, MapPin, Calendar, CheckCircle, Utensils, Star, ImageIcon, CreditCard, BarChart3, Settings as SettingsIcon, User, Shield } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { CustomerManagement } from "@/components/customer-management";
 import { RiderManagement } from "@/components/rider-management";
+import { AdminManagement } from "@/components/admin-management";
 import { NotificationDropdown } from "@/components/NotificationDropdown";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
@@ -2270,7 +2271,7 @@ export default function AdminPortal() {
                 </div>
 
                 <Tabs defaultValue="riders" className="w-full">
-                  <TabsList className="w-full md:grid md:grid-cols-3">
+                  <TabsList className="w-full md:grid md:grid-cols-4">
                     <TabsTrigger value="riders" data-testid="tab-rider-management">
                       <Bike className="w-4 h-4 mr-2" />
                       Riders
@@ -2283,6 +2284,12 @@ export default function AdminPortal() {
                       <Users className="w-4 h-4 mr-2" />
                       Customers
                     </TabsTrigger>
+                    {isOwner && (
+                      <TabsTrigger value="admins" data-testid="tab-admin-management">
+                        <Shield className="w-4 h-4 mr-2" />
+                        Admins
+                      </TabsTrigger>
+                    )}
                   </TabsList>
 
                   <TabsContent value="riders" className="space-y-6 mt-6">
@@ -2306,6 +2313,12 @@ export default function AdminPortal() {
                   <TabsContent value="customers" className="space-y-6 mt-6">
                     <CustomerManagement />
                   </TabsContent>
+
+                  {isOwner && (
+                    <TabsContent value="admins" className="space-y-6 mt-6">
+                      <AdminManagement currentUserEmail={user?.email || ''} />
+                    </TabsContent>
+                  )}
                 </Tabs>
               </div>
             </TabsContent>
