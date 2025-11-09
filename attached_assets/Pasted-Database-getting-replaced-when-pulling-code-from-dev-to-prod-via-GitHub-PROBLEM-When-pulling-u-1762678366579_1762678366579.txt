@@ -1,0 +1,93 @@
+Database getting replaced when pulling code from dev to prod via GitHub:
+
+PROBLEM:
+When pulling updates from dev to prod through GitHub, the production database is being replaced with the development database. Only code should update, not the database.
+
+SOLUTION:
+
+1. EXCLUDE DATABASE FROM GIT:
+   
+   Add database files to .gitignore so they're never committed:
+   
+   In .gitignore file, add:
+   - *.db
+   - *.sqlite
+   - *.sqlite3
+   - database.db
+   - /db/*.db
+   - Any database file patterns used
+
+2. USE SEPARATE DATABASES:
+   
+   Dev and Prod should use completely separate databases:
+   
+   Development:
+   - Database: dev_database.db or hosted dev database
+   - Contains test data, can be reset anytime
+   
+   Production:
+   - Database: prod_database.db or hosted prod database
+   - Contains real customer data, never replaced
+   
+   Use environment variables to specify which database to use.
+
+3. ENVIRONMENT VARIABLES:
+   
+   In Dev Repl:
+   DATABASE_URL=path/to/dev_database.db
+   
+   In Prod Repl:
+   DATABASE_URL=path/to/prod_database.db
+   
+   Code uses process.env.DATABASE_URL to connect
+
+4. CHECK .GITIGNORE:
+   
+   Verify .gitignore includes database files:
+   - Check if database files are listed
+   - If missing, add them now
+   - Remove database from git tracking if already committed
+
+5. REMOVE DATABASE FROM GIT HISTORY:
+   
+   If database was already committed:
+   - Remove from git tracking: git rm --cached database.db
+   - Commit the removal
+   - Database stays locally but not in repo
+
+6. VERIFY WORKFLOW:
+   
+   Correct process:
+   - Make code changes in Dev
+   - Commit and push to GitHub (code only, no database)
+   - Pull in Prod from GitHub
+   - Prod code updates, Prod database unchanged
+   
+   Wrong process:
+   - Database included in git commits
+   - Prod pulls and database gets replaced
+   - Prod loses real customer data
+
+7. MIGRATIONS ONLY:
+   
+   If database schema changes:
+   - Create migration scripts
+   - Run migrations in both Dev and Prod separately
+   - Never copy entire database
+
+8. BACKUP PROD DATABASE:
+   
+   Before any update:
+   - Backup production database
+   - Store backup safely
+   - Can restore if something goes wrong
+
+9. CHECK WHAT'S BEING COMMITTED:
+   
+   Before pushing from Dev:
+   - Run: git status
+   - Check what files are staged
+   - Ensure no database files listed
+   - Only code files should be committed
+
+This ensures production data is never overwritten when deploying code updates.
