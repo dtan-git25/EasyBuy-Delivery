@@ -1575,6 +1575,66 @@ export class DatabaseStorage implements IStorage {
     await db.delete(users).where(eq(users.id, id));
   }
 
+  // Admin Management operations
+  async getAdmins(filters: { search?: string; sortBy?: string; sortOrder?: 'asc' | 'desc' }): Promise<User[]> {
+    const { search, sortBy = 'createdAt', sortOrder = 'desc' } = filters;
+
+    // Build query to get all admin and owner users
+    let query = db.select().from(users).where(or(eq(users.role, 'admin'), eq(users.role, 'owner')));
+
+    // Apply search filter if provided
+    if (search) {
+      query = query.where(
+        or(
+          like(users.firstName, `%${search}%`),
+          like(users.lastName, `%${search}%`),
+          like(users.email, `%${search}%`)
+        )
+      ) as any;
+    }
+
+    // Apply sorting
+    const orderColumn = sortBy === 'name' ? users.firstName : users.createdAt;
+    const orderFn = sortOrder === 'asc' ? asc : desc;
+    query = query.orderBy(orderFn(orderColumn)) as any;
+
+    const admins = await query;
+
+    // Sanitize admin data - strip sensitive fields
+    return admins.map(({ password, passwordResetToken, passwordResetExpiry, otpCode, otpExpiry, ...admin }) => admin as User);
+  }
+
+  async getAdminDetails(id: string): Promise<{ admin: User } | undefined> {
+    const [admin] = await db.select().from(users).where(eq(users.id, id));
+
+    if (!admin) {
+      return undefined;
+    }
+
+    // Sanitize admin data - strip sensitive fields
+    const { password, passwordResetToken, passwordResetExpiry, otpCode, otpExpiry, ...sanitizedAdmin } = admin;
+
+    return {
+      admin: sanitizedAdmin as User
+    };
+  }
+
+  async deleteAdmin(id: string): Promise<void> {
+    // Get the admin to check if they're an owner
+    const [admin] = await db.select().from(users).where(eq(users.id, id));
+    
+    if (!admin) {
+      throw new Error('Admin not found');
+    }
+
+    if (admin.role === 'owner' || admin.email === 'david.jthan@gmail.com') {
+      throw new Error('Cannot delete owner account');
+    }
+
+    // Delete the admin
+    await db.delete(users).where(eq(users.id, id));
+  }
+
   // Notification operations
   async getNotifications(userId: string): Promise<Notification[]> {
     const userNotifications = await db

@@ -1,0 +1,80 @@
+Add Admin List management to Owner account in User Management tab:
+
+REQUIREMENT:
+
+In Owner account dashboard, add Admin Management section to User Management tab, Create Administrative Account card showing list of all admin accounts with ability to view information and delete.
+
+Use the same UI/code pattern as existing Customer Management and Rider Management sections.
+
+IMPLEMENTATION:
+
+1. ADMIN LIST DISPLAY:
+   
+   Show table/list with columns:
+   - Admin Name
+   - Email
+   - Phone Number
+   - Account Created Date
+   - Status (Active/Inactive)
+   - Actions (View, Delete)
+
+2. VIEW ADMIN DETAILS:
+   
+   When clicking View, show modal/page with:
+   - Full Name
+   - Email
+   - Phone Number
+   - Role: Admin
+   - Account Created Date
+   - Last Login
+   - Status
+   - Close button
+
+3. DELETE ADMIN:
+   
+   When clicking Delete:
+   - Show confirmation dialog: "Are you sure you want to delete this admin account?"
+   - If confirmed, delete admin from database
+   - Show success message
+   - Refresh admin list
+   - Owner account CANNOT be deleted (disable delete button for owner)
+
+4. PERMISSIONS:
+   
+   Only accessible by:
+   - Owner account (david.jthan@gmail.com)
+   - NOT accessible by regular admins
+   - Owner is the only one who can manage other admins
+
+5. REUSE EXISTING CODE:
+   
+   Copy the structure from:
+   - Customer Management component/page
+   - Or Rider Management component/page
+   - Adapt for admin accounts
+   - Same table layout, same modal, same delete confirmation
+
+6. QUERY ADMINS:
+   
+   Fetch all admin accounts:
+   - Get all users where role = 'admin' or 'owner'
+   - Exclude current logged-in owner from list (or show but disable delete)
+   - Order by created date descending
+
+7. SAFETY:
+   
+   Protection mechanisms:
+   - Owner account cannot be deleted
+   - Show warning if trying to delete last admin
+   - Require confirmation before deletion
+   - Log admin deletions for audit trail
+
+8. UI CONSISTENCY:
+   
+   Match the design of Customer/Rider Management:
+   - Same table style
+   - Same action buttons
+   - Same modal/detail view
+   - Same confirmation dialogs
+
+This gives the owner full visibility and control over admin accounts using the familiar interface pattern already established in the system.

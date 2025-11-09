@@ -3079,6 +3079,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin Management Routes (Owner only)
+  app.get("/api/admin/admins", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'owner') {
+      return res.status(401).json({ error: "Unauthorized - Owner access required" });
+    }
+
+    try {
+      const { search, sortBy, sortOrder } = req.query;
+      const admins = await storage.getAdmins({
+        search: search as string,
+        sortBy: sortBy as string,
+        sortOrder: sortOrder as 'asc' | 'desc'
+      });
+      res.json(admins);
+    } catch (error) {
+      console.error("Error fetching admins:", error);
+      res.status(500).json({ error: "Failed to fetch admins" });
+    }
+  });
+
+  app.get("/api/admin/admins/:id", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'owner') {
+      return res.status(401).json({ error: "Unauthorized - Owner access required" });
+    }
+
+    try {
+      const adminDetails = await storage.getAdminDetails(req.params.id);
+      if (!adminDetails) {
+        return res.status(404).json({ error: "Admin not found" });
+      }
+      res.json(adminDetails);
+    } catch (error) {
+      console.error("Error fetching admin details:", error);
+      res.status(500).json({ error: "Failed to fetch admin details" });
+    }
+  });
+
+  app.delete("/api/admin/admins/:id", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'owner') {
+      return res.status(401).json({ error: "Unauthorized - Owner access required" });
+    }
+
+    try {
+      await storage.deleteAdmin(req.params.id);
+      res.json({ message: "Admin deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting admin:", error);
+      if (error.message === 'Cannot delete owner account') {
+        return res.status(403).json({ error: "Cannot delete owner account" });
+      }
+      res.status(500).json({ error: "Failed to delete admin" });
+    }
+  });
+
   // Restaurant Management Routes (Admin and Merchant)
   app.patch("/api/restaurants/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
