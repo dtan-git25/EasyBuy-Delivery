@@ -1177,6 +1177,19 @@ export default function CustomerPortal() {
                 })()}</p>
               </div>
               
+              {cart.getAllCartsCount() > 1 && (() => {
+                const merchantCount = cart.getAllCartsCount();
+                const multiMerchantFeePerMerchant = settings?.multiMerchantFee ? parseFloat(settings.multiMerchantFee as string) : 20;
+                const totalMultiMerchantFee = (merchantCount - 1) * multiMerchantFeePerMerchant;
+                return (
+                  <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg mt-2">
+                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                      <strong>Note:</strong> Multi-merchant fee of ₱{totalMultiMerchantFee.toFixed(2)} will be added at checkout (₱{multiMerchantFeePerMerchant.toFixed(2)} per additional store)
+                    </p>
+                  </div>
+                );
+              })()}
+              
               <div className="flex gap-2 pt-2">
                 <Button
                   variant="outline"
@@ -2152,9 +2165,14 @@ export default function CustomerPortal() {
                     return total + (calculatedDeliveryFees[restaurantCart.restaurantId] || 0);
                   }, 0);
                   
+                  // Calculate multi-merchant fee (charged when ordering from 2+ merchants)
+                  const merchantCount = activeCarts.length;
+                  const multiMerchantFeePerMerchant = settings?.multiMerchantFee ? parseFloat(settings.multiMerchantFee) : 20;
+                  const totalMultiMerchantFee = merchantCount > 1 ? (merchantCount - 1) * multiMerchantFeePerMerchant : 0;
+                  
                   const convenienceFee = settings?.convenienceFee ? parseFloat(settings.convenienceFee) : 0;
                   const showConvenienceFee = settings?.showConvenienceFee !== false;
-                  const grandTotal = itemsSubtotal + totalDeliveryFees + (showConvenienceFee ? convenienceFee : 0);
+                  const grandTotal = itemsSubtotal + totalDeliveryFees + totalMultiMerchantFee + (showConvenienceFee ? convenienceFee : 0);
                   
                   return (
                     <>
@@ -2179,6 +2197,12 @@ export default function CustomerPortal() {
                             );
                           })}
                         </div>
+                        {totalMultiMerchantFee > 0 && (
+                          <div className="flex justify-between">
+                            <span>Multi-Merchant Fee ({merchantCount} stores):</span>
+                            <span>₱{totalMultiMerchantFee.toFixed(2)}</span>
+                          </div>
+                        )}
                         {showConvenienceFee && convenienceFee > 0 && (
                           <div className="flex justify-between">
                             <span>Rider's Convenience Fee:</span>
