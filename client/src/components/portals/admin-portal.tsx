@@ -2973,6 +2973,58 @@ export default function AdminPortal() {
             {/* Owner-only User Management Tab */}
             {isOwner && (
               <TabsContent value="user-management" className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold tracking-tight mb-2">User Management</h2>
+                  <p className="text-muted-foreground mb-6">Manage users and administrative accounts across your platform</p>
+                </div>
+
+                <Tabs defaultValue="riders" className="w-full mb-6">
+                  <TabsList className="w-full md:grid md:grid-cols-4">
+                    <TabsTrigger value="riders" data-testid="tab-rider-management">
+                      <Bike className="w-4 h-4 mr-2" />
+                      Riders
+                    </TabsTrigger>
+                    <TabsTrigger value="stores" data-testid="tab-store-management">
+                      <Store className="w-4 h-4 mr-2" />
+                      Stores
+                    </TabsTrigger>
+                    <TabsTrigger value="customers" data-testid="tab-customer-management">
+                      <Users className="w-4 h-4 mr-2" />
+                      Customers
+                    </TabsTrigger>
+                    <TabsTrigger value="admins" data-testid="tab-admin-management">
+                      <Shield className="w-4 h-4 mr-2" />
+                      Admins
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="riders" className="space-y-6 mt-6">
+                    <RiderManagement />
+                  </TabsContent>
+
+                  <TabsContent value="stores" className="space-y-6 mt-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Store className="mr-2 h-5 w-5 text-primary" />
+                          Store Management
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <StoreManagementTable />
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  <TabsContent value="customers" className="space-y-6 mt-6">
+                    <CustomerManagement />
+                  </TabsContent>
+
+                  <TabsContent value="admins" className="space-y-6 mt-6">
+                    <AdminManagement currentUserEmail={user?.email || ''} />
+                  </TabsContent>
+                </Tabs>
+
                 <div className="grid lg:grid-cols-2 gap-6">
                   {/* Create System Account Form */}
                   <Card>
