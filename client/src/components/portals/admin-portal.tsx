@@ -1083,6 +1083,7 @@ export default function AdminPortal() {
     showConvenienceFee: (settings as any)?.showConvenienceFee ?? true,
     allowMultiMerchantCheckout: (settings as any)?.allowMultiMerchantCheckout ?? false,
     maxMerchantsPerOrder: (settings as any)?.maxMerchantsPerOrder || 2,
+    multiMerchantFee: (settings as any)?.multiMerchantFee || '20',
     maxMultipleOrderBooking: (settings as any)?.maxMultipleOrderBooking || 0,
     appEarningsPercentage: (settings as any)?.appEarningsPercentage || '50',
     codEnabled: (settings as any)?.codEnabled ?? true,
@@ -1102,6 +1103,7 @@ export default function AdminPortal() {
         showConvenienceFee: (settings as any).showConvenienceFee ?? true,
         allowMultiMerchantCheckout: (settings as any).allowMultiMerchantCheckout ?? false,
         maxMerchantsPerOrder: (settings as any).maxMerchantsPerOrder || 2,
+        multiMerchantFee: (settings as any).multiMerchantFee || '20',
         maxMultipleOrderBooking: (settings as any).maxMultipleOrderBooking || 0,
         appEarningsPercentage: (settings as any).appEarningsPercentage || '50',
         codEnabled: (settings as any).codEnabled ?? true,
@@ -1949,37 +1951,70 @@ export default function AdminPortal() {
                       </div>
 
                       {tempSettings.allowMultiMerchantCheckout && (
-                        <div className="pt-4 border-t">
-                          <Label htmlFor="max-merchants">Maximum Merchants Per Order</Label>
-                          <div className="flex items-center space-x-2 mt-2">
-                            <Input
-                              id="max-merchants"
-                              type="number"
-                              min={2}
-                              max={5}
-                              value={tempSettings.maxMerchantsPerOrder}
-                              onChange={(e) => {
-                                const value = parseInt(e.target.value);
-                                if (value >= 2 && value <= 5) {
-                                  setTempSettings(prev => ({ ...prev, maxMerchantsPerOrder: value }));
-                                }
-                              }}
-                              className="w-24"
-                              data-testid="input-max-merchants"
-                            />
-                            <Button 
-                              size="sm"
-                              onClick={() => updateSetting('maxMerchantsPerOrder', tempSettings.maxMerchantsPerOrder)}
-                              disabled={updateSettingsMutation.isPending}
-                              data-testid="button-update-max-merchants"
-                            >
-                              Update
-                            </Button>
+                        <>
+                          <div className="pt-4 border-t">
+                            <Label htmlFor="max-merchants">Maximum Merchants Per Order</Label>
+                            <div className="flex items-center space-x-2 mt-2">
+                              <Input
+                                id="max-merchants"
+                                type="number"
+                                min={2}
+                                max={5}
+                                value={tempSettings.maxMerchantsPerOrder}
+                                onChange={(e) => {
+                                  const value = parseInt(e.target.value);
+                                  if (value >= 2 && value <= 5) {
+                                    setTempSettings(prev => ({ ...prev, maxMerchantsPerOrder: value }));
+                                  }
+                                }}
+                                className="w-24"
+                                data-testid="input-max-merchants"
+                              />
+                              <Button 
+                                size="sm"
+                                onClick={() => updateSetting('maxMerchantsPerOrder', tempSettings.maxMerchantsPerOrder)}
+                                disabled={updateSettingsMutation.isPending}
+                                data-testid="button-update-max-merchants"
+                              >
+                                Update
+                              </Button>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-2">
+                              Set between 2 and 5 merchants
+                            </p>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-2">
-                            Set between 2 and 5 merchants
-                          </p>
-                        </div>
+
+                          <div className="pt-4 border-t">
+                            <Label htmlFor="multi-merchant-fee">Multi-Merchant Fee</Label>
+                            <p className="text-sm text-muted-foreground mt-1 mb-3">
+                              Fee charged per additional merchant when customer orders from 2 or more merchants
+                            </p>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-lg">₱</span>
+                              <Input
+                                id="multi-merchant-fee"
+                                type="number"
+                                min={0}
+                                step="1"
+                                value={tempSettings.multiMerchantFee}
+                                onChange={(e) => setTempSettings(prev => ({ ...prev, multiMerchantFee: e.target.value }))}
+                                className="w-32"
+                                data-testid="input-multi-merchant-fee"
+                              />
+                              <Button 
+                                size="sm"
+                                onClick={() => updateSetting('multiMerchantFee', parseFloat(tempSettings.multiMerchantFee))}
+                                disabled={updateSettingsMutation.isPending}
+                                data-testid="button-update-multi-merchant-fee"
+                              >
+                                Update
+                              </Button>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-2">
+                              This helps cover additional coordination required for multi-merchant deliveries
+                            </p>
+                          </div>
+                        </>
                       )}
 
                       <div className="pt-4 border-t">

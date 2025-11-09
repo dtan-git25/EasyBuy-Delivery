@@ -1,0 +1,95 @@
+Add Multi-Merchant Fee for orders with multiple merchants:
+
+REQUIREMENT:
+
+When customer orders from MORE than one merchant in a single checkout, charge an additional Merchant Fee each merchant added.
+
+ADMIN SETTINGS (Settings > Multi-Merchant Checkout card):
+
+Add new setting:
+Multi-Merchant Fee: ₱[20]
+Description: "Additional fee charged when customer orders from multiple merchants in one order."
+
+WHEN IT APPLIES:
+
+- Triggered ONLY when customer has items from 2 or more different merchants
+- Does NOT apply to single merchant orders
+- Flat fee amount (not percentage)
+- Configurable by admin
+
+EXAMPLE SCENARIOS:
+
+Scenario 1 - Single Merchant:
+- Customer orders from Jollibee only
+- NO Multi-Merchant Fee applied
+
+Scenario 2 - Multiple Merchants:
+- Customer orders from Jollibee AND McDonald's
+- Multi-Merchant Fee: ₱20 is added to checkout
+
+Scenario 3 - Three Merchants:
+- Customer orders from Jollibee, McDonald's, AND KFC
+- Multi-Merchant Fee: ₱40 (2 merchants) is added (per merchant)
+
+CUSTOMER CHECKOUT DISPLAY:
+
+Single Merchant Order:
+Items Subtotal: ₱500.00
+Delivery Fee (4 km): ₱100.00
+Convenience Fee: ₱15.00
+─────────────────────
+TOTAL: ₱615.00
+
+Multi-Merchant Order (2+ merchants):
+Items Subtotal: ₱500.00
+Delivery Fee (4 km): ₱100.00
+Multi-Merchant Fee (2 stores): ₱40.00  ← NEW LINE
+Convenience Fee: ₱15.00
+─────────────────────
+TOTAL: ₱635.00
+
+CUSTOMER CART/ALL CARTS MODAL:
+
+Show in cart summary:
+Merchant 1 (Jollibee): ₱300
+Merchant 2 (McDonald's): ₱200
+Subtotal: ₱500
+Note: Multi-merchant fee (₱20) will be added at checkout
+
+CALCULATION:
+
+Check number of unique merchants in cart:
+- If merchant_count = 1: No multi-merchant fee
+- If merchant_count > 1: Add multi-merchant fee per merchant added
+
+Total = Items Subtotal + Delivery Fee + Multi-Merchant Fee (if applicable) + Convenience Fee
+
+REVENUE DISTRIBUTION:
+
+Multi-Merchant Order (2+ merchants):
+Items Subtotal: ₱500.00
+Delivery Fee (4 km): ₱100.00
+Multi-Merchant Fee (2 stores): ₱40.00
+Convenience Fee: ₱15.00
+─────────────────────
+
+DF x 25% [App Earnings set by admin]
+₱100.00 x 25% =  ₱25
+
+% Total DF [₱25] + mark ups from merchant [₱x] = Total App Earning from delivery booking.
+
+Remaining % + 100% Convenient Fee  = Rider earnings
+
+ADMIN SETTINGS UI:
+
+Multi-Merchant Checkout Settings
+
+Multi-Merchant Fee Amount: ₱[20]
+"Fee charged when customer orders from 2 or more merchants"
+
+DISPLAY IN:
+- Customer checkout modal
+- Customer My Order card
+- Rider Active order card
+
+This fee helps cover the additional complexity and coordination required for multi-merchant deliveries.

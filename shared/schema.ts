@@ -351,6 +351,7 @@ export const systemSettings = pgTable("system_settings", {
   showConvenienceFee: boolean("show_convenience_fee").default(true),
   allowMultiMerchantCheckout: boolean("allow_multi_merchant_checkout").default(false),
   maxMerchantsPerOrder: integer("max_merchants_per_order").default(2),
+  multiMerchantFee: decimal("multi_merchant_fee", { precision: 8, scale: 2 }).default('20'), // Fee charged when ordering from 2+ merchants
   appEarningsPercentage: decimal("app_earnings_percentage", { precision: 5, scale: 2 }).default('50'), // Percentage of delivery fee that app earns
   logo: text("logo"), // App logo path
   

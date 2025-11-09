@@ -1,0 +1,89 @@
+Add Multi-Merchant Fee that triggers when customer exceeds maximum merchants per order:
+
+ADMIN SETTINGS (Multi-Merchant Checkout Card):
+
+Add two new settings:
+
+1. Maximum Merchants Per Order (Number field)
+   Input: [3] merchants
+   Description: "Maximum number of different merchants allowed in a single order before additional fee applies"
+
+2. Multi-Merchant Fee (Amount field)
+   Input: ₱[20.00]
+   Description: "Additional fee charged when customer orders from more than the maximum number of merchants"
+
+LOGIC:
+
+If customer orders from merchants WITHIN limit:
+- No additional fee
+- Example: Limit is 3, customer orders from 2 merchants → No extra fee
+
+If customer orders EXCEEDS limit:
+- Charge multi-merchant fee
+- Example: Limit is 3, customer orders from 4 merchants → Add ₱20 fee
+
+CALCULATION EXAMPLES:
+
+Scenario 1 (No Fee):
+- Max Merchants: 3
+- Customer orders from: Jollibee, McDonald's, KFC (3 merchants)
+- Result: No multi-merchant fee
+
+Scenario 2 (Fee Applied):
+- Max Merchants: 3
+- Multi-Merchant Fee: ₱20
+- Customer orders from: Jollibee, McDonald's, KFC, Burger King (4 merchants)
+- Result: Add ₱20 multi-merchant fee
+
+CUSTOMER CHECKOUT DISPLAY:
+
+When fee applies, show in order summary:
+
+Items Subtotal: ₱800.00
+Delivery Fee: ₱120.00
+Multi-Merchant Fee: ₱20.00 (4 merchants - limit: 3)
+Convenience Fee: ₱15.00
+────────────────────
+Total: ₱955.00
+
+Or with explanation:
+Multi-Merchant Fee: ₱20.00
+(Ordering from 4 merchants. Additional fee applies for orders with more than 3 merchants)
+
+IMPLEMENTATION:
+
+1. ADMIN SETTINGS:
+   - Add fields to Multi-Merchant Checkout settings card
+   - Save to database: max_merchants_per_order, multi_merchant_fee
+   - Both configurable by admin
+
+2. CHECKOUT CALCULATION:
+   - Count number of unique merchants in cart
+   - Get max_merchants_per_order from settings
+   - If merchant_count > max_merchants_per_order:
+     * Add multi_merchant_fee to order total
+     * Display fee in breakdown
+
+3. DISPLAY LOGIC:
+   - Only show fee line if it applies
+   - Include merchant count and limit in description
+   - Make it clear why fee is charged
+
+4. ORDER RECORD:
+   - Save merchant_count with order
+   - Save multi_merchant_fee_applied (boolean)
+   - Save multi_merchant_fee_amount
+
+5. DISABLE OPTION:
+   - If admin sets max to 0 or leaves empty: No limit, no fee
+   - If admin sets fee to 0: No fee charged even if over limit
+
+6. VALIDATION:
+   - Admin must set both max and fee together
+   - Or allow disabling the feature entirely
+
+7. CUSTOMER WARNING:
+   Before checkout, show message if over limit:
+   "You're ordering from 4 merchants. Orders with more than 3 merchants include a ₱20 multi-merchant fee."
+
+This encourages customers to consolidate orders from fewer merchants while still allowing flexibility with an additional fee for complex orders.
