@@ -2173,17 +2173,20 @@ export default function CustomerPortal() {
                   
                   // Calculate multi-merchant fee (charged when ordering from 2+ merchants)
                   const merchantCount = activeCarts.length;
-                  console.log('DEBUG Multi-Merchant Fee:', {
-                    settings,
+                  console.log('🔍 CHECKOUT MODAL MULTI-MERCHANT:', {
+                    settings: settings,
                     multiMerchantFeeFromSettings: settings?.multiMerchantFee,
-                    merchantCount,
-                    activeCarts: activeCarts.length
+                    merchantCount: merchantCount,
+                    activeCartsLength: activeCarts.length,
+                    calculatedDistances: calculatedDistances,
+                    calculatedDeliveryFees: calculatedDeliveryFees
                   });
                   const multiMerchantFeePerMerchant = settings?.multiMerchantFee ? parseFloat(settings.multiMerchantFee) : 20;
                   const totalMultiMerchantFee = merchantCount > 1 ? (merchantCount - 1) * multiMerchantFeePerMerchant : 0;
-                  console.log('DEBUG Fee Calculation:', {
-                    multiMerchantFeePerMerchant,
-                    totalMultiMerchantFee
+                  console.log('💰 FEE CALCULATION RESULT:', {
+                    multiMerchantFeePerMerchant: multiMerchantFeePerMerchant,
+                    totalMultiMerchantFee: totalMultiMerchantFee,
+                    willShowFee: totalMultiMerchantFee > 0
                   });
                   
                   const convenienceFee = settings?.convenienceFee ? parseFloat(settings.convenienceFee) : 0;
