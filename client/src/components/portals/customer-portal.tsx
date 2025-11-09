@@ -1755,6 +1755,12 @@ export default function CustomerPortal() {
                             <span>Delivery Fee:</span>
                             <span>₱{parseFloat(order.deliveryFee).toFixed(2)}</span>
                           </div>
+                          {parseFloat((order as any).multiMerchantFee || '0') > 0 && (
+                            <div className="flex justify-between">
+                              <span>Multi-Merchant Fee:</span>
+                              <span>₱{parseFloat((order as any).multiMerchantFee || '0').toFixed(2)}</span>
+                            </div>
+                          )}
                           {parseFloat(order.convenienceFee || '0') > 0 && (
                             <div className="flex justify-between">
                               <span>Rider's Convenience Fee:</span>
