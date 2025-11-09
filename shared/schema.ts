@@ -263,6 +263,7 @@ export const orders = pgTable("orders", {
   markup: decimal("markup", { precision: 8, scale: 2 }).notNull(), // Order markup
   deliveryFee: decimal("delivery_fee", { precision: 8, scale: 2 }).notNull(),
   merchantFee: decimal("merchant_fee", { precision: 8, scale: 2 }).default('0'),
+  multiMerchantFee: decimal("multi_merchant_fee", { precision: 8, scale: 2 }).default('0'), // Fee when ordering from 2+ merchants (goes to app)
   convenienceFee: decimal("convenience_fee", { precision: 8, scale: 2 }).default('0'),
   total: decimal("total", { precision: 8, scale: 2 }).notNull(),
   commission: decimal("commission", { precision: 8, scale: 2 }).default('0'),

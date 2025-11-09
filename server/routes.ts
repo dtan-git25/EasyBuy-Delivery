@@ -996,6 +996,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const createdOrders = [];
       const settings = await storage.getSystemSettings();
       
+      // Calculate multi-merchant fee (charged when ordering from 2+ merchants)
+      const merchantCount = carts.length;
+      const multiMerchantFeePerMerchant = merchantCount > 1 
+        ? parseFloat(settings?.multiMerchantFee?.toString() || '20')
+        : 0;
+      const totalMultiMerchantFee = merchantCount > 1 
+        ? (merchantCount - 1) * multiMerchantFeePerMerchant 
+        : 0;
+      
       // Create all orders with the same orderGroupId
       for (const cart of carts) {
         const orderNumber = `EBD-${Date.now()}-${Math.random().toString(36).substring(7)}`;
@@ -1010,7 +1019,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const convenienceFee = parseFloat(cart.convenienceFee);
         
         const merchantEarningsAmount = subtotal; // Merchant gets base items cost
-        const appEarningsAmount = (deliveryFee * appEarningsPercent) + markup; // App gets % of delivery + all markup
+        const appEarningsAmount = (deliveryFee * appEarningsPercent) + markup + totalMultiMerchantFee; // App gets % of delivery + markup + multi-merchant fee
         const riderEarningsAmount = (deliveryFee * (1 - appEarningsPercent)) + convenienceFee; // Rider gets remaining delivery % + convenience
         
         const orderData = {
@@ -1022,6 +1031,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           subtotal: cart.subtotal,
           markup: cart.markup,
           deliveryFee: cart.deliveryFee,
+          multiMerchantFee: totalMultiMerchantFee.toFixed(2), // Total multi-merchant fee for the order group
           convenienceFee: cart.convenienceFee,
           total: cart.total,
           deliveryAddress,
