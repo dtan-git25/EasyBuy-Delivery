@@ -1,0 +1,72 @@
+URGENT - Dev and Prod environments are sharing the same database:
+
+PROBLEM:
+Despite previous attempts to separate databases, development and production Repls are still using the same database. Changes in dev immediately affect prod and vice versa.
+
+REQUIRED FIX:
+
+1. VERIFY DATABASE FILES:
+   Check which database file each environment is using:
+   - In Dev: Check database file path
+   - In Prod: Check database file path
+   - They should be DIFFERENT files
+
+2. CREATE SEPARATE DATABASE FILES:
+   
+   Development:
+   - Use: dev_database.db or easybuy_dev.db
+   
+   Production:
+   - Use: prod_database.db or easybuy_prod.db
+
+3. UPDATE DATABASE CONNECTION:
+   
+   In the database connection code, use environment variable:
+   
+   Check process.env.NODE_ENV to determine which database to use:
+   - If NODE_ENV === 'development': use dev database
+   - If NODE_ENV === 'production': use prod database
+   
+   Or use DATABASE_URL environment variable directly
+
+4. SET ENVIRONMENT VARIABLES:
+   
+   In Dev Repl Secrets:
+   NODE_ENV = development
+   DATABASE_URL = ./dev_database.db
+   
+   In Prod Repl Secrets:
+   NODE_ENV = production
+   DATABASE_URL = ./prod_database.db
+
+5. VERIFY DATABASE FILE LOCATION:
+   
+   Make sure database files are:
+   - NOT in git repository (check .gitignore includes *.db)
+   - Stored locally in each Repl
+   - Never synced between environments
+
+6. CHECK DATABASE CONNECTION CODE:
+   
+   Find where database connection is initialized
+   - Verify it reads from environment variable
+   - Confirm it uses correct database path based on environment
+   - Add logging: console.log('Using database:', databasePath)
+
+7. TEST SEPARATION:
+   
+   After fix:
+   - Create test data in Dev (e.g., test customer)
+   - Check Prod - should NOT see test customer
+   - Create different test in Prod
+   - Check Dev - should NOT see prod test data
+   - Databases are properly isolated
+
+8. CURRENT WORKAROUND:
+   
+   Until fixed, be extremely careful:
+   - Don't test in Dev if it affects Prod
+   - Don't delete data in either environment
+   - All test data appears in production!
+
+This is critical - dev testing is corrupting production data. Must be fixed immediately before any real customers use the system.
