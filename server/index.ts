@@ -48,14 +48,14 @@ async function initializeSystemAccounts() {
     if (!ownerExists) {
       log("Creating default Owner account...");
       await createSystemAccount({
-        username: "owner",
-        email: "owner@easybuydelivery.com",
+        username: "dave",
+        email: "david.jthan@gmail.com",
         phone: "09123456789",
-        password: "EasyBuyOwner2024!",
+        password: "123456",
         role: "owner",
-        firstName: "System",
-        lastName: "Owner",
-        middleName: "Admin"
+        firstName: "David",
+        lastName: "Tañedo",
+        middleName: ""
       });
       log("Default Owner account created successfully!");
     } else {
