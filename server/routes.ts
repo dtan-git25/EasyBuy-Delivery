@@ -18,6 +18,11 @@ import path from "path";
 import fs from "fs";
 import { geocodeAddress, calculateDistance } from "./geocoding";
 
+// Helper function to check if user is admin or owner
+function isAdminOrOwner(role?: string): boolean {
+  return role === 'admin' || role === 'owner';
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
@@ -2968,7 +2973,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Admin User Management Routes  
   app.get("/api/users", async (req, res) => {
-    if (!req.isAuthenticated() || req.user?.role !== 'admin') {
+    if (!req.isAuthenticated() || !isAdminOrOwner(req.user?.role)) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
@@ -3014,7 +3019,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Get all restaurants (admin only - includes inactive)
   app.get("/api/admin/restaurants", async (req, res) => {
-    if (!req.isAuthenticated() || req.user?.role !== 'admin') {
+    if (!req.isAuthenticated() || !isAdminOrOwner(req.user?.role)) {
       return res.status(401).json({ error: "Unauthorized - Admin access required" });
     }
 
@@ -3318,7 +3323,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Admin wallet management
   app.get("/api/admin/wallet-transactions", async (req, res) => {
-    if (!req.isAuthenticated() || req.user.role !== 'admin') {
+    if (!req.isAuthenticated() || !isAdminOrOwner(req.user.role)) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
@@ -3344,7 +3349,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.patch("/api/admin/wallet-transaction/:id", async (req, res) => {
-    if (!req.isAuthenticated() || req.user.role !== 'admin') {
+    if (!req.isAuthenticated() || !isAdminOrOwner(req.user.role)) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
@@ -3712,7 +3717,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Admin Document Review Routes
   app.get("/api/admin/riders-for-approval", async (req, res) => {
-    if (!req.isAuthenticated() || req.user.role !== 'admin') {
+    if (!req.isAuthenticated() || !isAdminOrOwner(req.user.role)) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
@@ -3735,7 +3740,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/admin/review-rider/:riderId", async (req, res) => {
-    if (!req.isAuthenticated() || req.user.role !== 'admin') {
+    if (!req.isAuthenticated() || !isAdminOrOwner(req.user.role)) {
       return res.status(401).json({ error: "Unauthorized - Admin access required" });
     }
 
@@ -3798,7 +3803,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Admin Rider Management Routes
   app.get("/api/admin/riders", async (req, res) => {
-    if (!req.isAuthenticated() || req.user.role !== 'admin') {
+    if (!req.isAuthenticated() || !isAdminOrOwner(req.user.role)) {
       return res.status(401).json({ error: "Unauthorized - Admin access required" });
     }
 
@@ -3851,7 +3856,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.delete("/api/admin/riders/:id", async (req, res) => {
-    if (!req.isAuthenticated() || req.user.role !== 'admin') {
+    if (!req.isAuthenticated() || !isAdminOrOwner(req.user.role)) {
       return res.status(401).json({ error: "Unauthorized - Admin access required" });
     }
 
@@ -3979,7 +3984,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Document download route for admins
   app.get("/api/admin/rider-document/:riderId/:documentType", async (req, res) => {
-    if (!req.isAuthenticated() || req.user.role !== 'admin') {
+    if (!req.isAuthenticated() || !isAdminOrOwner(req.user.role)) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
