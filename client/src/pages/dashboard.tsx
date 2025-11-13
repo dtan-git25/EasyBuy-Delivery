@@ -477,7 +477,7 @@ export default function Dashboard() {
                 // Helper to calculate item price including options
                 const subtotal = restaurantCart.items.reduce((sum, item) => sum + (getItemTotalPrice(item) * item.quantity), 0);
                 const markupAmount = subtotal * (restaurantCart.markup / 100);
-                const deliveryFee = parseFloat(restaurantCart.deliveryFee.toString());
+                const deliveryFee = calculatedDeliveryFees[restaurantCart.restaurantId] || 0;
                 const total = subtotal + markupAmount + deliveryFee;
                 const itemCount = restaurantCart.items.reduce((sum, item) => sum + item.quantity, 0);
                 
@@ -497,32 +497,25 @@ export default function Dashboard() {
                       <div className="space-y-3 text-sm">
                         {restaurantCart.items.map((item, itemIndex) => {
                           const itemTotalPrice = getItemTotalPrice(item);
-                          const markedUpPrice = itemTotalPrice * (1 + restaurantCart.markup / 100);
-                          const hasOptions = item.selectedOptions && item.selectedOptions.length > 0;
                           const visibleOptions = item.selectedOptions?.filter(opt => opt.price > 0) || [];
                           
                           return (
                             <div key={item.id} className="space-y-1" data-testid={`cart-item-${item.id}`}>
                               <div className="flex justify-between">
                                 <span>{item.quantity}x {item.name}</span>
-                                <span>₱{(markedUpPrice * item.quantity).toFixed(2)}</span>
+                                <span>₱{(itemTotalPrice * item.quantity).toFixed(2)}</span>
                               </div>
-                              {visibleOptions.length > 0 && (
-                                <div className="pl-4 space-y-0.5 text-muted-foreground">
-                                  {visibleOptions.map((option, optIndex) => {
-                                    const markedUpOptionPrice = option.price * (1 + restaurantCart.markup / 100);
-                                    return (
-                                      <div 
-                                        key={optIndex} 
-                                        className="text-xs"
-                                        data-testid={`text-option-${item.id}-${optIndex}`}
-                                      >
-                                        {option.optionTypeName}: {option.valueName} (₱{markedUpOptionPrice.toFixed(2)})
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
+                              <div className="pl-4 space-y-0.5 text-muted-foreground text-xs">
+                                <div>Base Price: ₱{item.price.toFixed(2)}</div>
+                                {visibleOptions.map((option, optIndex) => (
+                                  <div 
+                                    key={optIndex}
+                                    data-testid={`text-option-${item.id}-${optIndex}`}
+                                  >
+                                    {option.optionTypeName}: {option.valueName} (₱{option.price.toFixed(2)})
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           );
                         })}
@@ -531,9 +524,25 @@ export default function Dashboard() {
                       <Separator />
                       
                       <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span>Subtotal:</span>
+                          <span>₱{subtotal.toFixed(2)}</span>
+                        </div>
+                        {restaurantCart.markup > 0 && (
+                          <div className="flex justify-between text-muted-foreground">
+                            <span>Restaurant Markup ({restaurantCart.markup}%):</span>
+                            <span>₱{markupAmount.toFixed(2)}</span>
+                          </div>
+                        )}
+                        {deliveryFee > 0 && (
+                          <div className="flex justify-between text-muted-foreground">
+                            <span>Delivery Fee:</span>
+                            <span>₱{deliveryFee.toFixed(2)}</span>
+                          </div>
+                        )}
                         <div className="flex justify-between font-semibold text-base">
                           <span>Total:</span>
-                          <span>₱{(subtotal + markupAmount).toFixed(2)}</span>
+                          <span>₱{total.toFixed(2)}</span>
                         </div>
                       </div>
                       
@@ -564,7 +573,13 @@ export default function Dashboard() {
                 <p className="text-center text-muted-foreground py-8">No items in any cart</p>
               )}
               
-              {cart.getAllCartsCount() > 0 && (
+              {cart.getAllCartsCount() > 0 && (() => {
+                const totalDeliveryFees = Object.values(cart.allCarts).reduce((sum, restaurantCart) => {
+                  return sum + (calculatedDeliveryFees[restaurantCart.restaurantId] || 0);
+                }, 0);
+                const grandTotal = cart.getAllCartsTotal() + totalDeliveryFees;
+                
+                return (
                 <>
                   <Separator />
                   <div className="flex justify-between items-center pt-4">
@@ -572,7 +587,7 @@ export default function Dashboard() {
                       <p className="font-semibold text-lg">Total for All Carts</p>
                       <p className="text-sm text-muted-foreground">{cart.getAllCartsCount()} restaurant{cart.getAllCartsCount() > 1 ? 's' : ''}</p>
                     </div>
-                    <p className="text-2xl font-bold">₱{cart.getAllCartsTotal().toFixed(2)}</p>
+                    <p className="text-2xl font-bold">₱{grandTotal.toFixed(2)}</p>
                   </div>
                   
                   <div className="flex gap-2 pt-2">
@@ -596,7 +611,8 @@ export default function Dashboard() {
                     </Button>
                   </div>
                 </>
-              )}
+                );
+              })()}
             </div>
           </DialogContent>
         </Dialog>
@@ -634,12 +650,23 @@ export default function Dashboard() {
                 <>
                   <div className="space-y-3">
                     {cart.items.map((item) => {
-                      const markedUpPrice = item.price * (1 + cart.markup / 100);
+                      const itemTotalPrice = getItemTotalPrice(item);
+                      const visibleOptions = item.selectedOptions?.filter(opt => opt.price > 0) || [];
                       return (
-                        <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
-                          <div className="flex-1">
+                        <div key={item.id} className="flex items-start justify-between p-3 border rounded-lg">
+                          <div className="flex-1 space-y-1">
                             <h4 className="font-medium">{item.name}</h4>
-                            <p className="text-sm text-muted-foreground">₱{markedUpPrice.toFixed(2)} each</p>
+                            <p className="text-sm text-muted-foreground">₱{itemTotalPrice.toFixed(2)} each</p>
+                            {visibleOptions.length > 0 && (
+                              <div className="pl-2 space-y-0.5 text-xs text-muted-foreground">
+                                <div>Base: ₱{item.price.toFixed(2)}</div>
+                                {visibleOptions.map((option, optIndex) => (
+                                  <div key={optIndex}>
+                                    {option.optionTypeName}: {option.valueName} (+₱{option.price.toFixed(2)})
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         <div className="flex items-center space-x-2">
                           <Button
@@ -675,8 +702,18 @@ export default function Dashboard() {
                   
                   <Separator />
                   
-                  <div className="space-y-2">
-                    <div className="flex justify-between font-semibold text-lg">
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span>Subtotal:</span>
+                      <span>₱{cart.getSubtotal().toFixed(2)}</span>
+                    </div>
+                    {cart.markup > 0 && (
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>Restaurant Markup ({cart.markup}%):</span>
+                        <span>₱{cart.getMarkupAmount().toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between font-semibold text-base">
                       <span>Total:</span>
                       <span>₱{(cart.getSubtotal() + cart.getMarkupAmount()).toFixed(2)}</span>
                     </div>
@@ -768,7 +805,7 @@ export default function Dashboard() {
                   // Helper to calculate item price including options
                   const subtotal = restaurantCart.items.reduce((sum, item) => sum + (getItemTotalPrice(item) * item.quantity), 0);
                   const markupAmount = subtotal * (restaurantCart.markup / 100);
-                  const deliveryFee = parseFloat(restaurantCart.deliveryFee.toString());
+                  const deliveryFee = calculatedDeliveryFees[restaurantCart.restaurantId] || 0;
                   const total = subtotal + markupAmount + deliveryFee;
 
                   return (
@@ -777,35 +814,46 @@ export default function Dashboard() {
                       <div className="text-sm space-y-2">
                         {restaurantCart.items.map((item) => {
                           const itemTotalPrice = getItemTotalPrice(item);
-                          const markedUpPrice = itemTotalPrice * (1 + restaurantCart.markup / 100);
                           const visibleOptions = item.selectedOptions?.filter(opt => opt.price > 0) || [];
                           return (
                             <div key={item.id} className="space-y-1">
                               <div className="flex justify-between">
                                 <span>{item.name} x{item.quantity}</span>
-                                <span>₱{(markedUpPrice * item.quantity).toFixed(2)}</span>
+                                <span>₱{(itemTotalPrice * item.quantity).toFixed(2)}</span>
                               </div>
-                              {visibleOptions.length > 0 && (
-                                <div className="pl-4 space-y-0.5 text-muted-foreground">
-                                  {visibleOptions.map((option, optIndex) => {
-                                    const markedUpOptionPrice = option.price * (1 + restaurantCart.markup / 100);
-                                    return (
-                                      <div key={optIndex} className="text-xs">
-                                        {option.optionTypeName}: {option.valueName} (₱{markedUpOptionPrice.toFixed(2)})
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
+                              <div className="pl-4 space-y-0.5 text-muted-foreground text-xs">
+                                <div>Base Price: ₱{item.price.toFixed(2)}</div>
+                                {visibleOptions.map((option, optIndex) => (
+                                  <div key={optIndex}>
+                                    {option.optionTypeName}: {option.valueName} (₱{option.price.toFixed(2)})
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           );
                         })}
                       </div>
                       <Separator />
                       <div className="space-y-1 text-sm">
-                        <div className="flex justify-between font-semibold">
+                        <div className="flex justify-between">
                           <span>Subtotal:</span>
-                          <span>₱{(subtotal + markupAmount).toFixed(2)}</span>
+                          <span>₱{subtotal.toFixed(2)}</span>
+                        </div>
+                        {restaurantCart.markup > 0 && (
+                          <div className="flex justify-between text-muted-foreground">
+                            <span>Restaurant Markup ({restaurantCart.markup}%):</span>
+                            <span>₱{markupAmount.toFixed(2)}</span>
+                          </div>
+                        )}
+                        {deliveryFee > 0 && (
+                          <div className="flex justify-between text-muted-foreground">
+                            <span>Delivery Fee:</span>
+                            <span>₱{deliveryFee.toFixed(2)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between font-semibold">
+                          <span>Total:</span>
+                          <span>₱{total.toFixed(2)}</span>
                         </div>
                       </div>
                     </div>
