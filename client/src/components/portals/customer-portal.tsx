@@ -723,17 +723,16 @@ export default function CustomerPortal() {
     console.log('Selected options from modal:', selectedOptions);
     console.log('Filtered cart options:', cartSelectedOptions);
 
-    // Calculate price per item (including options but not quantity)
+    // Store ONLY base price in item.price (NOT including options)
+    // Options are stored separately in selectedOptions and added by getItemTotalPrice()
     const basePrice = parseFloat(selectedMenuItemForOptions.price.toString());
-    const optionsPrice = selectedOptions.reduce((sum, opt) => sum + opt.price, 0);
-    const pricePerItem = basePrice + optionsPrice;
 
     // Add item to cart with proper quantity
     for (let i = 0; i < quantity; i++) {
       const itemToAdd = {
         menuItemId: selectedMenuItemForOptions.id,
         name: selectedMenuItemForOptions.name,
-        price: pricePerItem,
+        price: basePrice,  // ONLY base price, NOT including options
         restaurant: {
           id: selectedRestaurant.id,
           name: selectedRestaurant.name,

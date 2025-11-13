@@ -82,6 +82,9 @@ function normalizeSelectedOptions(options?: Array<{ optionTypeName: string; valu
   return JSON.stringify(sorted);
 }
 
+// Cart data version for migration
+const CART_DATA_VERSION = 2; // Version 2: Fixed double-counting bug (item.price = base only)
+
 // Helper function to calculate total price of an item including selectedOptions
 // EXPORTED for use in other components
 export function getItemTotalPrice(item: CartItem): number {
@@ -131,9 +134,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
         
         // SECURITY FIX: Check if cart belongs to current user
         if (cartsData.userId === currentUser.id) {
-          console.log('✅ Cart belongs to current user, loading...');
-          setAllCarts(cartsData.carts || {});
-          setActiveRestaurantId(cartsData.activeRestaurantId || null);
+          // MIGRATION: Check cart data version
+          const dataVersion = cartsData.version || 1;
+          
+          if (dataVersion < CART_DATA_VERSION) {
+            console.warn('⚠️ OLD CART VERSION DETECTED - Clearing cart due to pricing bug fix');
+            console.warn('Previous version:', dataVersion, '| Current version:', CART_DATA_VERSION);
+            console.warn('Reason: Fixed double-counting bug where option prices were counted twice');
+            setAllCarts({});
+            setActiveRestaurantId(null);
+            localStorage.removeItem('easyBuyMultiCarts');
+          } else {
+            console.log('✅ Cart belongs to current user and is up-to-date, loading...');
+            setAllCarts(cartsData.carts || {});
+            setActiveRestaurantId(cartsData.activeRestaurantId || null);
+          }
         } else {
           // Cart belongs to different user - clear it
           console.log('❌ Cart belongs to different user, clearing...');
@@ -169,11 +184,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
     
     if (currentUser) {
       const cartsData = {
+        version: CART_DATA_VERSION, // Include version for future migrations
         userId: currentUser.id, // Store user ID with cart data
         carts: allCarts,
         activeRestaurantId
       };
       console.log('✅ Saving to localStorage:', {
+        version: cartsData.version,
         userId: cartsData.userId,
         cartCount: Object.keys(cartsData.carts).length,
         activeRestaurantId: cartsData.activeRestaurantId

@@ -1,0 +1,77 @@
+Fix cart total - still showing ₱88.00 instead of correct ₱55.00:
+
+PROBLEM:
+
+Add to Cart Modal (CORRECT):
+- Base Price: ₱22.00
+- Cheese: ₱5.50
+- Large: ₱27.50
+- Total: ₱55.00 ✓
+
+All Restaurant Carts Modal (WRONG):
+- 1x Burger ₱88.00 ✗
+- Toppings: Cheese (no price shown)
+- Size: Large (no price shown)
+- Subtotal: ₱88.00 ✗
+- Total: ₱88.00 ✗
+
+ISSUES:
+
+1. WRONG TOTAL:
+   - Should be ₱55.00
+   - Showing ₱88.00
+   - Where is ₱88.00 coming from?
+
+2. OPTION PRICES NOT SHOWING:
+   - Options displayed but no prices
+   - Should show: Cheese (₱5.50), Large (₱27.50)
+
+3. CALCULATION ERROR:
+   - Cart is calculating wrong total
+   - Not using correct prices from add to cart
+
+DEBUGGING NEEDED:
+
+1. CHECK CART DATA:
+   - Log cart item data: console.log('Cart item:', cartItem)
+   - Check what prices are stored
+   - Verify base price and option prices
+
+2. CHECK CALCULATION:
+   - How is ₱88.00 being calculated?
+   - Is it doubling ₱55 somehow? (55 × 1.6 = 88)
+   - Is merchant markup being applied again?
+   - Is it using wrong base price?
+
+3. CHECK DATA SOURCE:
+   - When item added to cart, what prices are saved?
+   - Are marked-up prices saved? Or base prices?
+   - Are option prices correct in cart data?
+
+REQUIRED FIX:
+
+1. USE CORRECT PRICES:
+   - Cart should use exact same prices as add to cart modal
+   - Base: ₱22.00
+   - Cheese: ₱5.50
+   - Large: ₱27.50
+   - Total: ₱22.00 + ₱5.50 + ₱27.50 = ₱55.00
+
+2. SHOW OPTION PRICES:
+   - Display price next to each option
+   - Toppings: Cheese (₱5.50)
+   - Size: Large (₱27.50)
+
+3. CORRECT CALCULATION:
+   - Total = Base Price + Sum of all option prices
+   - Don't apply any additional markup
+   - Don't multiply or modify prices
+
+4. DEBUG LOG:
+   Add logging to see actual values:
+   - Log base price
+   - Log each option price
+   - Log calculation steps
+   - Find where ₱88.00 comes from
+
+The cart is using wrong calculation or wrong data. Need to identify where ₱88.00 is coming from and fix to use correct ₱55.00 total.
