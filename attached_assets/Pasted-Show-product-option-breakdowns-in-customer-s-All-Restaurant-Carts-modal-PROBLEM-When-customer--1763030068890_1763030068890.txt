@@ -1,0 +1,69 @@
+Show product option breakdowns in customer's All Restaurant Carts modal:
+
+PROBLEM:
+When customer adds item with options to cart:
+- Add to cart modal shows option breakdown correctly ✓
+- But All Restaurant Carts modal only shows base item and total price ✗
+- Product options (Size, Flavor, Add-ons) are not displayed in cart modal
+
+REQUIRED FIX:
+
+Display selected product options in the All Restaurant Carts modal, same as they appear in add to cart.
+
+CART MODAL SHOULD SHOW:
+
+Current (WRONG):
+Burger × 1                  ₱155.00
+
+Required (CORRECT):
+Burger × 1                  ₱155.00
+  Size: Medium (₱20)
+  Flavor: BBQ (₱10)
+  Add-ons: Extra Cheese (₱15)
+
+DISPLAY FORMAT:
+
+For each cart item:
+1. Item name and quantity with total price
+2. Indented list of selected options below item
+3. Each option shows: type, value, and price
+4. Options displayed in merchant's specified order
+
+EXAMPLE - ALL RESTAURANT CARTS MODAL:
+
+Jollibee (Current)
+┌─────────────────────────────────┐
+│ Burger × 1              ₱155.00 │
+│   Size: Medium (₱20)            │
+│   Flavor: BBQ (₱10)             │
+│   Add-ons: Extra Cheese (₱15)   │
+│                                  │
+│ Fries × 2               ₱80.00  │
+│   Size: Large (₱10 each)        │
+│                                  │
+│ Subtotal:               ₱235.00 │
+│ [Clear Cart]                     │
+└─────────────────────────────────┘
+
+McDonald's (Current)
+┌─────────────────────────────────┐
+│ Big Mac × 1             ₱200.00 │
+│   Size: Large (₱30)             │
+│                                  │
+│ Subtotal:               ₱200.00 │
+│ [Clear Cart]                     │
+└─────────────────────────────────┘
+
+Total for All Carts: ₱435.00
+[Checkout All Carts]
+
+IMPLEMENTATION:
+
+1. FETCH OPTIONS DATA:
+   When loading cart items, include product options data
+   - Each cart item should have options array
+   - Options include: type name, value name, price
+
+2. RENDER OPTIONS IN CART:
+   For each cart item in the All Restaurant Carts modal:
+   - Display item name and total

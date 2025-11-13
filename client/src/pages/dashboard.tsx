@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Bell, Bike, ShoppingCart, Package, Plus, Minus, X } from "lucide-react";
-import { useCart } from "@/contexts/cart-context";
+import { useCart, getItemTotalPrice } from "@/contexts/cart-context";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -198,7 +198,8 @@ export default function Dashboard() {
         // Prepare all cart data for backend processing
         const checkoutData = {
           carts: allCarts.map(restaurantCart => {
-            const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            // Helper to calculate item price including options
+            const subtotal = restaurantCart.items.reduce((sum, item) => sum + (getItemTotalPrice(item) * item.quantity), 0);
             const markupAmount = subtotal * (restaurantCart.markup / 100);
             const deliveryFee = calculatedDeliveryFees[restaurantCart.restaurantId] || 0;
             const convenienceFee = settings?.showConvenienceFee ? parseFloat(settings.convenienceFee || '0') : 0;
@@ -209,8 +210,9 @@ export default function Dashboard() {
               items: restaurantCart.items.map(item => ({
                 menuItemId: item.menuItemId,
                 name: item.name,
-                price: item.price,
-                quantity: item.quantity
+                price: getItemTotalPrice(item),
+                quantity: item.quantity,
+                selectedOptions: item.selectedOptions
               })),
               subtotal: subtotal.toFixed(2),
               markup: markupAmount.toFixed(2),
@@ -232,7 +234,8 @@ export default function Dashboard() {
       } else {
         // Single merchant order - use existing endpoint
         const restaurantCart = allCarts[0];
-        const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        // Helper to calculate item price including options
+        const subtotal = restaurantCart.items.reduce((sum, item) => sum + (getItemTotalPrice(item) * item.quantity), 0);
         const markupAmount = subtotal * (restaurantCart.markup / 100);
         const deliveryFee = calculatedDeliveryFees[restaurantCart.restaurantId] || 0;
         const convenienceFee = settings?.showConvenienceFee ? parseFloat(settings.convenienceFee || '0') : 0;
@@ -243,8 +246,9 @@ export default function Dashboard() {
           items: restaurantCart.items.map(item => ({
             menuItemId: item.menuItemId,
             name: item.name,
-            price: item.price,
-            quantity: item.quantity
+            price: getItemTotalPrice(item),
+            quantity: item.quantity,
+            selectedOptions: item.selectedOptions
           })),
           subtotal: subtotal.toFixed(2),
           markup: markupAmount.toFixed(2),
@@ -470,7 +474,8 @@ export default function Dashboard() {
             <div className="space-y-4">
               {Object.values(cart.allCarts).map((restaurantCart) => {
                 const isActive = cart.activeRestaurantId === restaurantCart.restaurantId;
-                const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                // Helper to calculate item price including options
+                const subtotal = restaurantCart.items.reduce((sum, item) => sum + (getItemTotalPrice(item) * item.quantity), 0);
                 const markupAmount = subtotal * (restaurantCart.markup / 100);
                 const deliveryFee = parseFloat(restaurantCart.deliveryFee.toString());
                 const total = subtotal + markupAmount + deliveryFee;
@@ -489,13 +494,35 @@ export default function Dashboard() {
                       
                       <Separator />
                       
-                      <div className="space-y-2 text-sm">
-                        {restaurantCart.items.map((item) => {
-                          const markedUpPrice = item.price * (1 + restaurantCart.markup / 100);
+                      <div className="space-y-3 text-sm">
+                        {restaurantCart.items.map((item, itemIndex) => {
+                          const itemTotalPrice = getItemTotalPrice(item);
+                          const markedUpPrice = itemTotalPrice * (1 + restaurantCart.markup / 100);
+                          const hasOptions = item.selectedOptions && item.selectedOptions.length > 0;
+                          const visibleOptions = item.selectedOptions?.filter(opt => opt.price > 0) || [];
+                          
                           return (
-                            <div key={item.id} className="flex justify-between">
-                              <span>{item.quantity}x {item.name}</span>
-                              <span>₱{(markedUpPrice * item.quantity).toFixed(2)}</span>
+                            <div key={item.id} className="space-y-1" data-testid={`cart-item-${item.id}`}>
+                              <div className="flex justify-between">
+                                <span>{item.quantity}x {item.name}</span>
+                                <span>₱{(markedUpPrice * item.quantity).toFixed(2)}</span>
+                              </div>
+                              {visibleOptions.length > 0 && (
+                                <div className="pl-4 space-y-0.5 text-muted-foreground">
+                                  {visibleOptions.map((option, optIndex) => {
+                                    const markedUpOptionPrice = option.price * (1 + restaurantCart.markup / 100);
+                                    return (
+                                      <div 
+                                        key={optIndex} 
+                                        className="text-xs"
+                                        data-testid={`text-option-${item.id}-${optIndex}`}
+                                      >
+                                        {option.optionTypeName}: {option.valueName} (₱{markedUpOptionPrice.toFixed(2)})
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
                             </div>
                           );
                         })}
@@ -738,7 +765,8 @@ export default function Dashboard() {
                 <h4 className="font-medium">Order Summary</h4>
                 
                 {Object.values(cart.allCarts).map((restaurantCart) => {
-                  const subtotal = restaurantCart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                  // Helper to calculate item price including options
+                  const subtotal = restaurantCart.items.reduce((sum, item) => sum + (getItemTotalPrice(item) * item.quantity), 0);
                   const markupAmount = subtotal * (restaurantCart.markup / 100);
                   const deliveryFee = parseFloat(restaurantCart.deliveryFee.toString());
                   const total = subtotal + markupAmount + deliveryFee;
@@ -746,13 +774,29 @@ export default function Dashboard() {
                   return (
                     <div key={restaurantCart.restaurantId} className="space-y-2 p-3 border rounded-lg">
                       <h5 className="font-semibold text-sm">{restaurantCart.restaurantName}</h5>
-                      <div className="text-sm space-y-1">
+                      <div className="text-sm space-y-2">
                         {restaurantCart.items.map((item) => {
-                          const markedUpPrice = item.price * (1 + restaurantCart.markup / 100);
+                          const itemTotalPrice = getItemTotalPrice(item);
+                          const markedUpPrice = itemTotalPrice * (1 + restaurantCart.markup / 100);
+                          const visibleOptions = item.selectedOptions?.filter(opt => opt.price > 0) || [];
                           return (
-                            <div key={item.id} className="flex justify-between">
-                              <span>{item.name} x{item.quantity}</span>
-                              <span>₱{(markedUpPrice * item.quantity).toFixed(2)}</span>
+                            <div key={item.id} className="space-y-1">
+                              <div className="flex justify-between">
+                                <span>{item.name} x{item.quantity}</span>
+                                <span>₱{(markedUpPrice * item.quantity).toFixed(2)}</span>
+                              </div>
+                              {visibleOptions.length > 0 && (
+                                <div className="pl-4 space-y-0.5 text-muted-foreground">
+                                  {visibleOptions.map((option, optIndex) => {
+                                    const markedUpOptionPrice = option.price * (1 + restaurantCart.markup / 100);
+                                    return (
+                                      <div key={optIndex} className="text-xs">
+                                        {option.optionTypeName}: {option.valueName} (₱{markedUpOptionPrice.toFixed(2)})
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
                             </div>
                           );
                         })}

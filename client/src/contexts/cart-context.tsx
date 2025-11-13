@@ -82,6 +82,14 @@ function normalizeSelectedOptions(options?: Array<{ optionTypeName: string; valu
   return JSON.stringify(sorted);
 }
 
+// Helper function to calculate total price of an item including selectedOptions
+// EXPORTED for use in other components
+export function getItemTotalPrice(item: CartItem): number {
+  const basePrice = item.price;
+  const optionsPrice = (item.selectedOptions || []).reduce((sum, opt) => sum + opt.price, 0);
+  return basePrice + optionsPrice;
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const [allCarts, setAllCarts] = useState<Record<string, RestaurantCart>>({});
   const [activeRestaurantId, setActiveRestaurantId] = useState<string | null>(null);
@@ -386,14 +394,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const getAllCartsTotal = () => {
     return Object.values(allCarts).reduce((total, cart) => {
-      const subtotal = cart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const subtotal = cart.items.reduce((sum, item) => sum + (getItemTotalPrice(item) * item.quantity), 0);
       const markupAmount = subtotal * (cart.markup / 100);
       return total + subtotal + markupAmount;
     }, 0);
   };
 
   const getSubtotal = () => {
-    return items.reduce((total, item) => total + (item.price * item.quantity), 0);
+    return items.reduce((total, item) => total + (getItemTotalPrice(item) * item.quantity), 0);
   };
 
   const getMarkupAmount = () => {
