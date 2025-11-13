@@ -7,6 +7,14 @@ This project is a comprehensive food delivery web application with Customer, Rid
 Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (November 2025)
+- **Fixed Cart Pricing Display - Markup Now Invisible**: Completely restructured cart and checkout pricing displays to hide restaurant markup from customers, matching the Add to Cart modal behavior. Previously, carts showed base prices with a separate "Restaurant Markup (X%): ₱X.XX" line, confusing customers who saw different prices in Add to Cart vs Cart. Now all pricing is consistent:
+  - **All Restaurant Carts Modal**: Items display at marked-up prices (base + options with markup applied). Shows only Subtotal → Delivery Fee → Total. No markup line visible.
+  - **Single-Restaurant Cart Modal**: Same marked-up pricing. Shows Subtotal → Total with no markup breakdown.
+  - **Checkout Modal**: Per-restaurant summaries show marked-up item prices. Displays Subtotal → Delivery Fee → Rider's Convenience Fee → Total for each restaurant. Grand total shows aggregated marked-up items + total delivery fees + total convenience fees.
+  - **Pricing Consistency**: All views now match Add to Cart modal where prices already include markup (e.g., merchant's ₱20 item with 10% markup displays as ₱22 everywhere, not as ₱20 + ₱2 markup).
+  - **Option Display**: Selected options shown as names only (no individual prices), keeping focus on final item price.
+  - **Backend Compatibility**: Order submission still sends base subtotal + explicit markup fields separately for accounting/reporting - only customer-facing UI changed.
+  - **Convenience Fee Visibility**: Now properly displayed in both per-restaurant totals and checkout grand total when enabled.
 - **Added Admin Management to Owner Portal**: Implemented comprehensive admin account management exclusively for the Owner account in the User Management tab. Features include:
   - **Admin List Display**: Shows all admin and owner accounts with name, email, role, creation date, and action buttons
   - **View Admin Details**: Modal displaying complete admin information including personal details and account history

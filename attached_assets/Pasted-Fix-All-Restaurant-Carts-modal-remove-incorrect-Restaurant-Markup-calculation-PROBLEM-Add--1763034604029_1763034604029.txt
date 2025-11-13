@@ -1,0 +1,76 @@
+Fix All Restaurant Carts modal - remove incorrect Restaurant Markup calculation:
+
+PROBLEM:
+
+Add to Cart Modal shows (CORRECT):
+- Base Price × 1: ₱22.00
+- Cheese × 1: ₱5.50
+- Large × 1: ₱27.50
+- Total: ₱55.00
+
+All Restaurant Carts Modal shows (INCORRECT):
+- 1x Burger ₱80.00
+- Base Price: ₱50.00
+- Toppings: Cheese (₱5.00)
+- Size: Large (₱25.00)
+- Subtotal: ₱80.00
+- Restaurant Markup (10%): ₱8.00  ← WRONG - Remove this
+- Total: ₱88.00
+
+ISSUES:
+
+1. MARKUP ALREADY APPLIED TO ITEM PRICES:
+   - Base price shown to customer already includes markup
+   - When customer sees ₱22.00, markup is already included
+   - Don't calculate markup again at cart level
+
+2. DOUBLE MARKUP:
+   - Applying markup twice: once on item display, again on cart total
+   - This is incorrect and overcharges customer
+
+3. PRICE DISCREPANCY:
+   - Prices in add to cart: ₱22, ₱5.50, ₱27.50
+   - Prices in cart: ₱50, ₱5, ₱25
+   - These don't match - which is correct?
+
+REQUIRED FIX:
+
+1. REMOVE MARKUP LINE FROM CART:
+   - Delete "Restaurant Markup (10%): ₱8.00" line completely
+   - Do NOT calculate markup on subtotal in cart
+   - Markup is already included in displayed item prices
+
+2. SHOW CORRECT PRICES:
+   - Use the same prices shown in add to cart modal
+   - Base Price: ₱22.00 (not ₱50.00)
+   - Cheese: ₱5.50 (not ₱5.00)
+   - Large: ₱27.50 (not ₱25.00)
+   - Total: ₱55.00 (not ₱88.00)
+
+3. CART SHOULD DISPLAY:
+
+   1x Burger                    ₱55.00
+     Base Price: ₱22.00
+     Size: Large (₱27.50)
+     Toppings: Cheese (₱5.50)
+   
+   Subtotal: ₱55.00
+
+   NO markup line
+   NO additional calculation
+
+MARKUP LOGIC CLARIFICATION:
+
+Markup is applied when prices are displayed to customer:
+- Merchant's base price: ₱20 (hidden from customer)
+- 10% markup: ₱2
+- Customer sees: ₱22 ← This already includes markup
+
+In cart:
+- Just use the marked-up prices already shown
+- Don't calculate markup again
+- Don't show markup as separate line
+
+Markup is invisible to customer - they just see final prices.
+
+Fix the cart modal to show correct prices from add to cart and remove the duplicate markup calculation.
