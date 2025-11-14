@@ -1190,11 +1190,23 @@ export default function RiderPortal() {
                                       {merchantOrder.status.replace('_', ' ').toUpperCase()}
                                     </Badge>
                                   </div>
-                                  <div className="space-y-1 text-sm">
+                                  <div className="space-y-2 text-sm">
                                     {merchantOrder.items.map((item: any, itemIdx: number) => (
-                                      <div key={itemIdx} className="flex justify-between text-muted-foreground">
-                                        <span>{item.name} x{item.quantity}</span>
-                                        <span>₱{(parseFloat(item.price) * item.quantity).toFixed(2)}</span>
+                                      <div key={itemIdx} className="space-y-1">
+                                        <div className="flex justify-between font-medium">
+                                          <span>{item.name} x{item.quantity}</span>
+                                          <span>₱{(parseFloat(item.price) * item.quantity).toFixed(2)}</span>
+                                        </div>
+                                        {item.selectedOptions && item.selectedOptions.length > 0 && (
+                                          <div className="ml-4 space-y-0.5">
+                                            {item.selectedOptions.map((opt: any, optIdx: number) => (
+                                              <div key={optIdx} className="flex justify-between text-xs text-muted-foreground" data-testid={`text-option-${itemIdx}-${optIdx}`}>
+                                                <span>{opt.optionTypeName}: {opt.valueName}</span>
+                                                {opt.price > 0 && <span>(₱{opt.price.toFixed(2)})</span>}
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
                                       </div>
                                     ))}
                                   </div>
@@ -1209,13 +1221,25 @@ export default function RiderPortal() {
                         ) : (
                           <div>
                             <h5 className="font-semibold text-foreground mb-2">Order from: {order.restaurantName}</h5>
-                            <div className="space-y-1 text-sm">
+                            <div className="space-y-2 text-sm">
                               {orderItems.map((item, index) => {
                                 const markedUpPrice = parseFloat(item.price) * (1 + (markup / subtotal));
                                 return (
-                                  <div key={index} className="flex justify-between">
-                                    <span>{item.name} x{item.quantity}</span>
-                                    <span>₱{(markedUpPrice * item.quantity).toFixed(2)}</span>
+                                  <div key={index} className="space-y-1">
+                                    <div className="flex justify-between font-medium">
+                                      <span>{item.name} x{item.quantity}</span>
+                                      <span>₱{(markedUpPrice * item.quantity).toFixed(2)}</span>
+                                    </div>
+                                    {item.selectedOptions && item.selectedOptions.length > 0 && (
+                                      <div className="ml-4 space-y-0.5">
+                                        {item.selectedOptions.map((opt: any, optIdx: number) => (
+                                          <div key={optIdx} className="flex justify-between text-xs text-muted-foreground" data-testid={`text-option-${index}-${optIdx}`}>
+                                            <span>{opt.optionTypeName}: {opt.valueName}</span>
+                                            {opt.price > 0 && <span>(₱{opt.price.toFixed(2)})</span>}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
                                 );
                               })}

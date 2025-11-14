@@ -1695,11 +1695,23 @@ export default function MerchantPortal() {
                           <h5 className="font-medium text-foreground mb-3">Order Items</h5>
                           <div className="space-y-2">
                             {order.items?.map((item: any, index: number) => (
-                              <div key={index} className="flex justify-between items-center text-sm">
-                                <span className="text-foreground">
-                                  {item.quantity}x {item.name}
-                                </span>
-                                <span className="text-muted-foreground">₱{item.price}</span>
+                              <div key={index} className="space-y-1">
+                                <div className="flex justify-between items-center text-sm">
+                                  <span className="text-foreground font-medium">
+                                    {item.quantity}x {item.name}
+                                  </span>
+                                  <span className="text-foreground font-medium">₱{(parseFloat(item.price) * item.quantity).toFixed(2)}</span>
+                                </div>
+                                {item.selectedOptions && item.selectedOptions.length > 0 && (
+                                  <div className="ml-6 space-y-0.5">
+                                    {item.selectedOptions.map((opt: any, optIdx: number) => (
+                                      <div key={optIdx} className="flex justify-between text-xs text-muted-foreground" data-testid={`text-option-${index}-${optIdx}`}>
+                                        <span>{opt.optionTypeName}: {opt.valueName}</span>
+                                        {opt.price > 0 && <span>(₱{opt.price.toFixed(2)})</span>}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             ))}
                             <hr className="border-border" />

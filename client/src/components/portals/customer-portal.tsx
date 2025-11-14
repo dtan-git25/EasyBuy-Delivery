@@ -1693,7 +1693,7 @@ export default function CustomerPortal() {
                                     {merchantOrder.status.replace('_', ' ').toUpperCase()}
                                   </Badge>
                                 </div>
-                                <div className="space-y-1 text-sm">
+                                <div className="space-y-2 text-sm">
                                   {(() => {
                                     // Calculate markup percentage for this merchant order
                                     const items = merchantOrder.items as Array<{ name: string; quantity: number; price: string }>;
@@ -1705,9 +1705,21 @@ export default function CustomerPortal() {
                                       const basePrice = parseFloat(item.price);
                                       const markedUpPrice = basePrice * (1 + markupPercentage / 100);
                                       return (
-                                        <div key={idx} className="flex justify-between text-muted-foreground">
-                                          <span>{item.name} x{item.quantity}</span>
-                                          <span>₱{(markedUpPrice * item.quantity).toFixed(2)}</span>
+                                        <div key={idx} className="space-y-1">
+                                          <div className="flex justify-between font-medium">
+                                            <span>{item.name} x{item.quantity}</span>
+                                            <span>₱{(markedUpPrice * item.quantity).toFixed(2)}</span>
+                                          </div>
+                                          {item.selectedOptions && item.selectedOptions.length > 0 && (
+                                            <div className="ml-4 space-y-0.5">
+                                              {item.selectedOptions.map((opt: any, optIdx: number) => (
+                                                <div key={optIdx} className="flex justify-between text-xs text-muted-foreground" data-testid={`text-option-${idx}-${optIdx}`}>
+                                                  <span>{opt.optionTypeName}: {opt.valueName}</span>
+                                                  {opt.price > 0 && <span>(₱{opt.price.toFixed(2)})</span>}
+                                                </div>
+                                              ))}
+                                            </div>
+                                          )}
                                         </div>
                                       );
                                     });
@@ -1721,20 +1733,32 @@ export default function CustomerPortal() {
                             ))}
                           </div>
                         ) : (
-                          <div className="space-y-1 text-sm">
+                          <div className="space-y-2 text-sm">
                             {(() => {
                               const orderItems = order.items as Array<{ name: string; quantity: number; price: string }>;
                               const markup = parseFloat(order.markup);
                               const subtotal = orderItems.reduce((sum, i) => sum + parseFloat(i.price) * i.quantity, 0);
                               const markupPercentage = (markup / subtotal) * 100;
                               
-                              return orderItems.map((item, index) => {
+                              return orderItems.map((item: any, index: number) => {
                                 const basePrice = parseFloat(item.price);
                                 const markedUpPrice = basePrice * (1 + markupPercentage / 100);
                                 return (
-                                  <div key={index} className="flex justify-between">
-                                    <span>{item.name} x{item.quantity}</span>
-                                    <span>₱{(markedUpPrice * item.quantity).toFixed(2)}</span>
+                                  <div key={index} className="space-y-1">
+                                    <div className="flex justify-between font-medium">
+                                      <span>{item.name} x{item.quantity}</span>
+                                      <span>₱{(markedUpPrice * item.quantity).toFixed(2)}</span>
+                                    </div>
+                                    {item.selectedOptions && item.selectedOptions.length > 0 && (
+                                      <div className="ml-4 space-y-0.5">
+                                        {item.selectedOptions.map((opt: any, optIdx: number) => (
+                                          <div key={optIdx} className="flex justify-between text-xs text-muted-foreground" data-testid={`text-option-${index}-${optIdx}`}>
+                                            <span>{opt.optionTypeName}: {opt.valueName}</span>
+                                            {opt.price > 0 && <span>(₱{opt.price.toFixed(2)})</span>}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
                                 );
                               });
