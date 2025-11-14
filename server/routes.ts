@@ -801,6 +801,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Use user ID, not rider profile ID, to query orders
             // orders.rider_id has FK to users.id
             orders = await storage.getOrdersByRider(req.user.id);
+            console.log('=== RIDER ORDERS FETCHED ===');
+            console.log('Total orders:', orders.length);
+            if (orders.length > 0) {
+              console.log('First order landmark:', orders[0].landmark);
+              console.log('First order number:', orders[0].orderNumber);
+            }
           } else {
             orders = [];
           }
@@ -988,7 +994,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { carts, groupDeliveryFee, farthestDistance, deliveryAddress, deliveryLatitude, deliveryLongitude, landmark, phoneNumber, specialInstructions, paymentMethod } = req.body;
       
       console.log('=== CHECKOUT REQUEST ===');
-      console.log('Landmark received:', landmark);
+      console.log('FULL REQUEST BODY:', JSON.stringify(req.body, null, 2));
+      console.log('Landmark received from frontend:', landmark);
+      console.log('Landmark type:', typeof landmark);
+      console.log('Landmark value:', JSON.stringify(landmark));
       console.log('Delivery address:', deliveryAddress);
       console.log('Group Delivery Fee:', groupDeliveryFee);
       console.log('Farthest Distance:', farthestDistance);
@@ -1071,8 +1080,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           merchantEarningsAmount: merchantEarningsAmount.toFixed(2),
         };
         
+        console.log('=== ORDER DATA BEFORE PARSING ===');
+        console.log('Order Number:', orderNumber);
+        console.log('Landmark in orderData:', orderData.landmark);
+        console.log('Landmark type:', typeof orderData.landmark);
+        
         const parsedOrderData = insertOrderSchema.parse(orderData);
+        console.log('=== ORDER DATA AFTER PARSING ===');
+        console.log('Parsed landmark:', parsedOrderData.landmark);
+        console.log('Parsed landmark type:', typeof parsedOrderData.landmark);
+        
         const order = await storage.createOrder(parsedOrderData);
+        console.log('=== ORDER CREATED ===');
+        console.log('Created order landmark:', order.landmark);
+        console.log('Created order number:', order.orderNumber);
         createdOrders.push(order);
         
         orderIndex++; // Increment for next order in group

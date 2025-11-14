@@ -836,10 +836,12 @@ export default function CustomerPortal() {
       paymentMethod,
     };
 
-    console.log('=== CHECKOUT DATA ===');
-    console.log('Selected Address:', selectedAddress);
-    console.log('Landmark being sent:', selectedAddress.landmark);
-    console.log('Checkout data:', checkoutData);
+    console.log('=== CHECKOUT DATA (FRONTEND) ===');
+    console.log('Selected Address FULL:', JSON.stringify(selectedAddress, null, 2));
+    console.log('Landmark from selectedAddress:', selectedAddress.landmark);
+    console.log('Landmark type:', typeof selectedAddress.landmark);
+    console.log('Landmark value:', JSON.stringify(selectedAddress.landmark));
+    console.log('Checkout data FULL:', JSON.stringify(checkoutData, null, 2));
 
     createOrderMutation.mutate(checkoutData);
   };
