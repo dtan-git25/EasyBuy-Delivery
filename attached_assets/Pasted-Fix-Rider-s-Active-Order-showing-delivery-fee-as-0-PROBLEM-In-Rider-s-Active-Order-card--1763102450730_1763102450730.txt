@@ -1,0 +1,76 @@
+Fix Rider's Active Order showing delivery fee as 0:
+
+PROBLEM:
+
+In Rider's Active Order card:
+- Order total calculation is correct (includes delivery fee)
+- But delivery fee line shows: ₱0.00
+- Should show actual delivery fee amount
+
+EXAMPLE (INCORRECT):
+
+Order #EBD-12345
+Customer: John Doe
+
+Order Items: ₱335.00
+Delivery Fee: ₱0.00  ← WRONG (should show ₱70.00)
+Multi-Merchant Fee: ₱20.00
+Rider's Commission: ₱20.00
+Total: ₱445.00  ← Correct total (includes hidden ₱70 delivery fee)
+
+REQUIRED (CORRECT):
+
+Order #EBD-12345
+Customer: John Doe
+
+Order Items: ₱335.00
+Delivery Fee (2 km): ₱70.00  ← Show actual amount with distance
+Multi-Merchant Fee: ₱20.00
+Rider's Commission: ₱20.00
+Total: ₱445.00
+
+DEBUGGING:
+
+1. CHECK ORDER DATA:
+   - Verify delivery_fee is saved in order record
+   - Check if delivery_distance is saved
+   - Log order data: console.log('Rider order:', order)
+
+2. CHECK DISPLAY:
+   - Delivery fee exists in order data?
+   - But not displaying in rider view?
+   - Field mapping issue?
+
+3. VERIFY DATABASE:
+   - Query orders table
+   - Check delivery_fee column value
+   - Should have actual amount (₱70), not 0
+
+LIKELY CAUSES:
+
+1. Delivery fee calculated but not saved to order
+2. Delivery fee saved but not fetched in rider query
+3. Delivery fee fetched but wrong field name in display
+4. Display using wrong variable (showing 0 instead of actual fee)
+
+FIX:
+
+1. ENSURE DELIVERY FEE IS SAVED:
+   When order is created, save:
+   - delivery_fee: ₱70.00
+   - delivery_distance: 2 (km)
+   - These must be stored in orders table
+
+2. FETCH DELIVERY FEE:
+   When loading rider's active orders:
+   - Include delivery_fee in query
+   - Include delivery_distance in query
+   - Make sure data is retrieved
+
+3. DISPLAY CORRECTLY:
+   In rider's active order card:
+   - Show: Delivery Fee (${distance} km): ₱${delivery_fee}
+   - Use actual values from order data
+   - Not hardcoded 0
+
+The total is correct, which means delivery fee is being included in calculation somewhere, but the display line is showing 0 instead of the actual amount.

@@ -770,6 +770,11 @@ export class DatabaseStorage implements IStorage {
         subtotal: firstOrder.subtotal,
         markup: firstOrder.markup,
         deliveryFee: firstOrder.deliveryFee,
+        multiMerchantFee: firstOrder.multiMerchantFee,
+        convenienceFee: firstOrder.convenienceFee,
+        deliveryDistance: firstOrder.deliveryDistance,
+        riderEarningsAmount: firstOrder.riderEarningsAmount,
+        appEarningsPercentageUsed: firstOrder.appEarningsPercentageUsed,
       });
     });
     
