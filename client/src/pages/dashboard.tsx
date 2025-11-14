@@ -894,11 +894,16 @@ export default function Dashboard() {
                     return sum + (calculatedDeliveryFees[restaurantCart.restaurantId] || 0);
                   }, 0);
                   
+                  // Calculate multi-merchant fee (charged when ordering from 2+ merchants)
+                  const merchantCount = cart.getAllCartsCount();
+                  const multiMerchantFeePerMerchant = settings?.multiMerchantFee ? parseFloat(settings.multiMerchantFee.toString()) : 20;
+                  const totalMultiMerchantFee = merchantCount >= 2 ? (merchantCount - 1) * multiMerchantFeePerMerchant : 0;
+                  
                   const totalConvenienceFee = settings?.showConvenienceFee 
                     ? parseFloat(settings.convenienceFee || '0') * cart.getAllCartsCount()
                     : 0;
                   
-                  const grandTotal = markedUpItemsSubtotal + totalDeliveryFees + totalConvenienceFee;
+                  const grandTotal = markedUpItemsSubtotal + totalDeliveryFees + totalMultiMerchantFee + totalConvenienceFee;
                   
                   return (
                     <>
@@ -911,6 +916,12 @@ export default function Dashboard() {
                           <span>Delivery Fee:</span>
                           <span>₱{totalDeliveryFees.toFixed(2)}</span>
                         </div>
+                        {totalMultiMerchantFee > 0 && (
+                          <div className="flex justify-between">
+                            <span>Multi-Merchant Fee ({merchantCount} stores):</span>
+                            <span>₱{totalMultiMerchantFee.toFixed(2)}</span>
+                          </div>
+                        )}
                         {totalConvenienceFee > 0 && (
                           <div className="flex justify-between">
                             <span>Rider's Convenience Fee:</span>

@@ -1,0 +1,72 @@
+Fix Multi-Merchant Fee not being applied to checkout total:
+
+PROBLEM:
+Multi-Merchant Fee is set by admin but not being added to the total order price in checkout modal.
+
+REQUIREMENTS:
+
+1. WHEN TO APPLY:
+   - ONLY for orders with 2 or more different merchants
+   - Do NOT apply for single merchant orders
+   - Applied once per order, not per merchant
+
+2. HOW TO CALCULATE:
+   - Count unique merchants in cart
+   - If merchant_count >= 2: Add Multi-Merchant Fee
+   - If merchant_count = 1: No fee
+
+3. ADMIN SETTING:
+   - Setting name: Multi-Merchant Fee
+   - Type: Fixed peso amount
+   - Example: ₱20
+   - Description: "Fee charged per additional merchant when customer orders from 2 or more merchants"
+   - Location: Settings > Multi-Merchant Checkout
+
+4. CHECKOUT DISPLAY ORDER:
+
+   Single Merchant Order (NO fee):
+   Items Subtotal: ₱500.00
+   Delivery Fee (4 km): ₱100.00
+   Convenience Fee: ₱15.00
+   Rider's Commission: ₱20.00
+   TOTAL: ₱635.00
+
+   Multi-Merchant Order (fee applied):
+   Items Subtotal: ₱500.00
+   Delivery Fee (4 km): ₱100.00
+   Multi-Merchant Fee: ₱20.00  ← Shows BEFORE Convenience Fee
+   Convenience Fee: ₱15.00
+   Rider's Commission: ₱20.00
+   TOTAL: ₱655.00
+
+5. LINE POSITION:
+   Multi-Merchant Fee line must appear:
+   - After Delivery Fee
+   - BEFORE Convenience Fee
+   - Before Rider's Commission
+   - Before Total
+
+6. CALCULATION IN TOTAL:
+   
+   Single Merchant:
+   Total = Items + Delivery Fee + Convenience Fee + Rider's Commission
+   
+   Multi-Merchant:
+   Total = Items + Delivery Fee + Multi-Merchant Fee + Convenience Fee + Rider's Commission
+
+7. VERIFICATION:
+   Check in checkout logic:
+   - Count merchants: Get unique merchant IDs from cart
+   - If count >= 2: Include Multi-Merchant Fee in total
+   - If count = 1: Exclude Multi-Merchant Fee
+
+8. DISPLAY LOGIC:
+   - Only show Multi-Merchant Fee line if fee applies
+   - Don't show line for single merchant orders
+   - Always show if 2+ merchants in order
+
+9. REVENUE ALLOCATION:
+   Multi-Merchant Fee goes to: App (100%)
+   This compensates for additional complexity of multi-merchant coordination.
+
+Fix the checkout calculation to properly include Multi-Merchant Fee in the total when customer orders from multiple merchants.
