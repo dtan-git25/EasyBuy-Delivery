@@ -495,8 +495,6 @@ export default function Dashboard() {
                   const basePrice = getItemTotalPrice(item) * markupMultiplier;
                   return sum + (basePrice * item.quantity);
                 }, 0);
-                const deliveryFee = calculatedDeliveryFees[restaurantCart.restaurantId] || 0;
-                const total = subtotal + deliveryFee;
                 const itemCount = restaurantCart.items.reduce((sum, item) => sum + item.quantity, 0);
                 
                 return (
@@ -543,19 +541,9 @@ export default function Dashboard() {
                       <Separator />
                       
                       <div className="space-y-1 text-sm">
-                        <div className="flex justify-between">
+                        <div className="flex justify-between font-semibold text-base">
                           <span>Subtotal:</span>
                           <span>₱{subtotal.toFixed(2)}</span>
-                        </div>
-                        {deliveryFee > 0 && (
-                          <div className="flex justify-between text-muted-foreground">
-                            <span>Delivery Fee:</span>
-                            <span>₱{deliveryFee.toFixed(2)}</span>
-                          </div>
-                        )}
-                        <div className="flex justify-between font-semibold text-base">
-                          <span>Total:</span>
-                          <span>₱{total.toFixed(2)}</span>
                         </div>
                       </div>
                       
@@ -587,7 +575,7 @@ export default function Dashboard() {
               )}
               
               {cart.getAllCartsCount() > 0 && (() => {
-                // Calculate marked-up subtotal for all restaurants
+                // Calculate marked-up subtotal for all restaurants (items only, no fees)
                 const markedUpItemsSubtotal = Object.values(cart.allCarts).reduce((sum, restaurantCart) => {
                   const markupMultiplier = 1 + (restaurantCart.markup / 100);
                   return sum + restaurantCart.items.reduce((itemSum, item) => {
@@ -596,33 +584,15 @@ export default function Dashboard() {
                   }, 0);
                 }, 0);
                 
-                // For multi-merchant orders, use ONLY the farthest merchant's delivery fee
-                const merchantCount = cart.getAllCartsCount();
-                let totalDeliveryFee = 0;
-                
-                if (merchantCount >= 2) {
-                  // Multi-merchant: Find the maximum delivery fee (farthest merchant)
-                  const fees = Object.values(cart.allCarts).map(rc => calculatedDeliveryFees[rc.restaurantId] || 0);
-                  totalDeliveryFee = fees.length > 0 ? Math.max(...fees, 0) : 0; // Safeguard for empty array
-                } else {
-                  // Single merchant: Use that merchant's fee
-                  const restaurantCart = Object.values(cart.allCarts)[0];
-                  if (restaurantCart) {
-                    totalDeliveryFee = calculatedDeliveryFees[restaurantCart.restaurantId] || 0;
-                  }
-                }
-                
-                const grandTotal = markedUpItemsSubtotal + totalDeliveryFee;
-                
                 return (
                 <>
                   <Separator />
                   <div className="flex justify-between items-center pt-4">
                     <div>
-                      <p className="font-semibold text-lg">Total for All Carts</p>
+                      <p className="font-semibold text-lg">Total Items</p>
                       <p className="text-sm text-muted-foreground">{cart.getAllCartsCount()} restaurant{cart.getAllCartsCount() > 1 ? 's' : ''}</p>
                     </div>
-                    <p className="text-2xl font-bold">₱{grandTotal.toFixed(2)}</p>
+                    <p className="text-2xl font-bold">₱{markedUpItemsSubtotal.toFixed(2)}</p>
                   </div>
                   
                   <div className="flex gap-2 pt-2">
@@ -642,7 +612,7 @@ export default function Dashboard() {
                       className="flex-1"
                       data-testid="button-checkout-all-carts"
                     >
-                      Checkout All Carts
+                      Proceed to Checkout
                     </Button>
                   </div>
                 </>
@@ -847,9 +817,6 @@ export default function Dashboard() {
                     const basePrice = getItemTotalPrice(item) * markupMultiplier;
                     return sum + (basePrice * item.quantity);
                   }, 0);
-                  const deliveryFee = calculatedDeliveryFees[restaurantCart.restaurantId] || 0;
-                  const convenienceFee = settings?.showConvenienceFee ? parseFloat(settings.convenienceFee || '0') : 0;
-                  const total = subtotal + deliveryFee + convenienceFee;
 
                   return (
                     <div key={restaurantCart.restaurantId} className="space-y-2 p-3 border rounded-lg">
@@ -879,25 +846,9 @@ export default function Dashboard() {
                       </div>
                       <Separator />
                       <div className="space-y-1 text-sm">
-                        <div className="flex justify-between">
+                        <div className="flex justify-between font-semibold">
                           <span>Subtotal:</span>
                           <span>₱{subtotal.toFixed(2)}</span>
-                        </div>
-                        {deliveryFee > 0 && (
-                          <div className="flex justify-between text-muted-foreground">
-                            <span>Delivery Fee:</span>
-                            <span>₱{deliveryFee.toFixed(2)}</span>
-                          </div>
-                        )}
-                        {convenienceFee > 0 && (
-                          <div className="flex justify-between text-muted-foreground">
-                            <span>Rider's Convenience Fee:</span>
-                            <span>₱{convenienceFee.toFixed(2)}</span>
-                          </div>
-                        )}
-                        <div className="flex justify-between font-semibold">
-                          <span>Total:</span>
-                          <span>₱{total.toFixed(2)}</span>
                         </div>
                       </div>
                     </div>

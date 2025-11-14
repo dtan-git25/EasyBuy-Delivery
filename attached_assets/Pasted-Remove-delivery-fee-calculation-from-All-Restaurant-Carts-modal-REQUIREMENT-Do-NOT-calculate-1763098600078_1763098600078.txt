@@ -1,0 +1,78 @@
+Remove delivery fee calculation from All Restaurant Carts modal:
+
+REQUIREMENT:
+
+Do NOT calculate or show delivery fee in the All Restaurant Carts modal. Delivery fee should only be calculated and displayed in the checkout modal.
+
+ALL RESTAURANT CARTS MODAL - Should show:
+
+Jollibee
+┌─────────────────────────────────┐
+│ Burger × 1              ₱55.00  │
+│   Base Price: ₱22.00            │
+│   Size: Large (₱27.50)          │
+│   Toppings: Cheese (₱5.50)      │
+│                                  │
+│ Fries × 2               ₱80.00  │
+│                                  │
+│ Subtotal:               ₱135.00 │
+└─────────────────────────────────┘
+
+McDonald's
+┌─────────────────────────────────┐
+│ Big Mac × 1             ₱200.00 │
+│                                  │
+│ Subtotal:               ₱200.00 │
+└─────────────────────────────────┘
+
+Total Items: ₱335.00
+[Proceed to Checkout]
+
+NO delivery fee shown
+NO multi-merchant fee shown
+NO rider's commission shown
+ONLY item subtotals
+
+CHECKOUT MODAL - Should show delivery fee:
+
+Items Subtotal: ₱335.00
+Delivery Fee (2 km): ₱70.00  ← Calculated here
+Multi-Merchant Fee: ₱20.00
+Rider's Commission: ₱20.00
+TOTAL: ₱445.00
+
+REASON:
+- Delivery fee requires delivery address
+- Customer enters/selects address at checkout
+- Cannot calculate distance until address is known
+- All Restaurant Carts shows items only
+
+IMPLEMENTATION:
+
+1. REMOVE FROM CART MODAL:
+   - Don't calculate delivery fee
+   - Don't show delivery fee line
+   - Don't include in cart total
+   - Show items subtotal only
+
+2. CALCULATE AT CHECKOUT:
+   - When customer proceeds to checkout
+   - Customer selects/enters delivery address
+   - Calculate distance from address to merchants
+   - Use farthest merchant for multi-merchant
+   - Display delivery fee in checkout breakdown
+
+3. CART SHOWS:
+   - Item prices with options
+   - Subtotal per merchant
+   - Total items cost
+   - "Proceed to Checkout" button
+
+4. CHECKOUT SHOWS:
+   - Items subtotal (from cart)
+   - Delivery fee (calculated based on address)
+   - Multi-merchant fee (if applicable)
+   - Rider's commission
+   - Final total
+
+Remove all delivery fee calculation and display from All Restaurant Carts modal.
