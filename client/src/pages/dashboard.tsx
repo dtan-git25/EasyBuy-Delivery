@@ -202,15 +202,21 @@ export default function Dashboard() {
     try {
       // For multi-merchant checkout, send all carts to backend to handle atomically
       if (allCarts.length > 1) {
+        // Calculate SINGLE delivery fee based on farthest merchant
+        const fees = allCarts.map(rc => calculatedDeliveryFees[rc.restaurantId] || 0);
+        const distances = allCarts.map(rc => calculatedDistances[rc.restaurantId] || 0);
+        const groupDeliveryFee = fees.length > 0 ? Math.max(...fees, 0) : 0; // Safeguard for empty array
+        const farthestDistance = distances.length > 0 ? Math.max(...distances, 0) : 0;
+        
         // Prepare all cart data for backend processing
         const checkoutData = {
           carts: allCarts.map(restaurantCart => {
             // Helper to calculate item price including options
             const subtotal = restaurantCart.items.reduce((sum, item) => sum + (getItemTotalPrice(item) * item.quantity), 0);
             const markupAmount = subtotal * (restaurantCart.markup / 100);
-            const deliveryFee = calculatedDeliveryFees[restaurantCart.restaurantId] || 0;
             const convenienceFee = settings?.showConvenienceFee ? parseFloat(settings.convenienceFee || '0') : 0;
-            const total = subtotal + markupAmount + deliveryFee + convenienceFee;
+            // NOTE: Individual cart totals don't include delivery fee - it's applied at group level
+            const total = subtotal + markupAmount + convenienceFee;
 
             return {
               restaurantId: restaurantCart.restaurantId,
@@ -223,11 +229,13 @@ export default function Dashboard() {
               })),
               subtotal: subtotal.toFixed(2),
               markup: markupAmount.toFixed(2),
-              deliveryFee: deliveryFee.toFixed(2),
+              deliveryFee: "0.00", // Individual carts don't have delivery fee in multi-merchant
               convenienceFee: convenienceFee.toFixed(2),
               total: total.toFixed(2),
             };
           }),
+          groupDeliveryFee: groupDeliveryFee.toFixed(2), // Single delivery fee for entire order
+          farthestDistance: farthestDistance.toFixed(2), // Distance to farthest merchant
           deliveryAddress,
           deliveryLatitude: selectedAddress.latitude,
           deliveryLongitude: selectedAddress.longitude,
@@ -588,11 +596,23 @@ export default function Dashboard() {
                   }, 0);
                 }, 0);
                 
-                const totalDeliveryFees = Object.values(cart.allCarts).reduce((sum, restaurantCart) => {
-                  return sum + (calculatedDeliveryFees[restaurantCart.restaurantId] || 0);
-                }, 0);
+                // For multi-merchant orders, use ONLY the farthest merchant's delivery fee
+                const merchantCount = cart.getAllCartsCount();
+                let totalDeliveryFee = 0;
                 
-                const grandTotal = markedUpItemsSubtotal + totalDeliveryFees;
+                if (merchantCount >= 2) {
+                  // Multi-merchant: Find the maximum delivery fee (farthest merchant)
+                  const fees = Object.values(cart.allCarts).map(rc => calculatedDeliveryFees[rc.restaurantId] || 0);
+                  totalDeliveryFee = fees.length > 0 ? Math.max(...fees, 0) : 0; // Safeguard for empty array
+                } else {
+                  // Single merchant: Use that merchant's fee
+                  const restaurantCart = Object.values(cart.allCarts)[0];
+                  if (restaurantCart) {
+                    totalDeliveryFee = calculatedDeliveryFees[restaurantCart.restaurantId] || 0;
+                  }
+                }
+                
+                const grandTotal = markedUpItemsSubtotal + totalDeliveryFee;
                 
                 return (
                 <>
@@ -897,12 +917,28 @@ export default function Dashboard() {
                     }, 0);
                   }, 0);
                   
-                  const totalDeliveryFees = Object.values(cart.allCarts).reduce((sum, restaurantCart) => {
-                    return sum + (calculatedDeliveryFees[restaurantCart.restaurantId] || 0);
-                  }, 0);
+                  // For multi-merchant orders, use ONLY the farthest merchant's delivery fee
+                  // For single merchant orders, use that merchant's delivery fee
+                  const merchantCount = cart.getAllCartsCount();
+                  let totalDeliveryFee = 0;
+                  let farthestDistance = 0;
+                  
+                  if (merchantCount >= 2) {
+                    // Multi-merchant: Find the maximum delivery fee (farthest merchant)
+                    const fees = Object.values(cart.allCarts).map(rc => calculatedDeliveryFees[rc.restaurantId] || 0);
+                    const distances = Object.values(cart.allCarts).map(rc => calculatedDistances[rc.restaurantId] || 0);
+                    totalDeliveryFee = fees.length > 0 ? Math.max(...fees, 0) : 0; // Safeguard for empty array
+                    farthestDistance = distances.length > 0 ? Math.max(...distances, 0) : 0;
+                  } else {
+                    // Single merchant: Use that merchant's fee
+                    const restaurantCart = Object.values(cart.allCarts)[0];
+                    if (restaurantCart) {
+                      totalDeliveryFee = calculatedDeliveryFees[restaurantCart.restaurantId] || 0;
+                      farthestDistance = calculatedDistances[restaurantCart.restaurantId] || 0;
+                    }
+                  }
                   
                   // Calculate multi-merchant fee (charged when ordering from 2+ merchants)
-                  const merchantCount = cart.getAllCartsCount();
                   const multiMerchantFeePerMerchant = settings?.multiMerchantFee ? parseFloat(settings.multiMerchantFee.toString()) : 20;
                   const totalMultiMerchantFee = merchantCount >= 2 ? (merchantCount - 1) * multiMerchantFeePerMerchant : 0;
                   
@@ -910,7 +946,7 @@ export default function Dashboard() {
                     ? parseFloat(settings.convenienceFee || '0') * cart.getAllCartsCount()
                     : 0;
                   
-                  const grandTotal = markedUpItemsSubtotal + totalDeliveryFees + totalMultiMerchantFee + totalConvenienceFee;
+                  const grandTotal = markedUpItemsSubtotal + totalDeliveryFee + totalMultiMerchantFee + totalConvenienceFee;
                   
                   return (
                     <>
@@ -920,8 +956,8 @@ export default function Dashboard() {
                           <span>₱{markedUpItemsSubtotal.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span>Delivery Fee:</span>
-                          <span>₱{totalDeliveryFees.toFixed(2)}</span>
+                          <span>Delivery Fee {farthestDistance > 0 ? `(${farthestDistance.toFixed(1)} km${merchantCount >= 2 ? ' - farthest' : ''})` : ''}:</span>
+                          <span>₱{totalDeliveryFee.toFixed(2)}</span>
                         </div>
                         {totalMultiMerchantFee > 0 && (
                           <div className="flex justify-between">

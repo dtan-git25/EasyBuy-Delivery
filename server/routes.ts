@@ -985,11 +985,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const { carts, deliveryAddress, deliveryLatitude, deliveryLongitude, landmark, phoneNumber, specialInstructions, paymentMethod } = req.body;
+      const { carts, groupDeliveryFee, farthestDistance, deliveryAddress, deliveryLatitude, deliveryLongitude, landmark, phoneNumber, specialInstructions, paymentMethod } = req.body;
       
       console.log('=== CHECKOUT REQUEST ===');
       console.log('Landmark received:', landmark);
       console.log('Delivery address:', deliveryAddress);
+      console.log('Group Delivery Fee:', groupDeliveryFee);
+      console.log('Farthest Distance:', farthestDistance);
       
       if (!carts || !Array.isArray(carts) || carts.length === 0) {
         return res.status(400).json({ error: "Invalid checkout data" });
@@ -1010,7 +1012,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? (merchantCount - 1) * multiMerchantFeePerMerchant 
         : 0;
       
+      // For multi-merchant orders, use single groupDeliveryFee for entire order group
+      // For single merchant orders, use individual cart deliveryFee
+      const singleDeliveryFee = merchantCount > 1 
+        ? parseFloat(groupDeliveryFee || '0')
+        : parseFloat(carts[0]?.deliveryFee || '0');
+      
       // Create all orders with the same orderGroupId
+      let orderIndex = 0;
       for (const cart of carts) {
         const orderNumber = `EBD-${Date.now()}-${Math.random().toString(36).substring(7)}`;
         
@@ -1020,12 +1029,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         const subtotal = parseFloat(cart.subtotal);
         const markup = parseFloat(cart.markup);
-        const deliveryFee = parseFloat(cart.deliveryFee);
         const convenienceFee = parseFloat(cart.convenienceFee);
         
+        // For multi-merchant orders: ONLY first order gets delivery fee and multi-merchant fee
+        // For single merchant orders: Use that merchant's delivery fee
+        const isFirstOrderInGroup = orderIndex === 0;
+        const deliveryFee = (merchantCount > 1 && !isFirstOrderInGroup) ? 0 : singleDeliveryFee;
+        const multiMerchantFeeForOrder = (merchantCount > 1 && isFirstOrderInGroup) ? totalMultiMerchantFee : 0;
+        
         const merchantEarningsAmount = subtotal; // Merchant gets base items cost
-        const appEarningsAmount = (deliveryFee * appEarningsPercent) + markup + totalMultiMerchantFee; // App gets % of delivery + markup + multi-merchant fee
+        const appEarningsAmount = (deliveryFee * appEarningsPercent) + markup + multiMerchantFeeForOrder; // App gets % of delivery + markup + multi-merchant fee
         const riderEarningsAmount = (deliveryFee * (1 - appEarningsPercent)) + convenienceFee; // Rider gets remaining delivery % + convenience
+        
+        // Calculate total: subtotal + markup + delivery fee + multi-merchant fee + convenience fee
+        const total = subtotal + markup + deliveryFee + multiMerchantFeeForOrder + convenienceFee;
         
         const orderData = {
           orderGroupId, // Server-generated group ID
@@ -1035,10 +1052,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           items: cart.items,
           subtotal: cart.subtotal,
           markup: cart.markup,
-          deliveryFee: cart.deliveryFee,
-          multiMerchantFee: totalMultiMerchantFee.toFixed(2), // Total multi-merchant fee for the order group
+          deliveryFee: deliveryFee.toFixed(2), // Single delivery fee (only on first order for multi-merchant)
+          multiMerchantFee: multiMerchantFeeForOrder.toFixed(2), // Multi-merchant fee (only on first order)
           convenienceFee: cart.convenienceFee,
-          total: cart.total,
+          total: total.toFixed(2), // Recalculated total
           deliveryAddress,
           deliveryLatitude,
           deliveryLongitude,
@@ -1057,6 +1074,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const parsedOrderData = insertOrderSchema.parse(orderData);
         const order = await storage.createOrder(parsedOrderData);
         createdOrders.push(order);
+        
+        orderIndex++; // Increment for next order in group
         
         // Create notifications for each order
         const admins = await storage.getUsersByRole('admin');
