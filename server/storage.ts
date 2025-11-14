@@ -754,6 +754,7 @@ export class DatabaseStorage implements IStorage {
         deliveryAddress: firstOrder.deliveryAddress,
         deliveryLatitude: firstOrder.deliveryLatitude,
         deliveryLongitude: firstOrder.deliveryLongitude,
+        landmark: firstOrder.landmark,
         customerNotes: firstOrder.customerNotes,
         
         // Combined order data
