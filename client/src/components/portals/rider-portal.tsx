@@ -1084,13 +1084,6 @@ export default function RiderPortal() {
                                   )}
                                 </div>
                               </div>
-                              {/* Landmark Display */}
-                              <div className="flex justify-between items-start">
-                                <span className="text-muted-foreground">Landmark:</span>
-                                <span className="font-bold text-green-600 text-base text-right">
-                                  {(order as any).landmark || 'No landmark provided'}
-                                </span>
-                              </div>
                             </div>
                             {isGroupedOrder ? (
                               <div className="space-y-2">
