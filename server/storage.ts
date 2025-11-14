@@ -702,17 +702,21 @@ export class DatabaseStorage implements IStorage {
     const riderOrderGroups: any[] = [];
     
     groupedOrders.forEach((orderRows, groupKey) => {
-      const firstOrder = orderRows[0].orders;
-      const isGroup = orderRows.length > 1;
+      // Sort by createdAt ASC within group to get the earliest order (the one with fees)
+      const sortedRows = [...orderRows].sort((a, b) => 
+        new Date(a.orders.createdAt as string).getTime() - new Date(b.orders.createdAt as string).getTime()
+      );
+      const firstOrder = sortedRows[0].orders;
+      const isGroup = sortedRows.length > 1;
       
       // Get customer info (same for all orders in group)
-      const customerUser = orderRows[0].users;
+      const customerUser = sortedRows[0].users;
       const customerName = customerUser ? 
         `${customerUser.firstName || ''} ${customerUser.lastName || ''}`.trim() || 'Unknown Customer' : 
         'Unknown Customer';
       
       // Build individual merchant orders array with full details for tracking
-      const merchantOrders = orderRows.map(row => ({
+      const merchantOrders = sortedRows.map(row => ({
         id: row.orders.id,
         orderNumber: row.orders.orderNumber,
         restaurantId: row.orders.restaurantId,
@@ -731,7 +735,7 @@ export class DatabaseStorage implements IStorage {
       }));
       
       // Calculate combined totals for the group
-      const combinedTotal = orderRows.reduce((sum, row) => 
+      const combinedTotal = sortedRows.reduce((sum, row) => 
         sum + parseFloat(row.orders.total as string), 0
       );
       

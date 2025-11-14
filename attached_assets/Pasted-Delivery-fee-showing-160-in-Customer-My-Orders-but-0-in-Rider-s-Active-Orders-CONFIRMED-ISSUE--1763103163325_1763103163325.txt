@@ -1,0 +1,64 @@
+Delivery fee showing ₱160 in Customer My Orders but ₱0 in Rider's Active Orders:
+
+CONFIRMED ISSUE:
+
+Customer My Orders shows:
+- Delivery Fee: ₱160.00 ✓ (correct)
+
+Rider's Active Orders shows:
+- Delivery Fee: ₱0.00 ✗ (wrong - should be ₱160.00)
+
+Same order, different delivery fee values displayed.
+
+PROBLEM:
+
+The delivery fee IS saved in the order (₱160), but rider's query is not fetching it correctly or displaying wrong field.
+
+DEBUGGING STEPS:
+
+1. CHECK RIDER'S QUERY:
+   When fetching active orders for rider, verify:
+   - Is delivery_fee included in SELECT statement?
+   - Log the query results: console.log('Rider active orders:', orders)
+   - Check if delivery_fee field exists in returned data
+   - What value does it have?
+
+2. CHECK FIELD MAPPING:
+   - Customer view uses: order.delivery_fee → shows ₱160 ✓
+   - Rider view uses: ??? → shows ₱0 ✗
+   - Are they using the same field name?
+   - Is rider view using wrong field or default value?
+
+3. VERIFY DATABASE:
+   - Check orders table for this specific order
+   - ORDER ID: GROUP-d2620e16-9048-4326-afd2-a0fe4adbf240
+   - What is the delivery_fee value in database?
+   - Should be 160
+
+4. CHECK RIDER COMPONENT:
+   In Rider's Active Order card component:
+   - Find where "Delivery Fee:" line is rendered
+   - What variable is it displaying?
+   - Is it using: order.delivery_fee or deliveryFee or something else?
+   - Why is it showing 0?
+
+LIKELY ISSUE:
+
+Rider's active orders query is either:
+- Not fetching delivery_fee from database
+- Fetching it but using wrong field name in display
+- Using a default/fallback value of 0
+
+FIX REQUIRED:
+
+1. Ensure rider's query includes delivery_fee:
+   SELECT orders.*, delivery_fee, delivery_distance FROM orders WHERE rider_id = ?
+
+2. Display correct field in rider view:
+   Use same field that customer view uses (which works correctly)
+
+3. Test with this specific order:
+   - Order: GROUP-d2620e16-9048-4326-afd2-a0fe4adbf240
+   - Should show ₱160.00 in both customer and rider views
+
+The data exists (customer sees it), so rider view just needs to fetch/display the correct field.
