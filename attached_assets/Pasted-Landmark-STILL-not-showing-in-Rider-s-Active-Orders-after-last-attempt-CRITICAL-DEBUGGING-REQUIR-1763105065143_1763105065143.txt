@@ -1,0 +1,77 @@
+Landmark STILL not showing in Rider's Active Orders after last attempt:
+
+CRITICAL DEBUGGING REQUIRED:
+
+Landmark is not displaying. We need to trace the complete data flow to find where it's breaking.
+
+1. VERIFY LANDMARK EXISTS IN DATABASE:
+   
+   Check the orders table for this specific order:
+   - Order ID: EBD-1763104278605
+   - Query: SELECT delivery_landmark, delivery_address FROM orders WHERE id = ?
+   - Is there a landmark field?
+   - What value does it contain?
+   - Share the actual database value
+
+2. CHECK CUSTOMER'S ADDRESS:
+   
+   For the customer who placed this order:
+   - Check their saved addresses in customer_addresses table
+   - Does the address they used have a landmark?
+   - What is the landmark value?
+   - Example: "Near Gasoline Station"
+
+3. CHECK ORDER CREATION:
+   
+   Add logging when order is placed:
+   - console.log('Creating order with landmark:', landmark)
+   - console.log('Selected address:', selectedAddress)
+   - Is landmark being passed during order creation?
+   - Is it being saved to orders table?
+
+4. CHECK RIDER'S QUERY:
+   
+   Add logging in rider's active orders endpoint:
+   - console.log('Fetched order for rider:', order)
+   - Check if landmark field exists in response
+   - What value does it have (null, empty string, or actual landmark)?
+
+5. CHECK RIDER'S DISPLAY COMPONENT:
+   
+   Add logging in rider's active order card:
+   - console.log('Displaying order:', order)
+   - console.log('Landmark:', order.landmark)
+   - Is the data reaching the component?
+   - Is the display logic correct?
+
+6. POSSIBLE ISSUES:
+
+   Issue A: Landmark not being saved during order creation
+   - Fix: Include landmark when inserting order
+
+   Issue B: Landmark saved but not fetched in rider query
+   - Fix: Add landmark to SELECT statement
+
+   Issue C: Landmark fetched but wrong field name in display
+   - Fix: Use correct field name (order.delivery_landmark vs order.landmark)
+
+   Issue D: Display logic has condition hiding landmark
+   - Fix: Remove or fix conditional rendering
+
+7. TEST WITH FRESH ORDER:
+   
+   - Have customer place NEW order
+   - Use address with obvious landmark: "TEST LANDMARK 123"
+   - Check database immediately after order placed
+   - Check if landmark appears in rider view
+   - Track where data gets lost
+
+8. SHARE LOGS:
+   
+   Add console.log at every step and share what appears:
+   - Order creation: landmark value
+   - Database: what's stored
+   - Rider query: what's fetched
+   - Rider display: what's rendered
+
+Without seeing actual data and logs, we can't identify where the landmark is being lost. Add extensive logging and share the results.
