@@ -1161,6 +1161,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
+      console.log('=== SINGLE-MERCHANT ORDER REQUEST ===');
+      console.log('FULL REQUEST BODY:', JSON.stringify(req.body, null, 2));
+      console.log('Landmark in req.body:', req.body.landmark);
+      console.log('Landmark type:', typeof req.body.landmark);
+      
       // Generate order number
       const orderNumber = `EBD-${Date.now()}`;
       
@@ -1169,6 +1174,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customerId: req.user.id,
         orderNumber
       };
+      
+      console.log('=== ORDER DATA AFTER SPREAD ===');
+      console.log('Landmark in orderData:', orderData.landmark);
+      console.log('OrderData keys:', Object.keys(orderData));
 
       // Calculate delivery fee based on distance
       const restaurant = await storage.getRestaurant(orderData.restaurantId);
@@ -1246,8 +1255,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       orderData.riderEarningsAmount = riderEarningsAmount.toFixed(2);
       orderData.merchantEarningsAmount = merchantEarningsAmount.toFixed(2);
       
+      console.log('=== ORDER DATA BEFORE PARSING (SINGLE) ===');
+      console.log('Order Number:', orderNumber);
+      console.log('Landmark before parse:', orderData.landmark);
+      
       const parsedOrderData = insertOrderSchema.parse(orderData);
+      
+      console.log('=== ORDER DATA AFTER PARSING (SINGLE) ===');
+      console.log('Landmark after parse:', parsedOrderData.landmark);
+      
       const order = await storage.createOrder(parsedOrderData);
+      
+      console.log('=== ORDER CREATED (SINGLE) ===');
+      console.log('Created order landmark:', order.landmark);
+      console.log('Created order number:', order.orderNumber);
       
       // Create notifications for new order
       // Notify admin about new order
