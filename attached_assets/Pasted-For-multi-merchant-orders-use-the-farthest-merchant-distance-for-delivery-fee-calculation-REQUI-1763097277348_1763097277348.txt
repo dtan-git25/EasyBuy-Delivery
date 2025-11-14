@@ -1,0 +1,70 @@
+For multi-merchant orders, use the farthest merchant distance for delivery fee calculation:
+
+REQUIREMENT:
+
+When customer orders from multiple merchants, calculate delivery fee based on the FARTHEST merchant's distance from customer, not the sum of all distances.
+
+CURRENT (WRONG):
+- Store 1 (2 km): ₱70 delivery fee
+- Store 2 (1 km): ₱60 delivery fee
+- Total: ₱130 (sum of both)
+
+REQUIRED (CORRECT):
+- Store 1 (2 km): ₱70 delivery fee
+- Store 2 (1 km): ₱60 delivery fee
+- Order uses: ₱70 (farthest merchant only)
+
+IMPLEMENTATION:
+
+1. CALCULATE DISTANCE TO EACH MERCHANT:
+   - Get customer delivery address coordinates
+   - For each merchant in the order, get store coordinates
+   - Calculate distance from customer to each merchant
+   - Store 1: 2 km
+   - Store 2: 1 km
+   - Store 3: 1.5 km
+
+2. FIND FARTHEST MERCHANT:
+   - Identify which merchant is farthest from customer
+   - Use maximum distance among all merchants
+   - Example: max(2 km, 1 km, 1.5 km) = 2 km
+
+3. CALCULATE DELIVERY FEE:
+   - Use admin's delivery fee settings (base rate + succeeding rate)
+   - Calculate fee based on farthest distance only
+   - Example: 2 km → ₱70 delivery fee
+
+4. APPLY TO ORDER:
+   - Use single delivery fee for entire order
+   - Not sum of individual merchant fees
+   - Not average distance
+
+5. DISPLAY IN CHECKOUT:
+
+   Multi-Merchant Order:
+   Items Subtotal: ₱500.00
+   Delivery Fee (2 km): ₱70.00  ← Based on farthest merchant
+   Multi-Merchant Fee: ₱20.00
+   Rider's Commission: ₱20.00
+   TOTAL: ₱610.00
+
+6. SHOW BREAKDOWN (OPTIONAL):
+   Could show which merchant is farthest:
+   "Delivery Fee (2 km - farthest location): ₱70.00"
+
+7. LOGIC:
+   - Single merchant order: Use that merchant's distance
+   - Multi-merchant order: Use farthest merchant's distance
+   - Makes sense because rider must travel to farthest point
+
+REASONING:
+Rider will travel to the farthest merchant location anyway, so delivery fee should be based on that maximum distance, not the sum of all merchant distances.
+
+Example calculation:
+- Customer at point A
+- Store 1 at 2 km from customer
+- Store 2 at 1 km from customer
+- Rider travels max 2 km to reach farthest store
+- Delivery fee based on 2 km, not 3 km total
+
+Fix the delivery fee calculation for multi-merchant orders to use farthest merchant distance only.

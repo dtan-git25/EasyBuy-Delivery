@@ -36,6 +36,7 @@ export default function Dashboard() {
   const [specialInstructions, setSpecialInstructions] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [calculatedDeliveryFees, setCalculatedDeliveryFees] = useState<Record<string, number>>({});
+  const [calculatedDistances, setCalculatedDistances] = useState<Record<string, number>>({});
   
   const cart = useCart();
   const { toast } = useToast();
@@ -76,13 +77,16 @@ export default function Dashboard() {
     const baseRate = parseFloat(settings.baseDeliveryFee || '50');
     const succeedingRate = parseFloat(settings.perKmRate || '10');
     const fees: Record<string, number> = {};
+    const distances: Record<string, number> = {};
 
     // If customer coordinates are missing, use base rate fallback for all restaurants
     if (!selectedAddress?.latitude || !selectedAddress?.longitude) {
       Object.values(cart.allCarts).forEach((restaurantCart) => {
         fees[restaurantCart.restaurantId] = baseRate;
+        distances[restaurantCart.restaurantId] = 0;
       });
       setCalculatedDeliveryFees(fees);
+      setCalculatedDistances(distances);
       return;
     }
 
@@ -109,13 +113,16 @@ export default function Dashboard() {
         // Calculate delivery fee based on distance
         const deliveryFee = calculateDeliveryFee(distance, baseRate, succeedingRate);
         fees[restaurantCart.restaurantId] = deliveryFee;
+        distances[restaurantCart.restaurantId] = distance;
       } else {
         // Fallback to default delivery fee if restaurant coordinates not available
         fees[restaurantCart.restaurantId] = baseRate;
+        distances[restaurantCart.restaurantId] = 0;
       }
     });
 
     setCalculatedDeliveryFees(fees);
+    setCalculatedDistances(distances);
   }, [selectedAddress, settings, cart.allCarts, restaurants]);
 
   const createOrderMutation = useMutation({
