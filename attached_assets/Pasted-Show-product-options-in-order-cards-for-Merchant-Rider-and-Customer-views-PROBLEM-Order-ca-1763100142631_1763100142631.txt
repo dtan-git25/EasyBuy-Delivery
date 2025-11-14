@@ -1,0 +1,125 @@
+Show product options in order cards for Merchant, Rider, and Customer views:
+
+PROBLEM:
+
+Order cards are only showing base item names, not the selected options (Size, Flavor, Add-ons, etc.)
+
+MISSING IN:
+- Merchant Active Orders card
+- Rider Active Orders card
+- Customer My Orders card (all statuses: pending, active, completed, cancelled)
+
+OPTIONS ARE SHOWING IN:
+- Customer Add to Cart modal ✓
+- Customer All Restaurant Carts modal ✓
+- Customer Checkout modal ✓
+
+REQUIRED FIX:
+
+Display the complete order item breakdown with options in all order cards, using the same format as cart/checkout.
+
+MERCHANT ACTIVE ORDER CARD - Should show:
+
+Order #EBD-12345
+Status: Preparing
+
+Order Items:
+Burger × 1              ₱55.00
+  Base Price: ₱22.00
+  Size: Large (₱27.50)
+  Toppings: Cheese (₱5.50)
+
+Fries × 2               ₱80.00
+  Size: Large (₱10 each)
+
+Total: ₱135.00
+
+RIDER ACTIVE ORDER CARD - Should show:
+
+Order #EBD-12345
+Customer: John Doe
+Delivery: 062, Manlapig Capas...
+
+Order Items:
+Burger × 1              ₱55.00
+  Base Price: ₱22.00
+  Size: Large (₱27.50)
+  Toppings: Cheese (₱5.50)
+
+Fries × 2               ₱80.00
+  Size: Large (₱10 each)
+
+Your Earnings: ₱65.00
+
+CUSTOMER MY ORDERS CARD - Should show:
+
+Order #EBD-12345
+Status: Delivered
+Date: Nov 15, 2025
+
+Order Items:
+Burger × 1              ₱55.00
+  Base Price: ₱22.00
+  Size: Large (₱27.50)
+  Toppings: Cheese (₱5.50)
+
+Fries × 2               ₱80.00
+  Size: Large (₱10 each)
+
+Total: ₱155.00 (incl. delivery)
+
+IMPLEMENTATION:
+
+1. INCLUDE OPTIONS IN ORDER DATA:
+   When order is placed, save product options with order items:
+   - Base price
+   - Each selected option (type, value, price)
+   - Total item price
+
+2. FETCH OPTIONS WITH ORDERS:
+   When loading orders for any view, include options data:
+   - Query should fetch order items with their options
+   - Include option type name, value name, and price
+
+3. DISPLAY FORMAT:
+   Use same structure as cart/checkout:
+   - Item name and quantity with total
+   - Indented options below
+   - Each option shows type, value, and price
+   - Clear visual hierarchy
+
+4. APPLY TO ALL ORDER VIEWS:
+   
+   Merchant:
+   - Active orders
+   - Order history
+   - Order details
+   
+   Rider:
+   - Pending orders
+   - Active orders
+   - Completed orders
+   - Order details
+   
+   Customer:
+   - My Orders (all statuses)
+   - Order tracking
+   - Order history
+   - Order details
+
+5. CONSISTENT STYLING:
+   - Item: Bold, normal size
+   - Options: Indented, smaller font, gray
+   - Prices: Right-aligned
+   - Same as cart/checkout display
+
+6. HANDLE MULTI-MERCHANT:
+   For multi-merchant orders, group by merchant:
+   
+   Merchant 1: Jollibee
+   - Burger × 1 (with options)
+   
+   Merchant 2: McDonald's
+   - Big Mac × 1 (with options)
+
+This ensures everyone (merchant, rider, customer) can see exactly what was ordered with all customizations, just like it appeared in the cart/checkout.
