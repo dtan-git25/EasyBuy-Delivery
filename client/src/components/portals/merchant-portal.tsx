@@ -1927,7 +1927,7 @@ export default function MerchantPortal() {
               </TabsTrigger>
               <TabsTrigger value="analytics" data-testid="tab-analytics">
                 <BarChart3 className="w-4 h-4 mr-2" />
-                Analytics
+                Reports
               </TabsTrigger>
               <TabsTrigger value="profile" data-testid="tab-profile">
                 <User className="w-4 h-4 mr-2" />
