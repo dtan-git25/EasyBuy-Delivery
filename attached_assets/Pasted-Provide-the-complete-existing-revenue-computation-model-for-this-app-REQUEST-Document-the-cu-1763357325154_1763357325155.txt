@@ -1,0 +1,72 @@
+Provide the complete existing revenue computation model for this app:
+
+REQUEST:
+
+Document the current revenue distribution model showing how earnings are calculated and distributed between Rider, App, and Merchant for each order.
+
+PROVIDE COMPLETE BREAKDOWN:
+
+1. CUSTOMER PAYMENT STRUCTURE:
+   Show what customer pays:
+   - Items Subtotal (with markup)
+   - Delivery Fee
+   - Multi-Merchant Fee (if applicable)
+   - Rider's Commission
+   - Total amount customer pays
+
+2. MERCHANT EARNINGS:
+   Show what merchant receives:
+   - From items sold
+   - What is deducted (if anything)
+   - Net merchant earnings per order
+
+3. APP EARNINGS:
+   Show what the app/platform earns:
+   - From delivery fee (percentage)
+   - From order markup
+   - From multi-merchant fee
+   - Total app earnings per order
+
+4. RIDER EARNINGS:
+   Show what rider receives:
+   - From delivery fee (percentage)
+   - From rider's commission
+   - Total rider earnings per order
+
+5. EXAMPLE CALCULATION:
+
+   Use this example order:
+   - Items base cost: ₱500
+   - Order markup (10%): ₱50
+   - Delivery fee: ₱100
+   - Multi-merchant fee: ₱20 (if 2+ merchants)
+   - Rider's commission: ₱20
+   - App earnings percentage: 50%
+
+   Show complete breakdown:
+   - Customer pays: ₱???
+   - Merchant gets: ₱???
+   - App earns: ₱???
+   - Rider earns: ₱???
+
+6. ADMIN SETTINGS:
+   List all configurable revenue settings:
+   - App Earnings (%) - current value
+   - Rider's Commission (₱) - current value
+   - Multi-Merchant Fee (₱) - current value
+   - Delivery base rate - current value
+   - Delivery succeeding rate - current value
+   - Markup percentage - current value
+
+7. FORMULAS:
+   Provide exact formulas used:
+   - App Earnings = ???
+   - Rider Earnings = ???
+   - Merchant Earnings = ???
+   - Total Customer Payment = ???
+
+8. VERIFICATION:
+   Confirm all amounts add up correctly:
+   Customer Payment = Merchant Earnings + App Earnings + Rider Earnings
+
+Provide the complete current revenue model as implemented in the system right now.
