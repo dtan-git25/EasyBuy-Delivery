@@ -451,12 +451,13 @@ function MerchantEarningsHistory() {
                           <p className="text-sm font-medium">{new Date(order.createdAt).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                           <p className="text-xs text-muted-foreground">{order.orderNumber}</p>
                         </div>
-                        <div className="md:col-span-2">
-                          <p className="text-sm">{order.items?.length || 0} item(s)</p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {order.items?.slice(0, 2).map((item: any) => item.name).join(', ')}
-                            {(order.items?.length || 0) > 2 && '...'}
-                          </p>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Customer</p>
+                          <p className="text-sm font-medium">{order.customer?.name || 'Unknown'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Rider</p>
+                          <p className="text-sm font-medium">{order.riderName || 'Not assigned'}</p>
                         </div>
                         <div className="flex items-center justify-between">
                           <p className="text-sm font-bold text-green-600">₱{parseFloat(order.merchantEarningsAmount || order.subtotal).toFixed(2)}</p>
