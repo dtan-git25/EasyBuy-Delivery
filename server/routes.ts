@@ -1046,9 +1046,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const deliveryFee = (merchantCount > 1 && !isFirstOrderInGroup) ? 0 : singleDeliveryFee;
         const multiMerchantFeeForOrder = (merchantCount > 1 && isFirstOrderInGroup) ? totalMultiMerchantFee : 0;
         
-        const merchantEarningsAmount = subtotal; // Merchant gets base items cost
-        const appEarningsAmount = (deliveryFee * appEarningsPercent) + markup + multiMerchantFeeForOrder; // App gets % of delivery + markup + multi-merchant fee
-        const riderEarningsAmount = (deliveryFee * (1 - appEarningsPercent)) + convenienceFee; // Rider gets remaining delivery % + convenience
+        // Revenue Model Formulas (matching exact specification):
+        // 1. Combine delivery fee and multi-merchant fee FIRST
+        const combinedFees = deliveryFee + multiMerchantFeeForOrder;
+        
+        // 2. Merchant gets subtotal (base items cost)
+        //    Customer pays (subtotal + markup) for items, merchant receives subtotal
+        const merchantEarningsAmount = subtotal;
+        
+        // 3. App gets: [(DF + Multi-Merchant Fee) × App %] + Order Markup
+        const appEarningsAmount = (combinedFees * appEarningsPercent) + markup;
+        
+        // 4. Rider gets: Rider's Commission + [(DF + Multi-Merchant Fee) × (100% - App %)]
+        //    (convenienceFee serves as the fixed rider commission)
+        const riderEarningsAmount = convenienceFee + (combinedFees * (1 - appEarningsPercent));
         
         // Calculate total: subtotal + markup + delivery fee + multi-merchant fee + convenience fee
         const total = subtotal + markup + deliveryFee + multiMerchantFeeForOrder + convenienceFee;
@@ -1246,9 +1257,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const appEarningsPercentageUsed = parseFloat(settings?.appEarningsPercentage?.toString() || '50');
       const appEarningsPercent = appEarningsPercentageUsed / 100;
       
-      const merchantEarningsAmount = subtotal; // Merchant gets base items cost
-      const appEarningsAmount = (calculatedDeliveryFee * appEarningsPercent) + markup; // App gets % of delivery + all markup
-      const riderEarningsAmount = (calculatedDeliveryFee * (1 - appEarningsPercent)) + convenienceFee; // Rider gets remaining delivery % + convenience
+      // Revenue Model Formulas (matching exact specification):
+      // For single merchant orders: multiMerchantFee = 0, so combinedFees = deliveryFee
+      
+      // 1. Merchant gets subtotal (base items cost)
+      //    Customer pays (subtotal + markup) for items, merchant receives subtotal
+      const merchantEarningsAmount = subtotal;
+      
+      // 2. App gets: [Delivery Fee × App %] + Order Markup
+      const appEarningsAmount = (calculatedDeliveryFee * appEarningsPercent) + markup;
+      
+      // 3. Rider gets: Rider's Commission + [Delivery Fee × (100% - App %)]
+      //    (convenienceFee serves as the fixed rider commission)
+      const riderEarningsAmount = convenienceFee + (calculatedDeliveryFee * (1 - appEarningsPercent));
       
       orderData.appEarningsPercentageUsed = appEarningsPercentageUsed.toString();
       orderData.appEarningsAmount = appEarningsAmount.toFixed(2);

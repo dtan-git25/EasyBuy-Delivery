@@ -1,0 +1,53 @@
+Verify if the current app implementation matches this exact revenue model:
+
+REQUEST:
+
+Compare the app's current earning calculation and distribution system with the model below. Confirm if they match exactly or identify any discrepancies.
+
+EXPECTED REVENUE MODEL:
+
+SINGLE MERCHANT ORDER:
+- Customer Pays: Items (₱500) + Delivery Fee (₱100) + Rider's Commission (₱15) = ₱615
+
+Distribution:
+- Merchant: ₱490 (Items ₱500 - Markup ₱10)
+- App: ₱60 (50% of DF: ₱50 + Markup: ₱10)
+- Rider: ₱65 (Commission: ₱15 + 50% of DF: ₱50)
+
+Formulas:
+- App Earnings = [(DF + Multi-Merchant Fee) × App %] + Order Markup
+- Rider Earnings = Rider's Commission + [(DF + Multi-Merchant Fee) × (100% - App %)]
+- Merchant Earnings = Items Subtotal - Order Markup
+
+MULTI-MERCHANT ORDER:
+- Customer Pays: Items (₱500) + Delivery Fee (₱100) + Multi-Merchant Fee (₱20) + Rider's Commission (₱15) = ₱635
+
+Distribution:
+- Merchant: ₱490 (Items ₱500 - Markup ₱10)
+- App: ₱70 (50% of DF+Multi: ₱60 + Markup: ₱10)
+- Rider: ₱75 (Commission: ₱15 + 50% of DF+Multi: ₱60)
+
+KEY POINTS TO VERIFY:
+
+1. Does the app add Delivery Fee + Multi-Merchant Fee FIRST, then multiply by App Earnings %?
+2. Is the remaining percentage (100% - App %) going to Rider?
+3. Is Rider's Commission a separate fixed amount added to rider earnings?
+4. Does merchant receive base cost (items subtotal minus markup)?
+5. Does app keep 100% of order markup?
+6. Is Multi-Merchant Fee only applied when 2+ merchants in order?
+7. Do all amounts balance: Customer Payment = Merchant + App + Rider earnings?
+
+VERIFICATION NEEDED:
+
+Check the actual code implementation:
+- Order creation calculation
+- Earnings distribution logic
+- Database fields storing these values
+- Display in checkout, order details, earnings logs
+
+Confirm if current implementation matches this model EXACTLY or report any differences found.
+
+If there are discrepancies, specify:
+- What the current code does differently
+- Which calculations are incorrect
+- What needs to be fixed to match this model
