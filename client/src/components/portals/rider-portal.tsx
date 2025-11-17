@@ -345,7 +345,7 @@ function RiderEarningsHistory() {
                             <p className="text-xs text-muted-foreground">{order.orderNumber}</p>
                           </div>
                           <div className="md:col-span-2">
-                            <p className="text-sm">{order.customer?.name || 'Customer'}</p>
+                            <p className="text-sm">{order.customerName || 'Customer'}</p>
                             <p className="text-xs text-muted-foreground">{order.orderGroupId ? `Multi-Merchant (${order.restaurantCount || 'Multiple'} stores)` : 'Single Merchant'}</p>
                           </div>
                           <div className="flex items-center justify-between">
