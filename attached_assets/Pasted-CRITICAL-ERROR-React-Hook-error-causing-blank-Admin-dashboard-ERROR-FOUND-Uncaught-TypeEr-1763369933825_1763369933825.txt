@@ -1,0 +1,84 @@
+CRITICAL ERROR - React Hook error causing blank Admin dashboard:
+
+ERROR FOUND:
+
+"Uncaught TypeError: can't access property "useState", dispatcher is null"
+
+"Warning: Invalid hook call. Hooks can only be called inside of the body of a function component."
+
+This is happening in:
+- use-toast.ts:172
+- use-auth.tsx:24
+
+ROOT CAUSE:
+
+There's likely a React Hook being called incorrectly or outside of a component. This breaks the entire app.
+
+IMMEDIATE FIX REQUIRED:
+
+1. CHECK use-toast.ts FILE:
+   - Line 172 is calling useState
+   - Is this hook being called outside a component?
+   - Is it being called conditionally?
+   - Is the file structure correct?
+
+2. CHECK use-auth.tsx FILE:
+   - Line 24 is calling useToast
+   - This is triggering the error
+   - Verify the component structure
+
+3. LIKELY ISSUES:
+
+   Issue A: Hook called outside component
+   - useState or useToast called at file level
+   - Must be inside function component body
+
+   Issue B: Conditional hook call
+   - Hook called inside if statement
+   - Hooks must be called unconditionally
+
+   Issue C: Multiple React versions
+   - Check if there are duplicate React packages
+   - Run: npm ls react
+   - Should only have one version
+
+4. COMMON PATTERNS TO CHECK:
+
+   WRONG:
+const toast = useToast(); // Called outside component
+export const AuthProvider = () => {
+return <div>...</div>
+}
+
+   CORRECT:
+export const AuthProvider = () => {
+const toast = useToast(); // Called inside component
+return <div>...</div>
+}
+
+5. VERIFY COMPONENT STRUCTURE:
+
+   In use-auth.tsx, ensure:
+   - AuthProvider is a proper function component
+   - useToast is called inside the component body
+   - Not called before return statement setup
+
+6. CHECK FOR ACCIDENTAL CHANGES:
+
+   Did the recent Earnings History changes modify:
+   - use-toast.ts file?
+   - use-auth.tsx file?
+   - Any shared hooks or utilities?
+
+7. ROLLBACK STRATEGY:
+
+   If you can't immediately identify the issue:
+   - Revert ALL changes made for Earnings History
+   - Get the app working again
+   - Then re-implement carefully
+
+8. FIX THE HOOK CALL:
+
+   Find where useState or useToast is being called incorrectly and move it inside the component function body at the top level (not nested in conditions).
+
+This is a critical React error that breaks the entire app. The hook is being called in the wrong place or wrong way. Check use-toast.ts line 172 and use-auth.tsx line 24 immediately.
