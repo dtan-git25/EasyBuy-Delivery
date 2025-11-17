@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Bike, Wallet, Clock, Star, MapPin, Phone, User, Upload, FileText, CheckCircle, XCircle, AlertCircle, Map, Users, Download, Eye, Package, DollarSign, ClipboardList, History, RefreshCw } from "lucide-react";
+import { Bike, Wallet, Clock, Star, MapPin, Phone, User, Upload, FileText, CheckCircle, XCircle, AlertCircle, Map, Users, Download, Eye, Package, DollarSign, ClipboardList, History, RefreshCw, Power } from "lucide-react";
 import { apiRequest, queryClient as globalQueryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useWebSocket } from "@/lib/websocket";
@@ -685,27 +685,6 @@ export default function RiderPortal() {
     return sum + commission;
   }, 0);
 
-  // Success rate calculation: (delivered orders / total non-cancelled orders) × 100%
-  // This gives the percentage of orders successfully delivered vs all orders accepted/attempted
-  const totalNonCancelledOrders = myOrders.filter((order: any) => {
-    // For multi-merchant orders, check if NOT all cancelled
-    if (order.isGroup && order.merchantOrders && order.merchantOrders.length > 0) {
-      return !order.merchantOrders.every((mo: any) => mo.status === 'cancelled' || mo.status === 'pending');
-    }
-    return order.status !== 'cancelled' && order.status !== 'pending';
-  }).length;
-  
-  const deliveredOrders = myOrders.filter((order: any) => {
-    // For multi-merchant orders, check if ALL delivered
-    if (order.isGroup && order.merchantOrders && order.merchantOrders.length > 0) {
-      return order.merchantOrders.every((mo: any) => mo.status === 'delivered');
-    }
-    return order.status === 'delivered';
-  }).length;
-  
-  const successRate = totalNonCancelledOrders > 0 
-    ? Math.round((deliveredOrders / totalNonCancelledOrders) * 100) 
-    : 0;
 
   return (
     <div>
@@ -740,121 +719,79 @@ export default function RiderPortal() {
               </div>
             </div>
 
-            {/* Wallet Balance - Only show if wallet system is enabled */}
-            {(settings as any)?.enableWalletSystem && (
-              <div className="bg-gradient-to-r from-primary to-secondary rounded-xl p-4 text-primary-foreground">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm opacity-90">Wallet Balance</p>
-                    <p className="text-2xl font-bold">
-                      ₱{parseFloat(wallet?.balance || '0').toFixed(2)}
+            {/* Right Side: Wallet, Status, and Stats */}
+            <div className="flex flex-col lg:flex-row items-center gap-4">
+              {/* Wallet Balance - Only show if wallet system is enabled */}
+              {(settings as any)?.enableWalletSystem && (
+                <div className="bg-gradient-to-r from-primary to-secondary rounded-xl p-4 text-primary-foreground min-w-[200px]">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm opacity-90">Wallet Balance</p>
+                      <p className="text-2xl font-bold">
+                        ₱{parseFloat(wallet?.balance || '0').toFixed(2)}
+                      </p>
+                    </div>
+                    <Wallet className="text-2xl opacity-80" />
+                  </div>
+                  <Button 
+                    variant="secondary" 
+                    size="sm" 
+                    className="mt-2 bg-white bg-opacity-20 hover:bg-opacity-30"
+                    data-testid="button-top-up"
+                  >
+                    Top Up
+                  </Button>
+                </div>
+              )}
+
+              {/* Go Online/Offline Toggle */}
+              <Card className="w-full lg:w-auto">
+                <CardContent className="p-4">
+                  <div className="flex items-center space-x-3">
+                    <Power className={`h-5 w-5 ${riderStatus === 'online' ? 'text-green-600' : 'text-gray-400'}`} />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-foreground">Rider Status</p>
+                      <p className="text-xs text-muted-foreground">
+                        {riderStatus === 'online' ? 'Available for Orders' : 'Not Available'}
+                      </p>
+                    </div>
+                    <Button
+                      variant={riderStatus === 'online' ? "default" : "outline"}
+                      size="sm"
+                      onClick={toggleStatus}
+                      disabled={riderStatus === 'offline' && documentsStatus !== 'approved'}
+                      data-testid="button-toggle-status"
+                      className={riderStatus === 'online' ? "bg-green-600 hover:bg-green-700" : ""}
+                    >
+                      {riderStatus === 'online' ? 'Go Offline' : 'Go Online'}
+                    </Button>
+                  </div>
+                  {documentsStatus !== 'approved' && riderStatus === 'offline' && (
+                    <p className="text-xs text-destructive mt-2">
+                      {documentsStatus === 'incomplete' && 'Upload & submit documents to go online'}
+                      {documentsStatus === 'pending' && 'Documents under review'}
+                      {documentsStatus === 'rejected' && 'Documents rejected - Re-upload required'}
                     </p>
-                  </div>
-                  <Wallet className="text-2xl opacity-80" />
-                </div>
-                <Button 
-                  variant="secondary" 
-                  size="sm" 
-                  className="mt-2 bg-white bg-opacity-20 hover:bg-opacity-30"
-                  data-testid="button-top-up"
-                >
-                  Top Up
-                </Button>
-              </div>
-            )}
-
-            {/* Status Toggle */}
-            <div className="flex flex-col space-y-2">
-              <Button
-                variant={riderStatus === 'online' ? 'destructive' : 'default'}
-                onClick={toggleStatus}
-                disabled={riderStatus === 'offline' && documentsStatus !== 'approved'}
-                data-testid="button-toggle-status"
-              >
-                {riderStatus === 'online' ? 'Go Offline' : 'Go Online'}
-              </Button>
-              {documentsStatus !== 'approved' && riderStatus === 'offline' && (
-                <p className="text-xs text-destructive text-center">
-                  {documentsStatus === 'incomplete' && 'Upload & submit documents to go online'}
-                  {documentsStatus === 'pending' && 'Documents under review'}
-                  {documentsStatus === 'rejected' && 'Documents rejected - Re-upload required'}
-                </p>
-              )}
-              {riderStatus === 'online' && (
-                <p className="text-sm text-muted-foreground text-center">
-                  Active for 3h 24m
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Quick Stats */}
-      <section className="py-6 bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card data-testid="card-today-orders">
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-3">
-                  <div className="bg-blue-500 bg-opacity-10 p-3 rounded-lg">
-                    <Package className="text-blue-600 h-6 w-6" />
-                  </div>
-                  <div>
+                  )}
+                </CardContent>
+              </Card>
+              
+              {/* Stats */}
+              <div className="grid grid-cols-2 gap-4">
+                <Card>
+                  <CardContent className="p-3 text-center">
                     <p className="text-sm text-muted-foreground">Today's Orders</p>
-                    <p className="text-2xl font-bold text-foreground" data-testid="text-today-orders">{todayDeliveredOrders.length}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card data-testid="card-today-earnings">
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-3">
-                  <div className="bg-green-500 bg-opacity-10 p-3 rounded-lg">
-                    <DollarSign className="text-green-600 h-6 w-6" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm text-muted-foreground mb-1">Today's Earnings</p>
-                    <p className="text-2xl font-bold text-foreground" data-testid="text-today-earnings">₱{todayEarnings.toFixed(2)}</p>
-                    {(() => {
-                      const deliveryShare = todayDeliveredOrders.reduce((sum: number, order: any) => {
-                        const appPercent = parseFloat(order.appEarningsPercentageUsed || '50') / 100;
-                        const share = parseFloat(order.deliveryFee || '0') * (1 - appPercent);
-                        return sum + share;
-                      }, 0);
-                      const convenienceFees = todayDeliveredOrders.reduce((sum: number, order: any) => {
-                        return sum + parseFloat(order.convenienceFee || '0');
-                      }, 0);
-                      
-                      if (todayDeliveredOrders.length > 0) {
-                        return (
-                          <div className="mt-2 text-xs text-muted-foreground space-y-0.5">
-                            <div>• Delivery Share: ₱{deliveryShare.toFixed(2)}</div>
-                            <div>• Rider's Convenience Fees: ₱{convenienceFees.toFixed(2)}</div>
-                          </div>
-                        );
-                      }
-                      return null;
-                    })()}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-3">
-                  <div className="bg-green-500 bg-opacity-10 p-3 rounded-lg">
-                    <Star className="text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Success Rate</p>
-                    <p className="text-2xl font-bold text-foreground" data-testid="text-success-rate">{successRate}%</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                    <p className="text-xl font-bold text-foreground" data-testid="text-today-orders">{todayDeliveredOrders.length}</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-3 text-center">
+                    <p className="text-sm text-muted-foreground">Today's Earnings</p>
+                    <p className="text-xl font-bold text-foreground" data-testid="text-today-earnings">₱{todayEarnings.toFixed(0)}</p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </div>
         </div>
       </section>
