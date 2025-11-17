@@ -937,6 +937,477 @@ function StoreManagementTable() {
   );
 }
 
+// Admin Earnings History Component  
+function AdminEarningsHistory() {
+  const [dateRange, setDateRange] = useState<string>('last30');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [selectedMerchantId, setSelectedMerchantId] = useState<string>('');
+  const [selectedRiderId, setSelectedRiderId] = useState<string>('');
+  
+  const { data: restaurants = [] } = useQuery({ queryKey: ["/api/restaurants"] });
+  
+  const getQueryParams = () => {
+    const params = new URLSearchParams();
+    params.append('page', currentPage.toString());
+    params.append('limit', '20');
+    
+    if (searchTerm) params.append('search', searchTerm);
+    if (selectedMerchantId) params.append('merchantId', selectedMerchantId);
+    if (selectedRiderId) params.append('riderId', selectedRiderId);
+    
+    const now = new Date();
+    let start, end;
+    
+    if (dateRange === 'today') {
+      start = new Date(now.setHours(0, 0, 0, 0));
+      end = new Date(now.setHours(23, 59, 59, 999));
+    } else if (dateRange === 'last7') {
+      start = new Date();
+      start.setDate(start.getDate() - 7);
+      end = now;
+    } else if (dateRange === 'last30') {
+      start = new Date();
+      start.setDate(start.getDate() - 30);
+      end = now;
+    } else if (dateRange === 'custom' && startDate && endDate) {
+      start = new Date(startDate);
+      end = new Date(endDate);
+    }
+    
+    if (start) params.append('startDate', start.toISOString());
+    if (end) params.append('endDate', end.toISOString());
+    
+    return params.toString();
+  };
+  
+  const { data: earningsData, isLoading } = useQuery({
+    queryKey: ['/api/earnings/admin', currentPage, dateRange, searchTerm, startDate, endDate, selectedMerchantId, selectedRiderId],
+    queryFn: async () => {
+      const response = await fetch(`/api/earnings/admin?${getQueryParams()}`);
+      if (!response.ok) throw new Error('Failed to fetch earnings');
+      return response.json();
+    }
+  });
+  
+  const orders = earningsData?.orders || [];
+  const summary = earningsData?.summary || { totalOrders: 0, totalAppRevenue: 0, totalRiderPayouts: 0, totalMerchantPayouts: 0 };
+  const totalPages = Math.ceil((earningsData?.total || 0) / 20);
+  
+  const toggleExpand = (orderId: string) => {
+    setExpandedOrderId(expandedOrderId === orderId ? null : orderId);
+  };
+  
+  return (
+    <div className="space-y-6">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Orders</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold" data-testid="text-total-orders">{summary.totalOrders}</p>
+            <p className="text-xs text-muted-foreground mt-1">Delivered orders</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">App Revenue</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-emerald-600" data-testid="text-app-revenue">
+              ₱{summary.totalAppRevenue.toFixed(2)}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">Delivery share + markup</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Rider Payouts</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-cyan-600" data-testid="text-rider-payouts">
+              ₱{summary.totalRiderPayouts.toFixed(2)}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">Commission + delivery share</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Merchant Payouts</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-yellow-600" data-testid="text-merchant-payouts">
+              ₱{summary.totalMerchantPayouts.toFixed(2)}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">Base items cost</p>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Earnings History</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <Label htmlFor="search">Search Order ID</Label>
+              <Input
+                id="search"
+                placeholder="Search by order number..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
+                data-testid="input-search-order"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="date-range">Date Range</Label>
+              <Select 
+                value={dateRange} 
+                onValueChange={(value) => {
+                  setDateRange(value);
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger data-testid="select-date-range">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="last7">Last 7 Days</SelectItem>
+                  <SelectItem value="last30">Last 30 Days</SelectItem>
+                  <SelectItem value="custom">Custom Range</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="merchant-filter">Filter by Merchant</Label>
+              <Select 
+                value={selectedMerchantId} 
+                onValueChange={(value) => {
+                  setSelectedMerchantId(value);
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger data-testid="select-merchant-filter">
+                  <SelectValue placeholder="All Merchants" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Merchants</SelectItem>
+                  {restaurants.map((r: any) => (
+                    <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="rider-filter">Filter by Rider</Label>
+              <Input
+                id="rider-filter"
+                placeholder="Rider ID (optional)"
+                value={selectedRiderId}
+                onChange={(e) => {
+                  setSelectedRiderId(e.target.value);
+                  setCurrentPage(1);
+                }}
+                data-testid="input-rider-filter"
+              />
+            </div>
+          </div>
+          
+          {dateRange === 'custom' && (
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <Label htmlFor="start-date">Start Date</Label>
+                <Input
+                  id="start-date"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  data-testid="input-start-date"
+                />
+              </div>
+              <div className="flex-1">
+                <Label htmlFor="end-date">End Date</Label>
+                <Input
+                  id="end-date"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  data-testid="input-end-date"
+                />
+              </div>
+            </div>
+          )}
+          
+          {/* Orders Table */}
+          <div className="border rounded-lg overflow-hidden">
+            {isLoading ? (
+              <div className="p-8 text-center text-muted-foreground">Loading earnings history...</div>
+            ) : orders.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">No earnings found for selected period</div>
+            ) : (
+              <div className="divide-y">
+                {orders.map((order: any) => {
+                  const subtotal = parseFloat(order.subtotal || '0');
+                  const markup = parseFloat(order.markup || '0');
+                  const deliveryFee = parseFloat(order.deliveryFee || '0');
+                  const multiMerchantFee = parseFloat(order.multiMerchantFee || '0');
+                  const convenienceFee = parseFloat(order.convenienceFee || '15');
+                  const appPercent = parseFloat(order.appEarningsPercentageUsed || '50') / 100;
+                  const combinedFees = deliveryFee + multiMerchantFee;
+                  const appFromDelivery = combinedFees * appPercent;
+                  const riderDeliveryShare = combinedFees * (1 - appPercent);
+                  const customerPaid = subtotal + markup + deliveryFee + multiMerchantFee + convenienceFee;
+                  
+                  return (
+                    <div key={order.id} className="hover:bg-muted/50 transition-colors">
+                      <div 
+                        className="flex items-center justify-between p-4 cursor-pointer"
+                        onClick={() => toggleExpand(order.id)}
+                        data-testid={`order-row-${order.orderNumber}`}
+                      >
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-6 gap-4">
+                          <div>
+                            <p className="text-sm font-medium">{new Date(order.createdAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}</p>
+                            <p className="text-xs text-muted-foreground">{order.orderNumber}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm">{order.customer?.name || 'N/A'}</p>
+                            <p className="text-xs text-muted-foreground">Customer</p>
+                          </div>
+                          <div>
+                            <p className="text-sm truncate">{order.restaurant?.name || 'N/A'}</p>
+                            <p className="text-xs text-muted-foreground">Merchant</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-bold">₱{customerPaid.toFixed(2)}</p>
+                            <p className="text-xs text-muted-foreground">Total</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-bold text-emerald-600">₱{parseFloat(order.appEarningsAmount || '0').toFixed(2)}</p>
+                            <p className="text-xs text-muted-foreground">App</p>
+                          </div>
+                          <div className="flex items-center justify-end">
+                            <Button variant="ghost" size="sm" data-testid={`button-toggle-details-${order.orderNumber}`}>
+                              {expandedOrderId === order.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {expandedOrderId === order.id && (
+                        <div className="px-4 pb-4 pt-2 bg-muted/30" data-testid={`order-details-${order.orderNumber}`}>
+                          <div className="bg-background rounded-lg p-4 space-y-4">
+                            <h4 className="font-semibold">Order #{order.orderNumber} - Complete Revenue Breakdown</h4>
+                            
+                            <div className="space-y-3 text-sm">
+                              <div>
+                                <p className="font-semibold mb-2 uppercase text-xs text-muted-foreground">Customer Payment:</p>
+                                <div className="space-y-1 pl-3 text-muted-foreground">
+                                  <div className="flex justify-between">
+                                    <span>Items Subtotal:</span>
+                                    <span>₱{subtotal.toFixed(2)}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>Delivery Fee ({order.distance || '0'} km):</span>
+                                    <span>₱{deliveryFee.toFixed(2)}</span>
+                                  </div>
+                                  {multiMerchantFee > 0 && (
+                                    <div className="flex justify-between">
+                                      <span>Multi-Merchant Fee:</span>
+                                      <span>₱{multiMerchantFee.toFixed(2)}</span>
+                                    </div>
+                                  )}
+                                  <div className="flex justify-between">
+                                    <span>Rider's Commission:</span>
+                                    <span>₱{convenienceFee.toFixed(2)}</span>
+                                  </div>
+                                  <div className="h-px bg-border my-1"></div>
+                                  <div className="flex justify-between font-semibold text-foreground">
+                                    <span>Total Paid by Customer:</span>
+                                    <span>₱{customerPaid.toFixed(2)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <Separator />
+                              
+                              <div>
+                                <p className="font-semibold mb-2 uppercase text-xs text-muted-foreground">Revenue Distribution:</p>
+                                
+                                <div className="space-y-3 pl-3">
+                                  <div>
+                                    <p className="font-medium mb-1">1. Merchant Earnings:</p>
+                                    <div className="pl-3 space-y-1 text-muted-foreground text-xs">
+                                      <div className="flex justify-between">
+                                        <span>Items Subtotal:</span>
+                                        <span>₱{subtotal.toFixed(2)}</span>
+                                      </div>
+                                      <div className="flex justify-between">
+                                        <span>Order Markup ({order.restaurantMarkup || 0}%):</span>
+                                        <span>- ₱{markup.toFixed(2)}</span>
+                                      </div>
+                                      <div className="h-px bg-border my-1"></div>
+                                      <div className="flex justify-between font-medium text-yellow-600">
+                                        <span>Merchant Receives:</span>
+                                        <span>₱{(subtotal - markup).toFixed(2)}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  <div>
+                                    <p className="font-medium mb-1">2. App Earnings:</p>
+                                    <div className="pl-3 space-y-1 text-muted-foreground text-xs">
+                                      <div className="flex justify-between">
+                                        <span>Delivery Fee:</span>
+                                        <span>₱{deliveryFee.toFixed(2)}</span>
+                                      </div>
+                                      {multiMerchantFee > 0 && (
+                                        <div className="flex justify-between">
+                                          <span>Multi-Merchant Fee:</span>
+                                          <span>₱{multiMerchantFee.toFixed(2)}</span>
+                                        </div>
+                                      )}
+                                      <div className="flex justify-between">
+                                        <span>Total Pool:</span>
+                                        <span>₱{combinedFees.toFixed(2)}</span>
+                                      </div>
+                                      <div className="flex justify-between">
+                                        <span>App Share ({(appPercent * 100).toFixed(0)}%):</span>
+                                        <span>× {(appPercent * 100).toFixed(0)}%</span>
+                                      </div>
+                                      <div className="flex justify-between">
+                                        <span>App from Delivery:</span>
+                                        <span>₱{appFromDelivery.toFixed(2)}</span>
+                                      </div>
+                                      <div className="flex justify-between mt-1">
+                                        <span>Order Markup:</span>
+                                        <span>+ ₱{markup.toFixed(2)}</span>
+                                      </div>
+                                      <div className="h-px bg-border my-1"></div>
+                                      <div className="flex justify-between font-medium text-emerald-600">
+                                        <span>Total App Earnings:</span>
+                                        <span>₱{(appFromDelivery + markup).toFixed(2)}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  <div>
+                                    <p className="font-medium mb-1">3. Rider Earnings:</p>
+                                    <div className="pl-3 space-y-1 text-muted-foreground text-xs">
+                                      <div className="flex justify-between">
+                                        <span>Rider's Commission:</span>
+                                        <span>₱{convenienceFee.toFixed(2)}</span>
+                                      </div>
+                                      <div className="flex justify-between">
+                                        <span>Delivery Pool Share ({((1 - appPercent) * 100).toFixed(0)}%):</span>
+                                        <span>₱{riderDeliveryShare.toFixed(2)}</span>
+                                      </div>
+                                      <div className="h-px bg-border my-1"></div>
+                                      <div className="flex justify-between font-medium text-cyan-600">
+                                        <span>Total Rider Earnings:</span>
+                                        <span>₱{(convenienceFee + riderDeliveryShare).toFixed(2)}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <Separator />
+                              
+                              <div className="bg-muted/50 p-3 rounded">
+                                <p className="font-semibold mb-2 uppercase text-xs">Verification:</p>
+                                <div className="space-y-1 text-xs">
+                                  <div className="flex justify-between">
+                                    <span>Customer Paid:</span>
+                                    <span className="font-medium">₱{customerPaid.toFixed(2)}</span>
+                                  </div>
+                                  <div className="flex justify-between text-muted-foreground">
+                                    <span>Distributed (₱{(subtotal - markup).toFixed(2)} + ₱{(appFromDelivery + markup).toFixed(2)} + ₱{(convenienceFee + riderDeliveryShare).toFixed(2)}):</span>
+                                    <span className="font-medium">₱{((subtotal - markup) + (appFromDelivery + markup) + (convenienceFee + riderDeliveryShare)).toFixed(2)}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 justify-end">
+                                    {Math.abs(customerPaid - ((subtotal - markup) + (appFromDelivery + markup) + (convenienceFee + riderDeliveryShare))) < 0.01 ? (
+                                      <span className="text-green-600 font-medium flex items-center gap-1">
+                                        <CheckCircle className="h-3 w-3" /> Balanced
+                                      </span>
+                                    ) : (
+                                      <span className="text-red-600 font-medium">Mismatch</span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="mt-2 pt-2 border-t text-xs text-muted-foreground">
+                                  <div className="flex justify-between">
+                                    <span>Order Type:</span>
+                                    <span>{order.orderGroupId ? 'Multi-Merchant' : 'Single Merchant'}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>App Earnings %:</span>
+                                    <span>{(appPercent * 100).toFixed(0)}% (from settings)</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4">
+              <p className="text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  data-testid="button-previous-page"
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  data-testid="button-next-page"
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function AdminPortal() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -2967,6 +3438,13 @@ export default function AdminPortal() {
                   </div>
                 </CardContent>
               </Card>
+              
+              {/* Earnings History Section */}
+              <div className="pt-8">
+                <Separator className="mb-6" />
+                <h3 className="text-xl font-bold mb-4">Detailed Earnings History</h3>
+                <AdminEarningsHistory />
+              </div>
             </TabsContent>
 
 

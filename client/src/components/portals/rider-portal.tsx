@@ -8,11 +8,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Bike, Wallet, Clock, Star, MapPin, Phone, User, Upload, FileText, CheckCircle, XCircle, AlertCircle, Map, Users, Download, Eye, Package, DollarSign, ClipboardList, History, RefreshCw, Power } from "lucide-react";
+import { Bike, Wallet, Clock, Star, MapPin, Phone, User, Upload, FileText, CheckCircle, XCircle, AlertCircle, Map, Users, Download, Eye, Package, DollarSign, ClipboardList, History, RefreshCw, Power, ChevronUp, ChevronDown, BarChart3 } from "lucide-react";
 import { apiRequest, queryClient as globalQueryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useWebSocket } from "@/lib/websocket";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { LocationMapViewer } from "@/components/location-map-viewer";
 
 interface PendingOrder {
@@ -142,6 +144,331 @@ function RiderRatingDisplay({ riderId }: { riderId?: string }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Rider Earnings History Component
+function RiderEarningsHistory() {
+  const { toast } = useToast();
+  const [dateRange, setDateRange] = useState<string>('last30');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  
+  const getQueryParams = () => {
+    const params = new URLSearchParams();
+    params.append('page', currentPage.toString());
+    params.append('limit', '20');
+    
+    if (searchTerm) {
+      params.append('search', searchTerm);
+    }
+    
+    const now = new Date();
+    let start, end;
+    
+    if (dateRange === 'today') {
+      start = new Date(now.setHours(0, 0, 0, 0));
+      end = new Date(now.setHours(23, 59, 59, 999));
+    } else if (dateRange === 'last7') {
+      start = new Date();
+      start.setDate(start.getDate() - 7);
+      end = now;
+    } else if (dateRange === 'last30') {
+      start = new Date();
+      start.setDate(start.getDate() - 30);
+      end = now;
+    } else if (dateRange === 'custom' && startDate && endDate) {
+      start = new Date(startDate);
+      end = new Date(endDate);
+    }
+    
+    if (start) params.append('startDate', start.toISOString());
+    if (end) params.append('endDate', end.toISOString());
+    
+    return params.toString();
+  };
+  
+  const { data: earningsData, isLoading } = useQuery({
+    queryKey: ['/api/earnings/rider', currentPage, dateRange, searchTerm, startDate, endDate],
+    queryFn: async () => {
+      const response = await fetch(`/api/earnings/rider?${getQueryParams()}`);
+      if (!response.ok) throw new Error('Failed to fetch earnings');
+      return response.json();
+    }
+  });
+  
+  const orders = earningsData?.orders || [];
+  const summary = earningsData?.summary || { totalDeliveries: 0, totalEarnings: 0, averagePerDelivery: 0 };
+  const totalPages = Math.ceil((earningsData?.total || 0) / 20);
+  
+  const toggleExpand = (orderId: string) => {
+    setExpandedOrderId(expandedOrderId === orderId ? null : orderId);
+  };
+  
+  return (
+    <div className="space-y-6">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Deliveries</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold" data-testid="text-total-deliveries">{summary.totalDeliveries}</p>
+            <p className="text-xs text-muted-foreground mt-1">Completed deliveries</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Earnings</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-blue-600" data-testid="text-total-earnings">
+              ₱{summary.totalEarnings.toFixed(2)}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">Commission + delivery share</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Average per Delivery</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold" data-testid="text-average-per-delivery">
+              ₱{summary.averagePerDelivery.toFixed(2)}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">Per completed delivery</p>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Earnings History</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <Label htmlFor="search">Search Order ID</Label>
+              <Input
+                id="search"
+                placeholder="Search by order number..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
+                data-testid="input-search-order"
+              />
+            </div>
+            
+            <div className="w-full md:w-48">
+              <Label htmlFor="date-range">Date Range</Label>
+              <Select 
+                value={dateRange} 
+                onValueChange={(value) => {
+                  setDateRange(value);
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger data-testid="select-date-range">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="last7">Last 7 Days</SelectItem>
+                  <SelectItem value="last30">Last 30 Days</SelectItem>
+                  <SelectItem value="custom">Custom Range</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          {dateRange === 'custom' && (
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <Label htmlFor="start-date">Start Date</Label>
+                <Input
+                  id="start-date"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  data-testid="input-start-date"
+                />
+              </div>
+              <div className="flex-1">
+                <Label htmlFor="end-date">End Date</Label>
+                <Input
+                  id="end-date"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  data-testid="input-end-date"
+                />
+              </div>
+            </div>
+          )}
+          
+          {/* Orders Table */}
+          <div className="border rounded-lg overflow-hidden">
+            {isLoading ? (
+              <div className="p-8 text-center text-muted-foreground">Loading earnings history...</div>
+            ) : orders.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">No earnings found for selected period</div>
+            ) : (
+              <div className="divide-y">
+                {orders.map((order: any) => {
+                  const deliveryFee = parseFloat(order.deliveryFee || '0');
+                  const multiMerchantFee = parseFloat(order.multiMerchantFee || '0');
+                  const convenienceFee = parseFloat(order.convenienceFee || '15');
+                  const appPercent = parseFloat(order.appEarningsPercentageUsed || '50') / 100;
+                  const combinedFees = deliveryFee + multiMerchantFee;
+                  const deliveryShare = combinedFees * (1 - appPercent);
+                  
+                  return (
+                    <div key={order.id} className="hover:bg-muted/50 transition-colors">
+                      <div 
+                        className="flex items-center justify-between p-4 cursor-pointer"
+                        onClick={() => toggleExpand(order.id)}
+                        data-testid={`order-row-${order.orderNumber}`}
+                      >
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
+                          <div>
+                            <p className="text-sm font-medium">{new Date(order.createdAt).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                            <p className="text-xs text-muted-foreground">{order.orderNumber}</p>
+                          </div>
+                          <div className="md:col-span-2">
+                            <p className="text-sm">{order.customer?.name || 'Customer'}</p>
+                            <p className="text-xs text-muted-foreground">{order.orderGroupId ? `Multi-Merchant (${order.restaurantCount || 'Multiple'} stores)` : 'Single Merchant'}</p>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-bold text-blue-600">₱{parseFloat(order.riderEarningsAmount || '0').toFixed(2)}</p>
+                            <Button variant="ghost" size="sm" data-testid={`button-toggle-details-${order.orderNumber}`}>
+                              {expandedOrderId === order.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {expandedOrderId === order.id && (
+                        <div className="px-4 pb-4 pt-2 bg-muted/30" data-testid={`order-details-${order.orderNumber}`}>
+                          <div className="bg-background rounded-lg p-4 space-y-3">
+                            <h4 className="font-semibold text-sm">Order #{order.orderNumber} - Earnings Breakdown</h4>
+                            <p className="text-xs text-muted-foreground">
+                              Order Type: {order.orderGroupId ? `Multi-Merchant (${order.restaurantCount || 'Multiple'} stores)` : 'Single Merchant'}
+                            </p>
+                            
+                            <Separator />
+                            
+                            <div className="space-y-3 text-sm">
+                              <div>
+                                <p className="font-semibold mb-2">EARNINGS CALCULATION:</p>
+                                
+                                <div className="space-y-1 pl-3">
+                                  <div className="flex justify-between">
+                                    <span>1. Rider's Commission (Fixed):</span>
+                                    <span className="font-medium">₱{convenienceFee.toFixed(2)}</span>
+                                  </div>
+                                  
+                                  <Separator className="my-2" />
+                                  
+                                  <div className="space-y-1">
+                                    <p className="font-medium">2. Delivery Fee Share:</p>
+                                    <div className="pl-3 space-y-1 text-muted-foreground">
+                                      <div className="flex justify-between">
+                                        <span>Delivery Fee:</span>
+                                        <span>₱{deliveryFee.toFixed(2)}</span>
+                                      </div>
+                                      {multiMerchantFee > 0 && (
+                                        <div className="flex justify-between">
+                                          <span>Multi-Merchant Fee:</span>
+                                          <span>₱{multiMerchantFee.toFixed(2)}</span>
+                                        </div>
+                                      )}
+                                      <div className="flex justify-between">
+                                        <span>Total Pool:</span>
+                                        <span>₱{combinedFees.toFixed(2)}</span>
+                                      </div>
+                                      <div className="flex justify-between">
+                                        <span>Your Share ({((1 - appPercent) * 100).toFixed(0)}%):</span>
+                                        <span>× {((1 - appPercent) * 100).toFixed(0)}%</span>
+                                      </div>
+                                      <div className="h-px bg-border my-1"></div>
+                                      <div className="flex justify-between font-medium text-foreground">
+                                        <span>Delivery Share:</span>
+                                        <span>₱{deliveryShare.toFixed(2)}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <Separator />
+                              
+                              <div className="flex justify-between font-bold text-blue-600 text-base">
+                                <span>TOTAL EARNINGS:</span>
+                                <span>₱{parseFloat(order.riderEarningsAmount || '0').toFixed(2)}</span>
+                              </div>
+                              
+                              <div className="bg-muted/50 p-2 rounded text-xs space-y-1">
+                                <p className="font-medium">Breakdown:</p>
+                                <div className="flex justify-between">
+                                  <span>• Rider's Commission:</span>
+                                  <span>₱{convenienceFee.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>• Delivery Share:</span>
+                                  <span>₱{deliveryShare.toFixed(2)}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4">
+              <p className="text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  data-testid="button-previous-page"
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  data-testid="button-next-page"
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -800,7 +1127,7 @@ export default function RiderPortal() {
       <section className="py-6 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Tabs defaultValue="pending" className="w-full">
-            <TabsList className="w-full md:grid md:grid-cols-5">
+            <TabsList className="w-full md:grid md:grid-cols-6">
               <TabsTrigger value="pending" data-testid="tab-pending">
                 <ClipboardList className="w-4 h-4 mr-2" />
                 Pending Orders 
@@ -818,6 +1145,10 @@ export default function RiderPortal() {
               <TabsTrigger value="history" data-testid="tab-history">
                 <History className="w-4 h-4 mr-2" />
                 Order History
+              </TabsTrigger>
+              <TabsTrigger value="reports" data-testid="tab-reports">
+                <BarChart3 className="w-4 h-4 mr-2" />
+                Reports
               </TabsTrigger>
               <TabsTrigger value="documents" data-testid="tab-documents">
                 <FileText className="w-4 h-4 mr-2" />
@@ -1383,6 +1714,10 @@ export default function RiderPortal() {
                   </Card>
                 ))
               )}
+            </TabsContent>
+
+            <TabsContent value="reports" className="space-y-4">
+              <RiderEarningsHistory />
             </TabsContent>
 
             <TabsContent value="documents" className="space-y-6">

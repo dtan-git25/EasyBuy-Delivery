@@ -874,6 +874,209 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Earnings history routes
+  app.get("/api/earnings/merchant", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'merchant') {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const { startDate, endDate, search, page = '1', limit = '20' } = req.query;
+      
+      // Get merchant's restaurants
+      const merchantRestaurants = await storage.getRestaurantsByOwner(req.user.id);
+      const restaurantIds = merchantRestaurants.map(r => r.id);
+      
+      if (restaurantIds.length === 0) {
+        return res.json({ orders: [], total: 0, summary: { totalOrders: 0, totalEarnings: 0, averagePerOrder: 0 } });
+      }
+      
+      // Get completed orders for merchant's restaurants
+      let orders: Order[] = [];
+      for (const restaurantId of restaurantIds) {
+        const restaurantOrders = await storage.getOrdersByRestaurant(restaurantId);
+        orders.push(...restaurantOrders);
+      }
+      
+      // Filter by completed status only
+      orders = orders.filter(o => o.status === 'delivered');
+      
+      // Apply date filters
+      if (startDate) {
+        const start = new Date(startDate as string);
+        orders = orders.filter(o => new Date(o.createdAt) >= start);
+      }
+      if (endDate) {
+        const end = new Date(endDate as string);
+        end.setHours(23, 59, 59, 999);
+        orders = orders.filter(o => new Date(o.createdAt) <= end);
+      }
+      
+      // Apply search filter
+      if (search) {
+        const searchLower = (search as string).toLowerCase();
+        orders = orders.filter(o => o.orderNumber.toLowerCase().includes(searchLower));
+      }
+      
+      // Sort by date descending
+      orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      // Calculate summary
+      const totalOrders = orders.length;
+      const totalEarnings = orders.reduce((sum, o) => sum + parseFloat(o.merchantEarningsAmount || o.subtotal), 0);
+      const averagePerOrder = totalOrders > 0 ? totalEarnings / totalOrders : 0;
+      
+      // Paginate
+      const pageNum = parseInt(page as string);
+      const limitNum = parseInt(limit as string);
+      const startIndex = (pageNum - 1) * limitNum;
+      const paginatedOrders = orders.slice(startIndex, startIndex + limitNum);
+      
+      res.json({
+        orders: paginatedOrders,
+        total: totalOrders,
+        summary: {
+          totalOrders,
+          totalEarnings,
+          averagePerOrder
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching merchant earnings history:", error);
+      res.status(500).json({ error: "Failed to fetch earnings history" });
+    }
+  });
+
+  app.get("/api/earnings/rider", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'rider') {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const { startDate, endDate, search, page = '1', limit = '20' } = req.query;
+      
+      // Get rider's orders
+      let orders = await storage.getOrdersByRider(req.user.id);
+      
+      // Filter by delivered status only
+      orders = orders.filter(o => o.status === 'delivered');
+      
+      // Apply date filters
+      if (startDate) {
+        const start = new Date(startDate as string);
+        orders = orders.filter(o => new Date(o.createdAt) >= start);
+      }
+      if (endDate) {
+        const end = new Date(endDate as string);
+        end.setHours(23, 59, 59, 999);
+        orders = orders.filter(o => new Date(o.createdAt) <= end);
+      }
+      
+      // Apply search filter
+      if (search) {
+        const searchLower = (search as string).toLowerCase();
+        orders = orders.filter(o => o.orderNumber.toLowerCase().includes(searchLower));
+      }
+      
+      // Sort by date descending
+      orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      // Calculate summary
+      const totalDeliveries = orders.length;
+      const totalEarnings = orders.reduce((sum, o) => sum + parseFloat(o.riderEarningsAmount || '0'), 0);
+      const averagePerDelivery = totalDeliveries > 0 ? totalEarnings / totalDeliveries : 0;
+      
+      // Paginate
+      const pageNum = parseInt(page as string);
+      const limitNum = parseInt(limit as string);
+      const startIndex = (pageNum - 1) * limitNum;
+      const paginatedOrders = orders.slice(startIndex, startIndex + limitNum);
+      
+      res.json({
+        orders: paginatedOrders,
+        total: totalDeliveries,
+        summary: {
+          totalDeliveries,
+          totalEarnings,
+          averagePerDelivery
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching rider earnings history:", error);
+      res.status(500).json({ error: "Failed to fetch earnings history" });
+    }
+  });
+
+  app.get("/api/earnings/admin", async (req, res) => {
+    if (!req.isAuthenticated() || !isAdminOrOwner(req.user?.role)) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const { startDate, endDate, search, merchantId, riderId, page = '1', limit = '20' } = req.query;
+      
+      // Get all completed orders
+      let orders = await storage.getOrders();
+      orders = orders.filter(o => o.status === 'delivered');
+      
+      // Apply date filters
+      if (startDate) {
+        const start = new Date(startDate as string);
+        orders = orders.filter(o => new Date(o.createdAt) >= start);
+      }
+      if (endDate) {
+        const end = new Date(endDate as string);
+        end.setHours(23, 59, 59, 999);
+        orders = orders.filter(o => new Date(o.createdAt) <= end);
+      }
+      
+      // Apply search filter
+      if (search) {
+        const searchLower = (search as string).toLowerCase();
+        orders = orders.filter(o => o.orderNumber.toLowerCase().includes(searchLower));
+      }
+      
+      // Filter by merchant
+      if (merchantId) {
+        orders = orders.filter(o => o.restaurantId === merchantId);
+      }
+      
+      // Filter by rider
+      if (riderId) {
+        orders = orders.filter(o => o.riderId === riderId);
+      }
+      
+      // Sort by date descending
+      orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      // Calculate summary
+      const totalOrders = orders.length;
+      const totalAppRevenue = orders.reduce((sum, o) => sum + parseFloat(o.appEarningsAmount || '0'), 0);
+      const totalRiderPayouts = orders.reduce((sum, o) => sum + parseFloat(o.riderEarningsAmount || '0'), 0);
+      const totalMerchantPayouts = orders.reduce((sum, o) => sum + parseFloat(o.merchantEarningsAmount || o.subtotal), 0);
+      
+      // Paginate
+      const pageNum = parseInt(page as string);
+      const limitNum = parseInt(limit as string);
+      const startIndex = (pageNum - 1) * limitNum;
+      const paginatedOrders = orders.slice(startIndex, startIndex + limitNum);
+      
+      res.json({
+        orders: paginatedOrders,
+        total: totalOrders,
+        summary: {
+          totalOrders,
+          totalAppRevenue,
+          totalRiderPayouts,
+          totalMerchantPayouts
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching admin earnings history:", error);
+      res.status(500).json({ error: "Failed to fetch earnings history" });
+    }
+  });
+
   // Rider location update route
   app.post("/api/rider/location", async (req, res) => {
     if (!req.isAuthenticated() || req.user?.role !== 'rider') {

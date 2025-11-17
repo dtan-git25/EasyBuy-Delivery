@@ -1,0 +1,182 @@
+Create detailed Earnings History with computation breakdown under Reports tab for Merchant, Rider, and Admin:
+
+REQUIREMENT:
+
+Add "Earnings History" feature under Reports tab showing detailed earnings computation for each order with expandable breakdown.
+
+IMPLEMENTATION:
+
+1. MERCHANT - EARNINGS HISTORY:
+
+   Location: Merchant Dashboard > Reports Tab > Earnings History
+
+   Main Table View:
+   ┌────────────────────────────────────────────────────────────────┐
+   │ Date & Time        │ Order ID    │ Items Sold      │ Earnings │
+   ├────────────────────────────────────────────────────────────────┤
+   │ Nov 17, 2025 2:30  │ EBD-12345   │ Burger x1       │ ₱490.00  │ [View Details ▼]
+   │ Nov 17, 2025 3:15  │ EBD-12346   │ Fries x2        │ ₱180.00  │ [View Details ▼]
+   └────────────────────────────────────────────────────────────────┘
+
+   Expandable Detail View (when clicking "View Details"):
+   ┌────────────────────────────────────────────────────────────────┐
+   │ Order #EBD-12345 - Earnings Breakdown                          │
+   ├────────────────────────────────────────────────────────────────┤
+   │ Items Sold:                                                     │
+   │   • Burger x1 (Base: ₱22, Options: ₱33)        = ₱55.00       │
+   │   • Fries x2 (Base: ₱40 each)                  = ₱80.00       │
+   │                                                                 │
+   │ Customer Paid for Items:                         ₱500.00       │
+   │ Order Markup (10%):                            - ₱10.00        │
+   │ ───────────────────────────────────────────────────────────    │
+   │ Your Earnings (Base Cost):                       ₱490.00       │
+   │                                                                 │
+   │ Note: Markup goes to platform                                  │
+   └────────────────────────────────────────────────────────────────┘
+
+   Summary Cards at Top:
+   - Total Orders: 25
+   - Total Earnings: ₱12,250.00
+   - Average per Order: ₱490.00
+
+2. RIDER - EARNINGS HISTORY:
+
+   Location: Rider Dashboard > Reports Tab > Earnings History
+
+   Main Table View:
+   ┌────────────────────────────────────────────────────────────────┐
+   │ Date & Time        │ Order ID    │ Customer    │ Earnings     │
+   ├────────────────────────────────────────────────────────────────┤
+   │ Nov 17, 2025 2:30  │ EBD-12345   │ John Doe    │ ₱75.00       │ [View Details ▼]
+   │ Nov 17, 2025 3:15  │ EBD-12346   │ Jane Smith  │ ₱65.00       │ [View Details ▼]
+   └────────────────────────────────────────────────────────────────┘
+
+   Expandable Detail View:
+   ┌────────────────────────────────────────────────────────────────┐
+   │ Order #EBD-12345 - Earnings Breakdown                          │
+   ├────────────────────────────────────────────────────────────────┤
+   │ Order Type: Multi-Merchant (2 stores)                          │
+   │                                                                 │
+   │ EARNINGS CALCULATION:                                           │
+   │                                                                 │
+   │ 1. Rider's Commission (Fixed):                  ₱15.00         │
+   │                                                                 │
+   │ 2. Delivery Fee Share:                                         │
+   │    Delivery Fee:                    ₱100.00                    │
+   │    Multi-Merchant Fee:              ₱20.00                     │
+   │    Total Pool:                      ₱120.00                    │
+   │    Your Share (50%):              × 50%                        │
+   │    ───────────────────────────────────────                     │
+   │    Delivery Share:                              ₱60.00         │
+   │                                                                 │
+   │ ═══════════════════════════════════════════════════════════    │
+   │ TOTAL EARNINGS:                                 ₱75.00         │
+   │                                                                 │
+   │ Breakdown:                                                      │
+   │   • Rider's Commission:            ₱15.00                      │
+   │   • Delivery Share:                ₱60.00                      │
+   └────────────────────────────────────────────────────────────────┘
+
+   Summary Cards at Top:
+   - Total Deliveries: 50
+   - Total Earnings: ₱3,750.00
+   - Average per Delivery: ₱75.00
+
+3. ADMIN - EARNINGS HISTORY:
+
+   Location: Admin Dashboard > Reports Tab > Earnings History
+
+   Main Table View:
+   ┌──────────────────────────────────────────────────────────────────────────┐
+   │ Date/Time    │ Order ID  │ Customer │ Merchant │ Total  │ App  │ Details │
+   ├──────────────────────────────────────────────────────────────────────────┤
+   │ Nov 17 2:30  │ EBD-12345 │ John D.  │ Jollibee │ ₱635   │ ₱70  │ [View ▼]│
+   │ Nov 17 3:15  │ EBD-12346 │ Jane S.  │ McDo     │ ₱615   │ ₱60  │ [View ▼]│
+   └──────────────────────────────────────────────────────────────────────────┘
+
+   Expandable Detail View:
+   ┌────────────────────────────────────────────────────────────────┐
+   │ Order #EBD-12345 - Complete Revenue Breakdown                  │
+   ├────────────────────────────────────────────────────────────────┤
+   │ CUSTOMER PAYMENT:                                               │
+   │   Items Subtotal:                              ₱500.00         │
+   │   Delivery Fee (2 km):                         ₱100.00         │
+   │   Multi-Merchant Fee:                          ₱20.00          │
+   │   Rider's Commission:                          ₱15.00          │
+   │   ───────────────────────────────────────────────────────      │
+   │   Total Paid by Customer:                      ₱635.00         │
+   │                                                                 │
+   │ REVENUE DISTRIBUTION:                                           │
+   │                                                                 │
+   │ 1. MERCHANT EARNINGS:                                           │
+   │    Items Subtotal:                 ₱500.00                     │
+   │    Order Markup (10%):           - ₱10.00                      │
+   │    ───────────────────────────────────────                     │
+   │    Merchant Receives:                          ₱490.00         │
+   │                                                                 │
+   │ 2. APP EARNINGS:                                                │
+   │    Delivery Fee:                   ₱100.00                     │
+   │    Multi-Merchant Fee:             ₱20.00                      │
+   │    Total Pool:                     ₱120.00                     │
+   │    App Share (50%):              × 50%                         │
+   │    App from Delivery:              ₱60.00                      │
+   │                                                                 │
+   │    Order Markup:                 + ₱10.00                      │
+   │    ───────────────────────────────────────                     │
+   │    Total App Earnings:                         ₱70.00          │
+   │                                                                 │
+   │ 3. RIDER EARNINGS:                                              │
+   │    Rider's Commission:             ₱15.00                      │
+   │    Delivery Pool Share (50%):      ₱60.00                      │
+   │    ───────────────────────────────────────                     │
+   │    Total Rider Earnings:                       ₱75.00          │
+   │                                                                 │
+   │ ═══════════════════════════════════════════════════════════    │
+   │ VERIFICATION:                                                   │
+   │   Customer Paid:                               ₱635.00         │
+   │   Distributed: (₱490 + ₱70 + ₱75)              ₱635.00 ✓       │
+   │                                                                 │
+   │ Order Type: Multi-Merchant                                      │
+   │ App Earnings %: 50% (from settings)                             │
+   └────────────────────────────────────────────────────────────────┘
+
+   Summary Cards at Top:
+   - Total Orders: 100
+   - Total App Revenue: ₱7,000.00
+   - Total Rider Payouts: ₱7,500.00
+   - Total Merchant Payouts: ₱49,000.00
+
+4. FEATURES FOR ALL:
+
+   Filters:
+   - Date Range (Today, Last 7 Days, Last 30 Days, Custom)
+   - Order Status (Completed only)
+   - Search by Order ID
+   - For Admin: Filter by Merchant, Filter by Rider
+
+   Actions:
+   - Export to CSV/Excel
+   - Print Report
+   - View Order Details (link to full order)
+
+   Pagination:
+   - 20 orders per page
+   - Load more / pagination controls
+
+5. MOBILE RESPONSIVE:
+   - Stack cards vertically
+   - Expandable details open in modal
+   - Horizontal scroll for tables
+   - Touch-friendly expand/collapse
+
+6. DATA TO FETCH:
+   - Order ID, date, customer name
+   - Items with base prices and options
+   - Delivery fee, distance
+   - Multi-merchant fee (if applicable)
+   - Rider's commission
+   - App earnings percentage used
+   - Order markup amount
+   - Calculated earnings for each party
+
+Create this detailed earnings history system showing transparent computation for every order.

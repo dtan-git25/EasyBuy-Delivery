@@ -261,6 +261,293 @@ function MerchantRatingDisplay({ merchantId }: { merchantId?: string }) {
   );
 }
 
+// Merchant Earnings History Component
+function MerchantEarningsHistory() {
+  const { toast } = useToast();
+  const [dateRange, setDateRange] = useState<string>('last30');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  
+  // Build query params based on filters
+  const getQueryParams = () => {
+    const params = new URLSearchParams();
+    params.append('page', currentPage.toString());
+    params.append('limit', '20');
+    
+    if (searchTerm) {
+      params.append('search', searchTerm);
+    }
+    
+    // Handle date range
+    const now = new Date();
+    let start, end;
+    
+    if (dateRange === 'today') {
+      start = new Date(now.setHours(0, 0, 0, 0));
+      end = new Date(now.setHours(23, 59, 59, 999));
+    } else if (dateRange === 'last7') {
+      start = new Date();
+      start.setDate(start.getDate() - 7);
+      end = now;
+    } else if (dateRange === 'last30') {
+      start = new Date();
+      start.setDate(start.getDate() - 30);
+      end = now;
+    } else if (dateRange === 'custom' && startDate && endDate) {
+      start = new Date(startDate);
+      end = new Date(endDate);
+    }
+    
+    if (start) params.append('startDate', start.toISOString());
+    if (end) params.append('endDate', end.toISOString());
+    
+    return params.toString();
+  };
+  
+  const { data: earningsData, isLoading } = useQuery({
+    queryKey: ['/api/earnings/merchant', currentPage, dateRange, searchTerm, startDate, endDate],
+    queryFn: async () => {
+      const response = await fetch(`/api/earnings/merchant?${getQueryParams()}`);
+      if (!response.ok) throw new Error('Failed to fetch earnings');
+      return response.json();
+    }
+  });
+  
+  const orders = earningsData?.orders || [];
+  const summary = earningsData?.summary || { totalOrders: 0, totalEarnings: 0, averagePerOrder: 0 };
+  const totalPages = Math.ceil((earningsData?.total || 0) / 20);
+  
+  const toggleExpand = (orderId: string) => {
+    setExpandedOrderId(expandedOrderId === orderId ? null : orderId);
+  };
+  
+  return (
+    <div className="space-y-6">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Orders</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold" data-testid="text-total-orders">{summary.totalOrders}</p>
+            <p className="text-xs text-muted-foreground mt-1">Delivered orders</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Earnings</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-green-600" data-testid="text-total-earnings">
+              ₱{summary.totalEarnings.toFixed(2)}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">Base items cost</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Average per Order</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold" data-testid="text-average-per-order">
+              ₱{summary.averagePerOrder.toFixed(2)}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">Per delivered order</p>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Earnings History</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <Label htmlFor="search">Search Order ID</Label>
+              <Input
+                id="search"
+                placeholder="Search by order number..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
+                data-testid="input-search-order"
+              />
+            </div>
+            
+            <div className="w-full md:w-48">
+              <Label htmlFor="date-range">Date Range</Label>
+              <Select 
+                value={dateRange} 
+                onValueChange={(value) => {
+                  setDateRange(value);
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger data-testid="select-date-range">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="last7">Last 7 Days</SelectItem>
+                  <SelectItem value="last30">Last 30 Days</SelectItem>
+                  <SelectItem value="custom">Custom Range</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          {dateRange === 'custom' && (
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <Label htmlFor="start-date">Start Date</Label>
+                <Input
+                  id="start-date"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  data-testid="input-start-date"
+                />
+              </div>
+              <div className="flex-1">
+                <Label htmlFor="end-date">End Date</Label>
+                <Input
+                  id="end-date"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  data-testid="input-end-date"
+                />
+              </div>
+            </div>
+          )}
+          
+          {/* Orders Table */}
+          <div className="border rounded-lg overflow-hidden">
+            {isLoading ? (
+              <div className="p-8 text-center text-muted-foreground">Loading earnings history...</div>
+            ) : orders.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">No earnings found for selected period</div>
+            ) : (
+              <div className="divide-y">
+                {orders.map((order: any) => (
+                  <div key={order.id} className="hover:bg-muted/50 transition-colors">
+                    <div 
+                      className="flex items-center justify-between p-4 cursor-pointer"
+                      onClick={() => toggleExpand(order.id)}
+                      data-testid={`order-row-${order.orderNumber}`}
+                    >
+                      <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                          <p className="text-sm font-medium">{new Date(order.createdAt).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                          <p className="text-xs text-muted-foreground">{order.orderNumber}</p>
+                        </div>
+                        <div className="md:col-span-2">
+                          <p className="text-sm">{order.items?.length || 0} item(s)</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {order.items?.slice(0, 2).map((item: any) => item.name).join(', ')}
+                            {(order.items?.length || 0) > 2 && '...'}
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-bold text-green-600">₱{parseFloat(order.merchantEarningsAmount || order.subtotal).toFixed(2)}</p>
+                          <Button variant="ghost" size="sm" data-testid={`button-toggle-details-${order.orderNumber}`}>
+                            {expandedOrderId === order.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {expandedOrderId === order.id && (
+                      <div className="px-4 pb-4 pt-2 bg-muted/30" data-testid={`order-details-${order.orderNumber}`}>
+                        <div className="bg-background rounded-lg p-4 space-y-3">
+                          <h4 className="font-semibold text-sm">Order #{order.orderNumber} - Earnings Breakdown</h4>
+                          
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium">Items Sold:</p>
+                            <ul className="space-y-1 pl-4">
+                              {order.items?.map((item: any, idx: number) => (
+                                <li key={idx} className="text-sm text-muted-foreground">
+                                  • {item.name} x{item.quantity} 
+                                  {item.selectedOptions && item.selectedOptions.length > 0 && (
+                                    <span className="text-xs"> ({item.selectedOptions.map((opt: any) => opt.value).join(', ')})</span>
+                                  )}
+                                  {' '}= ₱{item.price}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          
+                          <Separator />
+                          
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span>Customer Paid for Items:</span>
+                              <span className="font-medium">₱{(parseFloat(order.subtotal) + parseFloat(order.markup || '0')).toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between text-muted-foreground">
+                              <span>Order Markup ({order.restaurantMarkup || 0}%):</span>
+                              <span>- ₱{parseFloat(order.markup || '0').toFixed(2)}</span>
+                            </div>
+                            <Separator />
+                            <div className="flex justify-between font-bold text-green-600">
+                              <span>Your Earnings (Base Cost):</span>
+                              <span>₱{parseFloat(order.merchantEarningsAmount || order.subtotal).toFixed(2)}</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground italic">Note: Markup goes to platform</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4">
+              <p className="text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  data-testid="button-previous-page"
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  data-testid="button-next-page"
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function MerchantPortal() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -2351,43 +2638,9 @@ export default function MerchantPortal() {
               )}
             </TabsContent>
 
-            {/* Analytics */}
+            {/* Analytics - Earnings History */}
             <TabsContent value="analytics" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm">Total Orders</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-2xl font-bold">{orders.length}</p>
-                    <p className="text-sm text-muted-foreground">All time</p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm">Total Revenue</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-2xl font-bold">
-                      ₱{orders.reduce((sum: number, order: Order) => sum + parseFloat(order.subtotal || '0'), 0).toFixed(0)}
-                    </p>
-                    <p className="text-sm text-muted-foreground">All time</p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm">Average Order</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-2xl font-bold">
-                      ₱{orders.length > 0 ? (orders.reduce((sum: number, order: Order) => sum + parseFloat(order.subtotal || '0'), 0) / orders.length).toFixed(0) : '0'}
-                    </p>
-                    <p className="text-sm text-muted-foreground">Per order</p>
-                  </CardContent>
-                </Card>
-              </div>
+              <MerchantEarningsHistory />
             </TabsContent>
 
             {/* My Account Tab */}
