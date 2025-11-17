@@ -48,19 +48,20 @@ Merchant Earnings = Subtotal (Items Base Cost)
 ### What the App Earns:
 
 ```
-App Earnings = (Delivery Fee × App Earnings %) + Markup + Multi-Merchant Fee
+App Earnings = [(Delivery Fee + Multi-Merchant Fee) × App Earnings %] + Markup
 ```
 
 **Revenue Sources:**
 
-1. **Portion of Delivery Fee** - Configurable percentage (default: 50%)
+1. **Portion of Combined Fees** - Configurable percentage of (Delivery Fee + Multi-Merchant Fee) (default: 50%)
 2. **100% of Order Markup** - All markup revenue goes to the app
-3. **100% of Multi-Merchant Fee** - All multi-merchant fees go to the app
 
 **Formula:**
 ```
-App Earnings Amount = (Delivery Fee × 0.50) + Markup + Multi-Merchant Fee
+App Earnings Amount = [(Delivery Fee + Multi-Merchant Fee) × 0.50] + Markup
 ```
+
+**Key Point:** Delivery Fee and Multi-Merchant Fee are **combined FIRST**, then the app's percentage is applied.
 
 ---
 
@@ -69,18 +70,22 @@ App Earnings Amount = (Delivery Fee × 0.50) + Markup + Multi-Merchant Fee
 ### What the Rider Receives:
 
 ```
-Rider Earnings = (Delivery Fee × (100% - App Earnings %)) + Convenience Fee
+Rider Earnings = Convenience Fee + [(Delivery Fee + Multi-Merchant Fee) × (100% - App Earnings %)]
 ```
 
 **Revenue Sources:**
 
-1. **Portion of Delivery Fee** - Remaining percentage after app's share (default: 50%)
-2. **100% of Convenience Fee** - All convenience fees go to the rider
+1. **100% of Convenience Fee** - Fixed rider commission per order (goes entirely to rider)
+2. **Portion of Combined Fees** - Remaining percentage of (Delivery Fee + Multi-Merchant Fee) after app's share (default: 50%)
 
 **Formula:**
 ```
-Rider Earnings Amount = (Delivery Fee × 0.50) + Convenience Fee
+Rider Earnings Amount = Convenience Fee + [(Delivery Fee + Multi-Merchant Fee) × 0.50]
 ```
+
+**Key Points:** 
+- Convenience Fee acts as the fixed rider commission
+- Delivery Fee and Multi-Merchant Fee are **combined FIRST**, then the rider's percentage is applied
 
 ---
 
@@ -116,19 +121,18 @@ Merchant Earnings:     ₱500.00 (100% of base items cost)
 
 #### APP EARNS:
 ```
-From Delivery Fee (50%):  ₱ 27.50  (₱55.00 × 50%)
+From Combined Fees (50%): ₱ 37.50  ((₱55.00 + ₱20.00) × 50%)
 From Markup (100%):       ₱ 75.00  (all markup)
-Multi-Merchant Fee:       ₱ 20.00  (all multi-merchant fee)
 ─────────────────────────────────
-APP TOTAL:                ₱122.50
+APP TOTAL:                ₱112.50
 ```
 
 #### RIDER EARNS:
 ```
-From Delivery Fee (50%):  ₱ 27.50  (₱55.00 × 50%)
-Convenience Fee (100%):   ₱ 15.00  (all convenience fee)
+Convenience Fee (100%):   ₱ 15.00  (fixed rider commission)
+From Combined Fees (50%): ₱ 37.50  ((₱55.00 + ₱20.00) × 50%)
 ─────────────────────────────────
-RIDER TOTAL:              ₱ 42.50
+RIDER TOTAL:              ₱ 52.50
 ```
 
 ### VERIFICATION:
@@ -136,8 +140,8 @@ RIDER TOTAL:              ₱ 42.50
 Customer Payment:     ₱665.00
 ─────────────────────────────
 Merchant Earnings:    ₱500.00
-App Earnings:         ₱122.50
-Rider Earnings:       ₱ 42.50
+App Earnings:         ₱112.50
+Rider Earnings:       ₱ 52.50
 ─────────────────────────────
 TOTAL DISTRIBUTED:    ₱665.00  ✓ (Matches customer payment)
 ```
@@ -212,9 +216,13 @@ const appEarningsPercent = appEarningsPercentage / 100; // 0.50
 // Calculate each stakeholder's earnings
 merchantEarnings = subtotal; // 100% of base items cost
 
-appEarnings = (deliveryFee × appEarningsPercent) + markup + multiMerchantFee;
+// IMPORTANT: Combine delivery fee and multi-merchant fee FIRST
+const combinedFees = deliveryFee + multiMerchantFee;
 
-riderEarnings = (deliveryFee × (1 - appEarningsPercent)) + convenienceFee;
+// Then apply percentages to combined fees
+appEarnings = (combinedFees × appEarningsPercent) + markup;
+
+riderEarnings = convenienceFee + (combinedFees × (1 - appEarningsPercent));
 
 // Calculate customer total
 customerTotal = subtotal + markup + deliveryFee + multiMerchantFee + convenienceFee;
