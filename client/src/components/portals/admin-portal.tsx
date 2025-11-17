@@ -1222,7 +1222,7 @@ function AdminEarningsHistory() {
                                 <div className="space-y-1 pl-3 text-muted-foreground">
                                   <div className="flex justify-between">
                                     <span>Items Subtotal:</span>
-                                    <span>₱{subtotal.toFixed(2)}</span>
+                                    <span>₱{(subtotal + markup).toFixed(2)}</span>
                                   </div>
                                   <div className="flex justify-between">
                                     <span>Delivery Fee ({order.distance || '0'} km):</span>
@@ -1257,7 +1257,7 @@ function AdminEarningsHistory() {
                                     <div className="pl-3 space-y-1 text-muted-foreground text-xs">
                                       <div className="flex justify-between">
                                         <span>Items Subtotal:</span>
-                                        <span>₱{subtotal.toFixed(2)}</span>
+                                        <span>₱{(subtotal + markup).toFixed(2)}</span>
                                       </div>
                                       <div className="flex justify-between">
                                         <span>Order Markup ({order.restaurantMarkup || 0}%):</span>
@@ -1266,7 +1266,7 @@ function AdminEarningsHistory() {
                                       <div className="h-px bg-border my-1"></div>
                                       <div className="flex justify-between font-medium text-yellow-600">
                                         <span>Merchant Receives:</span>
-                                        <span>₱{(subtotal - markup).toFixed(2)}</span>
+                                        <span>₱{subtotal.toFixed(2)}</span>
                                       </div>
                                     </div>
                                   </div>

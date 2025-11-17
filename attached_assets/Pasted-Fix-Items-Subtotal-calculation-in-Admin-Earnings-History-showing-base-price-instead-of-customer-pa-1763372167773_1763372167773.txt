@@ -1,0 +1,76 @@
+Fix Items Subtotal calculation in Admin Earnings History - showing base price instead of customer-paid price:
+
+PROBLEM:
+
+In Admin > Reports > Earnings History, the breakdown shows:
+
+CURRENT (WRONG):
+Items Subtotal: ₱50.00 (base price only)
+Order Markup (0%): - ₱7.50
+Merchant Receives: ₱42.50
+
+This causes mismatch error in verification:
+Customer Paid: ₱235.90
+Distributed: ₱228.40
+Mismatch (highlighted in red)
+
+ISSUE:
+
+Items Subtotal should show what CUSTOMER PAID for items (₱57.50), not the base merchant cost (₱50.00).
+
+CORRECT CALCULATION:
+
+Items Subtotal: ₱57.50 (what customer paid - includes markup)
+Order Markup (0%): - ₱7.50 (deducted from customer payment)
+Merchant Receives: ₱50.00 (base cost)
+
+Wait, that also doesn't work. Let me recalculate:
+
+If customer paid ₱57.50 for items with ₱7.50 markup:
+- Customer paid: ₱57.50
+- Markup: ₱7.50
+- Base cost: ₱57.50 - ₱7.50 = ₱50.00
+- Merchant receives: ₱50.00 ✓
+
+So the display should be:
+
+CUSTOMER PAYMENT:
+Items Subtotal: ₱57.50 (amount customer paid for items)
+Delivery Fee (0 km): ₱168.40
+Rider's Commission: ₱10.00
+Total Paid by Customer: ₱235.90
+
+REVENUE DISTRIBUTION:
+
+1. Merchant Earnings:
+   Items Customer Paid: ₱57.50
+   Order Markup (13%): - ₱7.50
+   Merchant Receives: ₱50.00
+
+2. App Earnings:
+   Delivery Fee + Multi-Merchant: ₱168.40
+   App Share (50%): × 50% = ₱84.20
+   Order Markup: + ₱7.50
+   Total App Earnings: ₱91.70
+
+3. Rider Earnings:
+   Rider's Commission: ₱10.00
+   Delivery Pool Share (50%): ₱84.20
+   Total Rider Earnings: ₱94.20
+
+VERIFICATION:
+Customer Paid: ₱235.90
+Distributed: ₱50.00 + ₱91.70 + ₱94.20 = ₱235.90 ✓
+
+FIX REQUIRED:
+
+In the Earnings History breakdown:
+- "Items Subtotal" should pull the customer-paid amount (with markup included)
+- Currently showing merchant base cost instead
+- This throws off the entire calculation display
+
+Update the query/calculation to show:
+- Items Subtotal = Sum of item prices customer actually paid (not base merchant cost)
+- Then subtract markup to show merchant receives base cost
+
+The data is correct (verification would pass), but the display is showing wrong value for Items Subtotal.
