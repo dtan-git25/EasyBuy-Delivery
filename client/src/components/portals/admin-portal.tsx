@@ -1339,11 +1339,11 @@ function AdminEarningsHistory() {
                                     <span className="font-medium">₱{customerPaid.toFixed(2)}</span>
                                   </div>
                                   <div className="flex justify-between text-muted-foreground">
-                                    <span>Distributed (₱{(subtotal - markup).toFixed(2)} + ₱{(appFromDelivery + markup).toFixed(2)} + ₱{(convenienceFee + riderDeliveryShare).toFixed(2)}):</span>
-                                    <span className="font-medium">₱{((subtotal - markup) + (appFromDelivery + markup) + (convenienceFee + riderDeliveryShare)).toFixed(2)}</span>
+                                    <span>Distributed (₱{subtotal.toFixed(2)} + ₱{(appFromDelivery + markup).toFixed(2)} + ₱{(convenienceFee + riderDeliveryShare).toFixed(2)}):</span>
+                                    <span className="font-medium">₱{(subtotal + (appFromDelivery + markup) + (convenienceFee + riderDeliveryShare)).toFixed(2)}</span>
                                   </div>
                                   <div className="flex items-center gap-2 justify-end">
-                                    {Math.abs(customerPaid - ((subtotal - markup) + (appFromDelivery + markup) + (convenienceFee + riderDeliveryShare))) < 0.01 ? (
+                                    {Math.abs(customerPaid - (subtotal + (appFromDelivery + markup) + (convenienceFee + riderDeliveryShare))) < 0.01 ? (
                                       <span className="text-green-600 font-medium flex items-center gap-1">
                                         <CheckCircle className="h-3 w-3" /> Balanced
                                       </span>
