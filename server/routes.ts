@@ -1049,17 +1049,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Sort by date descending
       orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       
+      // Enrich orders with customer and restaurant data
+      const enrichedOrders = await Promise.all(orders.map(async (order) => {
+        const customer = await storage.getUser(order.customerId);
+        const restaurant = await storage.getRestaurant(order.restaurantId);
+        
+        return {
+          ...order,
+          customer: customer ? {
+            name: `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'Unknown Customer',
+            email: customer.email,
+            phone: customer.phone
+          } : null,
+          restaurant: restaurant ? {
+            name: restaurant.name,
+            address: restaurant.address
+          } : null
+        };
+      }));
+      
       // Calculate summary
-      const totalOrders = orders.length;
-      const totalAppRevenue = orders.reduce((sum, o) => sum + parseFloat(o.appEarningsAmount || '0'), 0);
-      const totalRiderPayouts = orders.reduce((sum, o) => sum + parseFloat(o.riderEarningsAmount || '0'), 0);
-      const totalMerchantPayouts = orders.reduce((sum, o) => sum + parseFloat(o.merchantEarningsAmount || o.subtotal), 0);
+      const totalOrders = enrichedOrders.length;
+      const totalAppRevenue = enrichedOrders.reduce((sum, o) => sum + parseFloat(o.appEarningsAmount || '0'), 0);
+      const totalRiderPayouts = enrichedOrders.reduce((sum, o) => sum + parseFloat(o.riderEarningsAmount || '0'), 0);
+      const totalMerchantPayouts = enrichedOrders.reduce((sum, o) => sum + parseFloat(o.merchantEarningsAmount || o.subtotal), 0);
       
       // Paginate
       const pageNum = parseInt(page as string);
       const limitNum = parseInt(limit as string);
       const startIndex = (pageNum - 1) * limitNum;
-      const paginatedOrders = orders.slice(startIndex, startIndex + limitNum);
+      const paginatedOrders = enrichedOrders.slice(startIndex, startIndex + limitNum);
       
       res.json({
         orders: paginatedOrders,
