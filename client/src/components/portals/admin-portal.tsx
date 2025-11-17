@@ -945,7 +945,7 @@ function AdminEarningsHistory() {
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [selectedMerchantId, setSelectedMerchantId] = useState<string>('');
+  const [selectedMerchantId, setSelectedMerchantId] = useState<string>('all');
   const [selectedRiderId, setSelectedRiderId] = useState<string>('');
   
   const { data: restaurants = [] } = useQuery({ queryKey: ["/api/restaurants"] });
@@ -956,7 +956,7 @@ function AdminEarningsHistory() {
     params.append('limit', '20');
     
     if (searchTerm) params.append('search', searchTerm);
-    if (selectedMerchantId) params.append('merchantId', selectedMerchantId);
+    if (selectedMerchantId && selectedMerchantId !== 'all') params.append('merchantId', selectedMerchantId);
     if (selectedRiderId) params.append('riderId', selectedRiderId);
     
     const now = new Date();
@@ -1107,7 +1107,7 @@ function AdminEarningsHistory() {
                   <SelectValue placeholder="All Merchants" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Merchants</SelectItem>
+                  <SelectItem value="all">All Merchants</SelectItem>
                   {restaurants.map((r: any) => (
                     <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
                   ))}

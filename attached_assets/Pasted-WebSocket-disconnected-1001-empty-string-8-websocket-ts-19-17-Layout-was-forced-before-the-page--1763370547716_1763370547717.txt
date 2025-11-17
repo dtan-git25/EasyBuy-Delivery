@@ -1,0 +1,172 @@
+WebSocket disconnected: 1001 <empty string> 8 websocket.ts:19:17
+Layout was forced before the page was fully loaded. If stylesheets are not yet loaded this may cause a flash of unstyled content. node.js:409:1
+[vite] connecting... client:495:9
+GET
+wss://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/?token=nmCARxnHUiqA
+NS_ERROR_WEBSOCKET_CONNECTION_REFUSED
+
+Firefox can’t establish a connection to the server at wss://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/?token=nmCARxnHUiqA. client:536:19
+Uncaught (in promise) DOMException: An invalid or illegal string was specified
+    setupWebSocket client:536
+    fallback client:509
+    setupWebSocket client:555
+    setupWebSocket client:552
+    <anonymous> client:531
+client:536:19
+Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools react-dom.development.js:29895:17
+🔄 CART LOAD EFFECT - isUserLoading: true currentUser: undefined cart-context.tsx:115:13
+⏳ User query still loading, waiting... cart-context.tsx:119:15
+💾 CART SAVE EFFECT - currentUser: undefined cartCount: 0 isUserLoading: true cart-context.tsx:176:13
+⏳ User still loading, skipping save/clear to prevent data loss cart-context.tsx:181:15
+✅ Service Worker registered successfully: https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/ main.tsx:10:17
+XHRGET
+https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/api/user
+[HTTP/1.1 401 Unauthorized 0ms]
+
+XHRGET
+https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/api/settings
+[HTTP/1.1 401 Unauthorized 0ms]
+
+🔄 CART LOAD EFFECT - isUserLoading: false currentUser: undefined cart-context.tsx:115:13
+💾 localStorage data: EXISTS cart-context.tsx:124:13
+🚫 No user logged in, clearing cart cart-context.tsx:166:15
+💾 CART SAVE EFFECT - currentUser: undefined cartCount: 0 isUserLoading: false cart-context.tsx:176:13
+🗑️ No user (after load complete), removing from localStorage cart-context.tsx:201:15
+💾 CART SAVE EFFECT - currentUser: undefined cartCount: 0 isUserLoading: false cart-context.tsx:176:13
+🗑️ No user (after load complete), removing from localStorage cart-context.tsx:201:15
+🔄 CART LOAD EFFECT - isUserLoading: true currentUser: undefined cart-context.tsx:115:13
+⏳ User query still loading, waiting... cart-context.tsx:119:15
+💾 CART SAVE EFFECT - currentUser: undefined cartCount: 0 isUserLoading: true cart-context.tsx:176:13
+⏳ User still loading, skipping save/clear to prevent data loss cart-context.tsx:181:15
+XHRGET
+https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/api/user
+[HTTP/1.1 401 Unauthorized 0ms]
+
+🔄 CART LOAD EFFECT - isUserLoading: false currentUser: undefined cart-context.tsx:115:13
+💾 localStorage data: EMPTY cart-context.tsx:124:13
+🚫 No user logged in, clearing cart cart-context.tsx:166:15
+💾 CART SAVE EFFECT - currentUser: undefined cartCount: 0 isUserLoading: false cart-context.tsx:176:13
+🗑️ No user (after load complete), removing from localStorage cart-context.tsx:201:15
+💾 CART SAVE EFFECT - currentUser: undefined cartCount: 0 isUserLoading: false cart-context.tsx:176:13
+🗑️ No user (after load complete), removing from localStorage cart-context.tsx:201:15
+🔄 CART LOAD EFFECT - isUserLoading: false currentUser: 8c464659-f769-42b4-9154-214fb7a5be08 cart-context.tsx:115:13
+💾 localStorage data: EMPTY cart-context.tsx:124:13
+📭 No saved carts in localStorage for logged in user cart-context.tsx:170:15
+💾 CART SAVE EFFECT - currentUser: 8c464659-f769-42b4-9154-214fb7a5be08 cartCount: 0 isUserLoading: false cart-context.tsx:176:13
+✅ Saving to localStorage: 
+Object { version: 2, userId: "8c464659-f769-42b4-9154-214fb7a5be08", cartCount: 0, activeRestaurantId: null }
+cart-context.tsx:192:15
+Uncaught Error: A <Select.Item /> must have a value prop that is not an empty string. This is because the Select value can be set to an empty string to clear the selection and show the placeholder.
+    SelectItem select.tsx:1241
+    React 4
+select.tsx:1241:13
+Uncaught Error: A <Select.Item /> must have a value prop that is not an empty string. This is because the Select value can be set to an empty string to clear the selection and show the placeholder.
+    SelectItem select.tsx:1241
+    React 4
+select.tsx:1241:13
+The above error occurred in the <SelectItem> component:
+
+SelectItem<@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=a7f700ab:851:9
+_c1@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/src/components/ui/select.tsx:208:9
+div
+Primitive</Node<@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-BOL2CCOG.js?v=a7f700ab:42:44
+createSlotClone/SlotClone<@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-EVLBUYTV.js?v=a7f700ab:79:40
+createSlot/Slot2<@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-EVLBUYTV.js?v=a7f700ab:56:40
+createCollection/CollectionSlot<@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-DKA7LSZL.js?v=a7f700ab:39:35
+SelectViewport<@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=a7f700ab:757:56
+div
+createSlotClone/SlotClone<@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-EVLBUYTV.js?v=a7f700ab:79:40
+createSlot/Slot2<@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-EVLBUYTV.js?v=a7f700ab:56:40
+createCollection/CollectionSlot<@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-DKA7LSZL.js?v=a7f700ab:39:35
+Provider@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=a7f700ab:38:47
+SelectContent<@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=a7f700ab:300:52
+createSlotClone/SlotClone<@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-EVLBUYTV.js?v=a7f700ab:79:40
+createSlot/Slot2<@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-EVLBUYTV.js?v=a7f700ab:56:40
+Primitive</Node<@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-BOL2CCOG.js?v=a7f700ab:42:44
+Portal<@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-JBU2GN2S.js?v=a7f700ab:260:56
+SelectPortal
+_c7@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/src/components/ui/select.tsx:123:9
+Provider@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=a7f700ab:38:47
+Provider@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=a7f700ab:38:47
+CollectionProvider@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-DKA7LSZL.js?v=a7f700ab:29:33
+Provider@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=a7f700ab:38:47
+Provider@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=a7f700ab:38:47
+Popper@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-IMLMPHK3.js?v=a7f700ab:1921:39
+Select@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=a7f700ab:102:7
+div
+div
+div
+_c9@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/src/components/ui/card.tsx:114:9
+div
+_c@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/src/components/ui/card.tsx:20:8
+div
+AdminEarningsHistory@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/src/components/portals/admin-portal.tsx:1826:45
+div
+div
+Primitive</Node<@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-BOL2CCOG.js?v=a7f700ab:42:44
+Presence@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-VCJEE5DL.js?v=a7f700ab:24:33
+TabsContent<@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=a7f700ab:176:75
+_c5@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/src/components/ui/tabs.tsx:72:9
+div
+Primitive</Node<@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-BOL2CCOG.js?v=a7f700ab:42:44
+Provider@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=a7f700ab:38:47
+Tabs<@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=a7f700ab:62:9
+div
+section
+div
+AdminPortal@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/src/components/portals/admin-portal.tsx:3168:23
+main
+div
+Dashboard@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/src/pages/dashboard.tsx:43:36
+ProtectedRoute@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/src/lib/protected-route.tsx:21:31
+Switch@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=a7f700ab:379:14
+Router
+Provider@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=a7f700ab:38:47
+TooltipProvider@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=a7f700ab:69:7
+CartProvider@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/src/contexts/cart-context.tsx:36:29
+AuthProvider@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/src/hooks/use-auth.tsx:26:29
+QueryClientProvider@https://61910954-fab7-4964-8dcf-b22d4b93ab95-00-2lv5bnyb35ewm.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=a7f700ab:2804:27
+App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries. react-dom.development.js:18704:15
+Uncaught Error: A <Select.Item /> must have a value prop that is not an empty string. This is because the Select value can be set to an empty string to clear the selection and show the placeholder.
+    SelectItem select.tsx:1241
+    React 4
+        renderWithHooks
+        updateForwardRef
+        beginWork
+        beginWork$1
+select.tsx:1241:13
+    SelectItem select.tsx:1241
+    React 15
+    batchCalls notifyManager.ts:69
+    notifyFn notifyManager.ts:17
+    flush notifyManager.ts:40
+    forEach self-hosted:157
+    flush notifyManager.ts:39
+    batchNotifyFn notifyManager.ts:20
+    flush notifyManager.ts:38
+    (Async: setTimeout handler)
+    scheduleFn notifyManager.ts:22
+    flush notifyManager.ts:37
+    batch notifyManager.ts:56
+    dispatch_fn query.ts:617
+    setData query.ts:218
+    setQueryData queryClient.ts:204
+    onSuccess use-auth.tsx:42
+    execute mutation.ts:218
+    InterpretGeneratorResume self-hosted:1332
+    AsyncFunctionNext self-hosted:800
+    (Async: async)
+    mutate mutationObserver.ts:125
+    mutate useMutation.ts:52
+    onLogin auth-page.tsx:265
+    handleSubmit createFormControl.ts:1247
+    InterpretGeneratorResume self-hosted:1332
+    AsyncFunctionNext self-hosted:800
+    React 19
+    forEach self-hosted:4126
+    React 4
+    <anonymous> main.tsx:18
+WebSocket connected
