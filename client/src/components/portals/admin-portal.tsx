@@ -1114,11 +1114,13 @@ function AdminEarningsHistory() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Riders</SelectItem>
-                  {riders.map((r: any) => (
-                    <SelectItem key={r.id} value={r.userId}>
-                      {r.user?.firstName} {r.user?.lastName}
-                    </SelectItem>
-                  ))}
+                  {riders
+                    .filter((r: any) => r.userId && r.user)
+                    .map((r: any) => (
+                      <SelectItem key={r.id} value={r.userId}>
+                        {r.user.firstName} {r.user.lastName}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
