@@ -1,4 +1,4 @@
-import { users, restaurants, menuItems, categories, riders, wallets, orders, chatMessages, systemSettings, walletTransactions, orderStatusHistory, riderLocationHistory, optionTypes, menuItemOptionValues, savedAddresses, ratings, notifications, type User, type InsertUser, type Restaurant, type RestaurantWithOwner, type InsertRestaurant, type MenuItem, type InsertMenuItem, type Category, type InsertCategory, type Rider, type InsertRider, type Order, type InsertOrder, type ChatMessage, type InsertChatMessage, type Wallet, type SystemSettings, type WalletTransaction, type InsertWalletTransaction, type OrderStatusHistory, type InsertOrderStatusHistory, type RiderLocationHistory, type InsertRiderLocationHistory, type OptionType, type InsertOptionType, type MenuItemOptionValue, type InsertMenuItemOptionValue, type SavedAddress, type InsertSavedAddress, type Rating, type InsertRating, type Notification, type InsertNotification } from "@shared/schema";
+import { users, restaurants, menuItems, categories, riders, wallets, orders, chatMessages, systemSettings, walletTransactions, orderStatusHistory, riderLocationHistory, optionTypes, menuItemOptionValues, menuGroups, menuGroupItems, savedAddresses, ratings, notifications, type User, type InsertUser, type Restaurant, type RestaurantWithOwner, type InsertRestaurant, type MenuItem, type InsertMenuItem, type Category, type InsertCategory, type Rider, type InsertRider, type Order, type InsertOrder, type ChatMessage, type InsertChatMessage, type Wallet, type SystemSettings, type WalletTransaction, type InsertWalletTransaction, type OrderStatusHistory, type InsertOrderStatusHistory, type RiderLocationHistory, type InsertRiderLocationHistory, type OptionType, type InsertOptionType, type MenuItemOptionValue, type InsertMenuItemOptionValue, type MenuGroup, type InsertMenuGroup, type MenuGroupItem, type InsertMenuGroupItem, type SavedAddress, type InsertSavedAddress, type Rating, type InsertRating, type Notification, type InsertNotification } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, like, desc, asc } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
@@ -59,6 +59,17 @@ export interface IStorage {
   deleteMenuItemOptionValue(id: string): Promise<void>;
   deleteMenuItemOptionValues(menuItemId: string, optionTypeId: string): Promise<void>;
   updateOptionValuesDisplayOrder(updates: { id: string; displayOrder: number }[]): Promise<void>;
+
+  // Menu Group operations
+  getMenuGroups(restaurantId: string): Promise<any[]>;
+  getMenuGroup(id: string): Promise<any | undefined>;
+  createMenuGroup(group: any): Promise<any>;
+  updateMenuGroup(id: string, updates: any): Promise<any | undefined>;
+  deleteMenuGroup(id: string): Promise<void>;
+  addItemToGroup(groupId: string, menuItemId: string, displayOrder: number): Promise<any>;
+  removeItemFromGroup(groupId: string, menuItemId: string): Promise<void>;
+  updateGroupItemsOrder(updates: { id: string; displayOrder: number }[]): Promise<void>;
+  updateGroupsDisplayOrder(updates: { id: string; displayOrder: number }[]): Promise<void>;
 
   // Rider operations
   getRiders(): Promise<(Rider & { user: User })[]>;
@@ -406,6 +417,124 @@ export class DatabaseStorage implements IStorage {
       await db.update(menuItemOptionValues)
         .set({ displayOrder: update.displayOrder, updatedAt: new Date() })
         .where(eq(menuItemOptionValues.id, update.id));
+    }
+  }
+
+  // Menu Group operations
+  async getMenuGroups(restaurantId: string): Promise<any[]> {
+    const groups = await db
+      .select()
+      .from(menuGroups)
+      .where(eq(menuGroups.restaurantId, restaurantId))
+      .orderBy(asc(menuGroups.displayOrder));
+    
+    // For each group, get the items
+    const groupsWithItems = await Promise.all(
+      groups.map(async (group) => {
+        const items = await db
+          .select({
+            id: menuGroupItems.id,
+            menuItemId: menuGroupItems.menuItemId,
+            displayOrder: menuGroupItems.displayOrder,
+            menuItem: menuItems,
+          })
+          .from(menuGroupItems)
+          .leftJoin(menuItems, eq(menuGroupItems.menuItemId, menuItems.id))
+          .where(eq(menuGroupItems.groupId, group.id))
+          .orderBy(asc(menuGroupItems.displayOrder));
+        
+        return {
+          ...group,
+          items: items.map(item => ({
+            id: item.id,
+            menuItemId: item.menuItemId,
+            displayOrder: item.displayOrder,
+            ...item.menuItem,
+          })),
+        };
+      })
+    );
+    
+    return groupsWithItems;
+  }
+
+  async getMenuGroup(id: string): Promise<any | undefined> {
+    const [group] = await db.select().from(menuGroups).where(eq(menuGroups.id, id));
+    if (!group) return undefined;
+    
+    const items = await db
+      .select({
+        id: menuGroupItems.id,
+        menuItemId: menuGroupItems.menuItemId,
+        displayOrder: menuGroupItems.displayOrder,
+        menuItem: menuItems,
+      })
+      .from(menuGroupItems)
+      .leftJoin(menuItems, eq(menuGroupItems.menuItemId, menuItems.id))
+      .where(eq(menuGroupItems.groupId, id))
+      .orderBy(asc(menuGroupItems.displayOrder));
+    
+    return {
+      ...group,
+      items: items.map(item => ({
+        id: item.id,
+        menuItemId: item.menuItemId,
+        displayOrder: item.displayOrder,
+        ...item.menuItem,
+      })),
+    };
+  }
+
+  async createMenuGroup(group: InsertMenuGroup): Promise<MenuGroup> {
+    const [newGroup] = await db.insert(menuGroups).values(group).returning();
+    return newGroup;
+  }
+
+  async updateMenuGroup(id: string, updates: Partial<MenuGroup>): Promise<MenuGroup | undefined> {
+    const [group] = await db.update(menuGroups)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(menuGroups.id, id))
+      .returning();
+    return group || undefined;
+  }
+
+  async deleteMenuGroup(id: string): Promise<void> {
+    // Delete menu group items first (cascade should handle this, but being explicit)
+    await db.delete(menuGroupItems).where(eq(menuGroupItems.groupId, id));
+    await db.delete(menuGroups).where(eq(menuGroups.id, id));
+  }
+
+  async addItemToGroup(groupId: string, menuItemId: string, displayOrder: number): Promise<MenuGroupItem> {
+    const [item] = await db.insert(menuGroupItems).values({
+      groupId,
+      menuItemId,
+      displayOrder,
+    }).returning();
+    return item;
+  }
+
+  async removeItemFromGroup(groupId: string, menuItemId: string): Promise<void> {
+    await db.delete(menuGroupItems).where(
+      and(
+        eq(menuGroupItems.groupId, groupId),
+        eq(menuGroupItems.menuItemId, menuItemId)
+      )
+    );
+  }
+
+  async updateGroupItemsOrder(updates: { id: string; displayOrder: number }[]): Promise<void> {
+    for (const update of updates) {
+      await db.update(menuGroupItems)
+        .set({ displayOrder: update.displayOrder })
+        .where(eq(menuGroupItems.id, update.id));
+    }
+  }
+
+  async updateGroupsDisplayOrder(updates: { id: string; displayOrder: number }[]): Promise<void> {
+    for (const update of updates) {
+      await db.update(menuGroups)
+        .set({ displayOrder: update.displayOrder, updatedAt: new Date() })
+        .where(eq(menuGroups.id, update.id));
     }
   }
 
