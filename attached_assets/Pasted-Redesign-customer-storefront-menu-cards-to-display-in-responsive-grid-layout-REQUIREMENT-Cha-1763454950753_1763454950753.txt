@@ -1,0 +1,118 @@
+Redesign customer storefront menu cards to display in responsive grid layout:
+
+REQUIREMENT:
+
+Change menu item cards from current layout to a responsive grid:
+- Desktop/Laptop: 3 cards per row
+- Tablet: 2 cards per row
+- Mobile: 2 cards per row
+
+CURRENT LAYOUT (wrong):
+Items displayed with irregular spacing and alignment
+
+REQUIRED LAYOUT:
+
+DESKTOP (3 columns):
+┌─────────────┐  ┌─────────────┐  ┌─────────────┐
+│   [Image]   │  │   [Image]   │  │   [Image]   │
+│   Burger    │  │   Drinks    │  │   Fries     │
+│   ₱22.00    │  │   ₱11.00    │  │   ₱40.00    │
+│ [Add to Cart]  │ [Add to Cart]  │ [Add to Cart] │
+└─────────────┘  └─────────────┘  └─────────────┘
+
+TABLET (2 columns):
+┌─────────────┐  ┌─────────────┐
+│   [Image]   │  │   [Image]   │
+│   Burger    │  │   Drinks    │
+│   ₱22.00    │  │   ₱11.00    │
+│ [Add to Cart]  │ [Add to Cart] │
+└─────────────┘  └─────────────┘
+
+MOBILE (2 columns):
+┌──────┐  ┌──────┐
+│[Img] │  │[Img] │
+│Burger│  │Drink │
+│₱22.00│  │₱11.00│
+│[Add] │  │[Add] │
+└──────┘  └──────┘
+
+IMPLEMENTATION:
+
+1. GRID LAYOUT:
+   Use CSS Grid or Flexbox:
+   
+   Desktop (≥1024px):
+   - grid-template-columns: repeat(3, 1fr)
+   - gap: 1rem or 1.5rem
+   
+   Tablet (768px - 1023px):
+   - grid-template-columns: repeat(2, 1fr)
+   - gap: 1rem
+   
+   Mobile (<768px):
+   - grid-template-columns: repeat(2, 1fr)
+   - gap: 0.75rem
+
+2. CARD DESIGN:
+   Each card should be a complete box with:
+   - Product image (square or 4:3 ratio)
+   - Item name
+   - Price
+   - Add to Cart button
+   - Border or shadow
+   - White background
+   - Rounded corners
+   - Consistent height
+
+3. CARD STRUCTURE:
+   ┌─────────────────────┐
+   │                     │
+   │    [Image Area]     │
+   │                     │
+   ├─────────────────────┤
+   │   Item Name         │
+   │   ₱Price            │
+   │   [Add to Cart]     │
+   └─────────────────────┘
+
+4. IMAGE:
+   - Aspect ratio: Square (1:1) or 4:3
+   - Object-fit: cover
+   - Centered
+   - Takes 60-70% of card height
+
+5. RESPONSIVE BEHAVIOR:
+   - Cards scale proportionally
+   - Always 3, 2, or 2 per row (no 1 per row)
+   - Equal width cards in each row
+   - Maintain aspect ratio
+   - Buttons remain visible
+
+6. GROUPING:
+   Maintain group headers:
+   
+   Tinapay
+   [Card] [Card] [Card]
+   [Card] [Card] [Card]
+   
+   Inumin
+   [Card] [Card] [Card]
+
+7. EMPTY SPACES:
+   If row not complete, leave empty spaces:
+   - Don't stretch last card
+   - Maintain grid alignment
+
+8. MOBILE OPTIMIZATION:
+   For mobile (2 columns):
+   - Smaller images
+   - Compact text
+   - Smaller "Add" button or icon
+   - Still readable and tappable
+
+9. HOVER/ACTIVE STATES:
+   - Desktop: Hover effect (shadow, scale)
+   - Mobile: Active/pressed state
+   - Visual feedback on interaction
+
+This creates a clean, modern grid layout similar to popular food delivery apps, making it easy for customers to browse menu items.

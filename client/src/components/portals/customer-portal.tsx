@@ -880,7 +880,7 @@ export default function CustomerPortal() {
         </div>
 
         {/* Menu Section */}
-        <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold">Menu</h2>
           </div>
@@ -900,50 +900,47 @@ export default function CustomerPortal() {
                       <p className="text-sm text-muted-foreground mt-1">{group.description}</p>
                     )}
                   </div>
-                  <div className="space-y-4">
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
                     {group.items.map((item: any) => (
-                      <Card key={item.id} className="p-4" data-testid={`menu-item-${item.id}`}>
-                        <div className="flex gap-4">
-                          {/* Menu Item Image */}
-                          {item.image ? (
-                            <div className="flex-shrink-0">
-                              <img 
-                                src={item.image} 
-                                alt={item.name}
-                                className="w-24 h-24 object-cover rounded-md"
-                                data-testid={`img-menu-item-${item.id}`}
-                              />
-                            </div>
-                          ) : (
-                            <div className="flex-shrink-0 w-24 h-24 bg-muted rounded-md flex items-center justify-center">
-                              <ShoppingCart className="h-8 w-8 text-muted-foreground" />
-                            </div>
+                      <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow" data-testid={`menu-item-${item.id}`}>
+                        {/* Menu Item Image */}
+                        {item.image ? (
+                          <div className="aspect-square w-full">
+                            <img 
+                              src={item.image} 
+                              alt={item.name}
+                              className="w-full h-full object-cover"
+                              data-testid={`img-menu-item-${item.id}`}
+                            />
+                          </div>
+                        ) : (
+                          <div className="aspect-square w-full bg-muted flex items-center justify-center">
+                            <ShoppingCart className="h-12 w-12 text-muted-foreground" />
+                          </div>
+                        )}
+                        
+                        {/* Menu Item Details */}
+                        <div className="p-3 lg:p-4 flex flex-col">
+                          <h4 className="font-semibold text-foreground line-clamp-2 min-h-[2.5rem]">{item.name}</h4>
+                          {item.description && (
+                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2 hidden lg:block">{item.description}</p>
                           )}
-                          
-                          {/* Menu Item Details */}
-                          <div className="flex-1 flex justify-between items-start">
-                            <div className="flex-1">
-                              <h4 className="font-semibold text-foreground">{item.name}</h4>
-                              {item.description && (
-                                <p className="text-sm text-muted-foreground mb-2">{item.description}</p>
-                              )}
-                              <div className="flex items-center justify-between mt-2">
-                                <span className="text-lg font-bold text-green-600">₱{(Number(item.price) * (1 + selectedRestaurant.markup / 100)).toFixed(2)}</span>
-                                <div className="flex items-center space-x-2">
-                                  {!item.isAvailable ? (
-                                    <Badge variant="destructive">Unavailable</Badge>
-                                  ) : (
-                                    <Button
-                                      onClick={() => openOptionsModal(item)}
-                                      data-testid={`button-add-to-cart-${item.id}`}
-                                    >
-                                      <ShoppingCart className="mr-2 h-4 w-4" />
-                                      Add to Cart
-                                    </Button>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
+                          <div className="mt-auto pt-3">
+                            <p className="text-lg font-bold text-green-600 mb-2">₱{(Number(item.price) * (1 + selectedRestaurant.markup / 100)).toFixed(2)}</p>
+                            {!item.isAvailable ? (
+                              <Badge variant="destructive" className="w-full justify-center py-2">Unavailable</Badge>
+                            ) : (
+                              <Button
+                                onClick={() => openOptionsModal(item)}
+                                className="w-full"
+                                size="sm"
+                                data-testid={`button-add-to-cart-${item.id}`}
+                              >
+                                <ShoppingCart className="mr-1 h-3 w-3 lg:h-4 lg:w-4" />
+                                <span className="hidden lg:inline">Add to Cart</span>
+                                <span className="lg:hidden">Add</span>
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </Card>
@@ -956,50 +953,47 @@ export default function CustomerPortal() {
               {menuByGroups.ungroupedItems.length > 0 && (
                 <div>
                   <h3 className="text-xl font-semibold mb-4 text-foreground">Other Items</h3>
-                  <div className="space-y-4">
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
                     {menuByGroups.ungroupedItems.map((item: any) => (
-                      <Card key={item.id} className="p-4" data-testid={`menu-item-${item.id}`}>
-                        <div className="flex gap-4">
-                          {/* Menu Item Image */}
-                          {item.image ? (
-                            <div className="flex-shrink-0">
-                              <img 
-                                src={item.image} 
-                                alt={item.name}
-                                className="w-24 h-24 object-cover rounded-md"
-                                data-testid={`img-menu-item-${item.id}`}
-                              />
-                            </div>
-                          ) : (
-                            <div className="flex-shrink-0 w-24 h-24 bg-muted rounded-md flex items-center justify-center">
-                              <ShoppingCart className="h-8 w-8 text-muted-foreground" />
-                            </div>
+                      <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow" data-testid={`menu-item-${item.id}`}>
+                        {/* Menu Item Image */}
+                        {item.image ? (
+                          <div className="aspect-square w-full">
+                            <img 
+                              src={item.image} 
+                              alt={item.name}
+                              className="w-full h-full object-cover"
+                              data-testid={`img-menu-item-${item.id}`}
+                            />
+                          </div>
+                        ) : (
+                          <div className="aspect-square w-full bg-muted flex items-center justify-center">
+                            <ShoppingCart className="h-12 w-12 text-muted-foreground" />
+                          </div>
+                        )}
+                        
+                        {/* Menu Item Details */}
+                        <div className="p-3 lg:p-4 flex flex-col">
+                          <h4 className="font-semibold text-foreground line-clamp-2 min-h-[2.5rem]">{item.name}</h4>
+                          {item.description && (
+                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2 hidden lg:block">{item.description}</p>
                           )}
-                          
-                          {/* Menu Item Details */}
-                          <div className="flex-1 flex justify-between items-start">
-                            <div className="flex-1">
-                              <h4 className="font-semibold text-foreground">{item.name}</h4>
-                              {item.description && (
-                                <p className="text-sm text-muted-foreground mb-2">{item.description}</p>
-                              )}
-                              <div className="flex items-center justify-between mt-2">
-                                <span className="text-lg font-bold text-green-600">₱{(Number(item.price) * (1 + selectedRestaurant.markup / 100)).toFixed(2)}</span>
-                                <div className="flex items-center space-x-2">
-                                  {!item.isAvailable ? (
-                                    <Badge variant="destructive">Unavailable</Badge>
-                                  ) : (
-                                    <Button
-                                      onClick={() => openOptionsModal(item)}
-                                      data-testid={`button-add-to-cart-${item.id}`}
-                                    >
-                                      <ShoppingCart className="mr-2 h-4 w-4" />
-                                      Add to Cart
-                                    </Button>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
+                          <div className="mt-auto pt-3">
+                            <p className="text-lg font-bold text-green-600 mb-2">₱{(Number(item.price) * (1 + selectedRestaurant.markup / 100)).toFixed(2)}</p>
+                            {!item.isAvailable ? (
+                              <Badge variant="destructive" className="w-full justify-center py-2">Unavailable</Badge>
+                            ) : (
+                              <Button
+                                onClick={() => openOptionsModal(item)}
+                                className="w-full"
+                                size="sm"
+                                data-testid={`button-add-to-cart-${item.id}`}
+                              >
+                                <ShoppingCart className="mr-1 h-3 w-3 lg:h-4 lg:w-4" />
+                                <span className="hidden lg:inline">Add to Cart</span>
+                                <span className="lg:hidden">Add</span>
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </Card>
