@@ -1,0 +1,155 @@
+Add Menu Group functionality for Merchant to organize menu items into custom groups:
+
+REQUIREMENT:
+
+Replace category-based grouping with custom Menu Groups that merchant can create and manage.
+
+FEATURE OVERVIEW:
+
+Merchants can:
+1. Create custom groups (e.g., "Best Sellers", "Breakfast Menu", "Limited Time Offers")
+2. Add menu items to groups
+3. Reorder groups
+4. Customers see menu organized by these groups instead of categories
+
+IMPLEMENTATION:
+
+1. MERCHANT - MENU MANAGEMENT TAB:
+
+   Add new section: "Menu Groups"
+
+   Layout:
+   ┌─────────────────────────────────────────────────────────┐
+   │ Menu Groups                            [+ Create Group]  │
+   ├─────────────────────────────────────────────────────────┤
+   │                                                          │
+   │ ☰ Best Sellers (5 items)              [Edit] [Delete]   │
+   │   • Burger                                               │
+   │   • Fries                                                │
+   │   • Iced Coffee                                          │
+   │                                                          │
+   │ ☰ Breakfast Menu (3 items)            [Edit] [Delete]   │
+   │   • Pancakes                                             │
+   │   • Coffee                                               │
+   │                                                          │
+   │ ☰ Drinks (4 items)                    [Edit] [Delete]   │
+   │   • Iced Tea                                             │
+   │   • Lemonade                                             │
+   └─────────────────────────────────────────────────────────┘
+
+2. CREATE/EDIT GROUP MODAL:
+
+   [Create New Group]
+   
+   Group Name: [________________]
+   Description: [________________] (optional)
+   
+   Add Items to Group:
+   ┌─────────────────────────────────────┐
+   │ Search items...                     │
+   ├─────────────────────────────────────┤
+   │ Available Items:                    │
+   │ ☐ Burger                           │
+   │ ☐ Fries                            │
+   │ ☐ Pizza                            │
+   │ ☐ Iced Coffee                      │
+   │                                     │
+   │ Selected Items (drag to reorder):   │
+   │ ☰ Burger            [Remove]       │
+   │ ☰ Fries             [Remove]       │
+   └─────────────────────────────────────┘
+   
+   [Cancel]  [Save Group]
+
+3. DATABASE STRUCTURE:
+
+   Create new table: menu_groups
+   - id
+   - merchant_id
+   - group_name
+   - description
+   - display_order
+   - created_at
+
+   Create junction table: menu_group_items
+   - id
+   - group_id
+   - menu_item_id
+   - display_order
+
+4. GROUP MANAGEMENT FEATURES:
+
+   - Create group: Name, description
+   - Add items: Select from merchant's menu items
+   - Remove items: Unlink from group
+   - Reorder groups: Drag and drop
+   - Reorder items within group: Drag and drop
+   - Edit group: Change name, items
+   - Delete group: Remove group (items remain in menu)
+
+5. CUSTOMER VIEW - REPLACE CATEGORY WITH GROUPS:
+
+   Current (by category):
+   [Burgers]
+   [Drinks]
+   [Sides]
+
+   New (by groups):
+   [Best Sellers]
+   [Breakfast Menu]
+   [Lunch Specials]
+   [Drinks]
+
+   Customer browsing:
+   ┌─────────────────────────────────────┐
+   │ Jollibee                            │
+   ├─────────────────────────────────────┤
+   │ Best Sellers                  ▼     │
+   │   Burger - ₱155.00                  │
+   │   Fries - ₱80.00                    │
+   │                                     │
+   │ Breakfast Menu                ▼     │
+   │   Pancakes - ₱120.00                │
+   │   Coffee - ₱50.00                   │
+   │                                     │
+   │ Drinks                        ▼     │
+   │   Iced Tea - ₱30.00                 │
+   └─────────────────────────────────────┘
+
+6. RULES:
+
+   - One item can be in multiple groups
+   - Items without group: Show in "Other Items" or "More" section
+   - Empty groups: Don't show to customers
+   - Group order: Drag and drop in merchant dashboard
+
+7. MENU ITEM MANAGEMENT:
+
+   Keep existing "Add Menu Item" functionality
+   When creating/editing item:
+   - Name, price, options (existing)
+   - Add to Groups: [Select groups] (new)
+
+8. MIGRATION:
+
+   For existing merchants:
+   - Keep categories in database
+
+9. DEFAULT BEHAVIOR:
+
+   If merchant has no groups:
+   - Show all items ungrouped
+
+10. MOBILE RESPONSIVE:
+
+    - Collapsible groups
+    - Drag and drop on mobile
+    - Easy item selection
+
+CLARIFICATION:
+
+Keep both Categories AND Menu Groups:
+- Categories: Used for filtering merchants on customer homepage
+- Menu Groups: Used for organizing menu display within a merchant's store
+
+This gives merchants full control over how their menu is organized and displayed to customers, allowing for better merchandising and highlighting of featured items.

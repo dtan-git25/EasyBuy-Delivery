@@ -161,6 +161,26 @@ export const menuItemOptionValues = pgTable("menu_item_option_values", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Menu Groups table - Merchants create custom groups to organize their menu
+export const menuGroups = pgTable("menu_groups", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  restaurantId: varchar("restaurant_id").notNull().references(() => restaurants.id, { onDelete: 'cascade' }),
+  groupName: text("group_name").notNull(),
+  description: text("description"),
+  displayOrder: integer("display_order").default(0), // Order in which groups are displayed
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Menu Group Items junction table - Links menu items to groups
+export const menuGroupItems = pgTable("menu_group_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  groupId: varchar("group_id").notNull().references(() => menuGroups.id, { onDelete: 'cascade' }),
+  menuItemId: varchar("menu_item_id").notNull().references(() => menuItems.id, { onDelete: 'cascade' }),
+  displayOrder: integer("display_order").default(0), // Order of items within the group
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Riders table
 export const riders = pgTable("riders", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -508,6 +528,17 @@ export const insertMenuItemOptionValueSchema = createInsertSchema(menuItemOption
   updatedAt: true,
 });
 
+export const insertMenuGroupSchema = createInsertSchema(menuGroups).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMenuGroupItemSchema = createInsertSchema(menuGroupItems).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertRiderSchema = createInsertSchema(riders).omit({
   id: true,
   createdAt: true,
@@ -670,6 +701,10 @@ export type OptionType = typeof optionTypes.$inferSelect;
 export type InsertOptionType = z.infer<typeof insertOptionTypeSchema>;
 export type MenuItemOptionValue = typeof menuItemOptionValues.$inferSelect;
 export type InsertMenuItemOptionValue = z.infer<typeof insertMenuItemOptionValueSchema>;
+export type MenuGroup = typeof menuGroups.$inferSelect;
+export type InsertMenuGroup = z.infer<typeof insertMenuGroupSchema>;
+export type MenuGroupItem = typeof menuGroupItems.$inferSelect;
+export type InsertMenuGroupItem = z.infer<typeof insertMenuGroupItemSchema>;
 export type Rider = typeof riders.$inferSelect;
 export type InsertRider = z.infer<typeof insertRiderSchema>;
 export type Order = typeof orders.$inferSelect;
