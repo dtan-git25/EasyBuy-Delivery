@@ -213,39 +213,27 @@ function RiderEarningsHistory() {
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Deliveries</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold" data-testid="text-total-deliveries">{summary.totalDeliveries}</p>
-            <p className="text-xs text-muted-foreground mt-1">Completed deliveries</p>
-          </CardContent>
-        </Card>
+        <div className="p-4 border rounded-lg">
+          <p className="text-sm text-muted-foreground">Total Deliveries</p>
+          <p className="text-2xl font-bold" data-testid="text-total-deliveries">{summary.totalDeliveries}</p>
+          <p className="text-xs text-muted-foreground mt-1">Completed</p>
+        </div>
         
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Earnings</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-blue-600" data-testid="text-total-earnings">
-              ₱{summary.totalEarnings.toFixed(2)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">Commission + delivery share</p>
-          </CardContent>
-        </Card>
+        <div className="p-4 bg-cyan-50 dark:bg-cyan-950 rounded-lg border-2 border-cyan-200 dark:border-cyan-800">
+          <p className="text-sm text-muted-foreground">Total Earnings</p>
+          <p className="text-2xl font-bold text-cyan-600" data-testid="text-total-earnings">
+            ₱{summary.totalEarnings.toFixed(2)}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">Total earned</p>
+        </div>
         
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Average per Delivery</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold" data-testid="text-average-per-delivery">
-              ₱{summary.averagePerDelivery.toFixed(2)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">Per completed delivery</p>
-          </CardContent>
-        </Card>
+        <div className="p-4 border rounded-lg">
+          <p className="text-sm text-muted-foreground">Avg per Delivery</p>
+          <p className="text-2xl font-bold" data-testid="text-average-per-delivery">
+            ₱{summary.averagePerDelivery.toFixed(2)}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">Average</p>
+        </div>
       </div>
       
       {/* Filters */}

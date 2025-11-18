@@ -1005,51 +1005,35 @@ function AdminEarningsHistory() {
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Orders</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold" data-testid="text-total-orders">{summary.totalOrders}</p>
-            <p className="text-xs text-muted-foreground mt-1">Delivered orders</p>
-          </CardContent>
-        </Card>
+        <div className="p-4 border rounded-lg">
+          <p className="text-sm text-muted-foreground">Total Orders</p>
+          <p className="text-2xl font-bold" data-testid="text-total-orders">{summary.totalOrders}</p>
+          <p className="text-xs text-muted-foreground mt-1">All completed</p>
+        </div>
         
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">App Revenue</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-emerald-600" data-testid="text-app-revenue">
-              ₱{summary.totalAppRevenue.toFixed(2)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">Delivery share + markup</p>
-          </CardContent>
-        </Card>
+        <div className="p-4 bg-emerald-50 dark:bg-emerald-950 rounded-lg border-2 border-emerald-200 dark:border-emerald-800">
+          <p className="text-sm text-muted-foreground">App Revenue</p>
+          <p className="text-2xl font-bold text-emerald-600" data-testid="text-app-revenue">
+            ₱{summary.totalAppRevenue.toFixed(2)}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">Platform share</p>
+        </div>
         
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Rider Payouts</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-cyan-600" data-testid="text-rider-payouts">
-              ₱{summary.totalRiderPayouts.toFixed(2)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">Commission + delivery share</p>
-          </CardContent>
-        </Card>
+        <div className="p-4 bg-cyan-50 dark:bg-cyan-950 rounded-lg border-2 border-cyan-200 dark:border-cyan-800">
+          <p className="text-sm text-muted-foreground">Rider Payouts</p>
+          <p className="text-2xl font-bold text-cyan-600" data-testid="text-rider-payouts">
+            ₱{summary.totalRiderPayouts.toFixed(2)}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">Total paid out</p>
+        </div>
         
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Merchant Payouts</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-yellow-600" data-testid="text-merchant-payouts">
-              ₱{summary.totalMerchantPayouts.toFixed(2)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">Base items cost</p>
-          </CardContent>
-        </Card>
+        <div className="p-4 bg-yellow-50 dark:bg-yellow-950 rounded-lg border-2 border-yellow-200 dark:border-yellow-800">
+          <p className="text-sm text-muted-foreground">Merchant Pay</p>
+          <p className="text-2xl font-bold text-yellow-600" data-testid="text-merchant-payouts">
+            ₱{summary.totalMerchantPayouts.toFixed(2)}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">Total paid out</p>
+        </div>
       </div>
       
       {/* Filters */}

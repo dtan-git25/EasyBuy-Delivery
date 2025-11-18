@@ -405,39 +405,27 @@ function MerchantEarningsHistory() {
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Orders</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold" data-testid="text-total-orders">{summary.totalOrders}</p>
-            <p className="text-xs text-muted-foreground mt-1">Delivered orders</p>
-          </CardContent>
-        </Card>
+        <div className="p-4 border rounded-lg">
+          <p className="text-sm text-muted-foreground">Total Orders</p>
+          <p className="text-2xl font-bold" data-testid="text-total-orders">{summary.totalOrders}</p>
+          <p className="text-xs text-muted-foreground mt-1">Completed</p>
+        </div>
         
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Earnings</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-green-600" data-testid="text-total-earnings">
-              ₱{summary.totalEarnings.toFixed(2)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">Base items cost</p>
-          </CardContent>
-        </Card>
+        <div className="p-4 bg-yellow-50 dark:bg-yellow-950 rounded-lg border-2 border-yellow-200 dark:border-yellow-800">
+          <p className="text-sm text-muted-foreground">Total Earnings</p>
+          <p className="text-2xl font-bold text-yellow-600" data-testid="text-total-earnings">
+            ₱{summary.totalEarnings.toFixed(2)}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">Base revenue</p>
+        </div>
         
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Average per Order</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold" data-testid="text-average-per-order">
-              ₱{summary.averagePerOrder.toFixed(2)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">Per delivered order</p>
-          </CardContent>
-        </Card>
+        <div className="p-4 border rounded-lg">
+          <p className="text-sm text-muted-foreground">Avg per Order</p>
+          <p className="text-2xl font-bold" data-testid="text-average-per-order">
+            ₱{summary.averagePerOrder.toFixed(2)}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">Average</p>
+        </div>
       </div>
       
       {/* Filters */}
