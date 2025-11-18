@@ -582,6 +582,17 @@ export default function MerchantPortal() {
   const [newItemQuantity, setNewItemQuantity] = useState(1);
   const [itemToDelete, setItemToDelete] = useState<{index: number, name: string} | null>(null);
   
+  // Menu Groups state
+  const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
+  const [isEditGroupOpen, setIsEditGroupOpen] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<any>(null);
+  const [deletingGroup, setDeletingGroup] = useState<any>(null);
+  const [groupForm, setGroupForm] = useState({
+    groupName: '',
+    description: '',
+    selectedItems: [] as string[]
+  });
+  
   // Merchant profile edit state
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editedStoreName, setEditedStoreName] = useState("");
@@ -1086,6 +1097,87 @@ export default function MerchantPortal() {
     },
   });
 
+  // Menu Group Mutations
+  const createMenuGroupMutation = useMutation({
+    mutationFn: async (groupData: any) => {
+      const response = await apiRequest("POST", "/api/menu-groups", groupData);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create menu group');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/menu-groups"] });
+      setIsCreateGroupOpen(false);
+      setGroupForm({ groupName: '', description: '', selectedItems: [] });
+      toast({
+        title: "Group created",
+        description: "Your menu group has been created successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Creation failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateMenuGroupMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const response = await apiRequest("PATCH", `/api/menu-groups/${id}`, data);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update menu group');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/menu-groups"] });
+      setIsEditGroupOpen(false);
+      setEditingGroup(null);
+      setGroupForm({ groupName: '', description: '', selectedItems: [] });
+      toast({
+        title: "Group updated",
+        description: "Your menu group has been updated successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteMenuGroupMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiRequest("DELETE", `/api/menu-groups/${id}`, {});
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete menu group');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/menu-groups"] });
+      setDeletingGroup(null);
+      toast({
+        title: "Group deleted",
+        description: "The menu group has been removed successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Delete failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const requestReapprovalMutation = useMutation({
     mutationFn: async () => {
       const response = await apiRequest("POST", "/api/merchant/request-reapproval", {});
@@ -1340,6 +1432,16 @@ export default function MerchantPortal() {
     queryFn: async () => {
       if (!userRestaurant) return [];
       const response = await fetch(`/api/menu-items?restaurantId=${userRestaurant.id}`);
+      return response.json();
+    },
+    enabled: !!userRestaurant,
+  });
+
+  const { data: menuGroups = [] } = useQuery({
+    queryKey: ["/api/menu-groups", userRestaurant?.id],
+    queryFn: async () => {
+      if (!userRestaurant) return [];
+      const response = await fetch(`/api/restaurants/${userRestaurant.id}/menu-groups`);
       return response.json();
     },
     enabled: !!userRestaurant,
@@ -1651,6 +1753,72 @@ export default function MerchantPortal() {
     } catch (error) {
       setAvailableItemOptions([]);
     }
+  };
+
+  // Menu Group Handlers
+  const handleOpenCreateGroup = () => {
+    setGroupForm({ groupName: '', description: '', selectedItems: [] });
+    setIsCreateGroupOpen(true);
+  };
+
+  const handleOpenEditGroup = (group: any) => {
+    setEditingGroup(group);
+    setGroupForm({
+      groupName: group.groupName,
+      description: group.description || '',
+      selectedItems: group.items?.map((item: any) => item.menuItemId) || []
+    });
+    setIsEditGroupOpen(true);
+  };
+
+  const handleSubmitGroup = () => {
+    if (!groupForm.groupName.trim()) {
+      toast({
+        title: "Validation error",
+        description: "Group name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const groupData = {
+      restaurantId: userRestaurant?.id,
+      groupName: groupForm.groupName,
+      description: groupForm.description,
+      displayOrder: menuGroups.length,
+      menuItems: groupForm.selectedItems
+    };
+
+    createMenuGroupMutation.mutate(groupData);
+  };
+
+  const handleUpdateGroup = () => {
+    if (!groupForm.groupName.trim()) {
+      toast({
+        title: "Validation error",
+        description: "Group name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    updateMenuGroupMutation.mutate({
+      id: editingGroup.id,
+      data: {
+        groupName: groupForm.groupName,
+        description: groupForm.description,
+        menuItems: groupForm.selectedItems
+      }
+    });
+  };
+
+  const toggleItemInGroup = (menuItemId: string) => {
+    setGroupForm(prev => ({
+      ...prev,
+      selectedItems: prev.selectedItems.includes(menuItemId)
+        ? prev.selectedItems.filter(id => id !== menuItemId)
+        : [...prev.selectedItems, menuItemId]
+    }));
   };
 
   const calculateItemPrice = (basePrice: string, selectedOptions: Record<string, string>) => {
@@ -2103,7 +2271,7 @@ export default function MerchantPortal() {
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <CardTitle>Menu Groups</CardTitle>
-                        <Button size="sm" data-testid="button-create-group">
+                        <Button size="sm" onClick={handleOpenCreateGroup} data-testid="button-create-group">
                           <Plus className="mr-2 h-4 w-4" />
                           Create Group
                         </Button>
@@ -2113,11 +2281,259 @@ export default function MerchantPortal() {
                       </p>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-center py-8 text-muted-foreground">
-                        <p>Menu Groups feature coming soon. For now, use categories to organize your menu.</p>
-                      </div>
+                      {menuGroups.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <p>No groups yet. Create your first group to organize your menu.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {menuGroups.map((group: any) => (
+                            <Card key={group.id} className="border-l-4 border-l-primary">
+                              <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <CardTitle className="text-base">{group.groupName}</CardTitle>
+                                    {group.description && (
+                                      <p className="text-sm text-muted-foreground mt-1">{group.description}</p>
+                                    )}
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleOpenEditGroup(group)}
+                                      data-testid={`button-edit-group-${group.id}`}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      onClick={() => setDeletingGroup(group)}
+                                      data-testid={`button-delete-group-${group.id}`}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </CardHeader>
+                              <CardContent>
+                                <p className="text-sm text-muted-foreground mb-2">
+                                  {group.items?.length || 0} item(s) in this group
+                                </p>
+                                {group.items && group.items.length > 0 && (
+                                  <div className="flex flex-wrap gap-2">
+                                    {group.items.map((item: any) => (
+                                      <Badge key={item.id} variant="secondary">
+                                        {item.name}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
+
+                  {/* Create Group Dialog */}
+                  <Dialog open={isCreateGroupOpen} onOpenChange={setIsCreateGroupOpen}>
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>Create New Menu Group</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="group-name">Group Name *</Label>
+                          <Input
+                            id="group-name"
+                            placeholder="e.g., Best Sellers, Breakfast Menu"
+                            value={groupForm.groupName}
+                            onChange={(e) => setGroupForm(prev => ({ ...prev, groupName: e.target.value }))}
+                            data-testid="input-group-name"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="group-description">Description (Optional)</Label>
+                          <Textarea
+                            id="group-description"
+                            placeholder="Brief description of this group"
+                            value={groupForm.description}
+                            onChange={(e) => setGroupForm(prev => ({ ...prev, description: e.target.value }))}
+                            data-testid="textarea-group-description"
+                          />
+                        </div>
+                        <div>
+                          <Label>Add Items to Group</Label>
+                          <p className="text-xs text-muted-foreground mb-3">
+                            Select items to include in this group. Items can be in multiple groups.
+                          </p>
+                          <div className="border rounded-lg p-4 max-h-64 overflow-y-auto">
+                            {menuItems.length === 0 ? (
+                              <p className="text-sm text-muted-foreground text-center py-4">
+                                No menu items available. Add menu items first.
+                              </p>
+                            ) : (
+                              <div className="space-y-2">
+                                {menuItems.map((item: any) => (
+                                  <div
+                                    key={item.id}
+                                    className="flex items-center space-x-2 p-2 hover:bg-muted rounded cursor-pointer"
+                                    onClick={() => toggleItemInGroup(item.id)}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={groupForm.selectedItems.includes(item.id)}
+                                      onChange={() => toggleItemInGroup(item.id)}
+                                      className="cursor-pointer"
+                                      data-testid={`checkbox-item-${item.id}`}
+                                    />
+                                    <span className="flex-1">{item.name}</span>
+                                    <span className="text-sm text-muted-foreground">₱{item.price}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          {groupForm.selectedItems.length > 0 && (
+                            <p className="text-sm text-muted-foreground mt-2">
+                              {groupForm.selectedItems.length} item(s) selected
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => setIsCreateGroupOpen(false)}
+                            data-testid="button-cancel-create-group"
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            className="flex-1"
+                            onClick={handleSubmitGroup}
+                            disabled={createMenuGroupMutation.isPending}
+                            data-testid="button-save-group"
+                          >
+                            {createMenuGroupMutation.isPending ? 'Creating...' : 'Create Group'}
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
+                  {/* Edit Group Dialog */}
+                  <Dialog open={isEditGroupOpen} onOpenChange={setIsEditGroupOpen}>
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>Edit Menu Group</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="edit-group-name">Group Name *</Label>
+                          <Input
+                            id="edit-group-name"
+                            placeholder="e.g., Best Sellers, Breakfast Menu"
+                            value={groupForm.groupName}
+                            onChange={(e) => setGroupForm(prev => ({ ...prev, groupName: e.target.value }))}
+                            data-testid="input-edit-group-name"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="edit-group-description">Description (Optional)</Label>
+                          <Textarea
+                            id="edit-group-description"
+                            placeholder="Brief description of this group"
+                            value={groupForm.description}
+                            onChange={(e) => setGroupForm(prev => ({ ...prev, description: e.target.value }))}
+                            data-testid="textarea-edit-group-description"
+                          />
+                        </div>
+                        <div>
+                          <Label>Add Items to Group</Label>
+                          <p className="text-xs text-muted-foreground mb-3">
+                            Select items to include in this group. Items can be in multiple groups.
+                          </p>
+                          <div className="border rounded-lg p-4 max-h-64 overflow-y-auto">
+                            {menuItems.length === 0 ? (
+                              <p className="text-sm text-muted-foreground text-center py-4">
+                                No menu items available.
+                              </p>
+                            ) : (
+                              <div className="space-y-2">
+                                {menuItems.map((item: any) => (
+                                  <div
+                                    key={item.id}
+                                    className="flex items-center space-x-2 p-2 hover:bg-muted rounded cursor-pointer"
+                                    onClick={() => toggleItemInGroup(item.id)}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={groupForm.selectedItems.includes(item.id)}
+                                      onChange={() => toggleItemInGroup(item.id)}
+                                      className="cursor-pointer"
+                                      data-testid={`checkbox-edit-item-${item.id}`}
+                                    />
+                                    <span className="flex-1">{item.name}</span>
+                                    <span className="text-sm text-muted-foreground">₱{item.price}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          {groupForm.selectedItems.length > 0 && (
+                            <p className="text-sm text-muted-foreground mt-2">
+                              {groupForm.selectedItems.length} item(s) selected
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => setIsEditGroupOpen(false)}
+                            data-testid="button-cancel-edit-group"
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            className="flex-1"
+                            onClick={handleUpdateGroup}
+                            disabled={updateMenuGroupMutation.isPending}
+                            data-testid="button-update-group"
+                          >
+                            {updateMenuGroupMutation.isPending ? 'Updating...' : 'Update Group'}
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
+                  {/* Delete Group Confirmation Dialog */}
+                  <AlertDialog open={!!deletingGroup} onOpenChange={(open) => !open && setDeletingGroup(null)}>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Menu Group</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete "{deletingGroup?.groupName}"? This will not delete the items, just the group organization.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel data-testid="button-cancel-delete-group">Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          data-testid="button-confirm-delete-group"
+                          onClick={() => deletingGroup && deleteMenuGroupMutation.mutate(deletingGroup.id)}
+                          disabled={deleteMenuGroupMutation.isPending}
+                          className="bg-destructive hover:bg-destructive/90"
+                        >
+                          {deleteMenuGroupMutation.isPending ? 'Deleting...' : 'Delete'}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
 
                   <Separator className="my-6" />
 
