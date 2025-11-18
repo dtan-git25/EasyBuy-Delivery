@@ -946,9 +946,10 @@ function AdminEarningsHistory() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedMerchantId, setSelectedMerchantId] = useState<string>('all');
-  const [selectedRiderId, setSelectedRiderId] = useState<string>('');
+  const [selectedRiderId, setSelectedRiderId] = useState<string>('all');
   
   const { data: restaurants = [] } = useQuery({ queryKey: ["/api/restaurants"] });
+  const { data: riders = [] } = useQuery({ queryKey: ["/api/riders"] });
   
   const getQueryParams = () => {
     const params = new URLSearchParams();
@@ -1101,16 +1102,25 @@ function AdminEarningsHistory() {
             
             <div>
               <Label htmlFor="rider-filter">Filter by Rider</Label>
-              <Input
-                id="rider-filter"
-                placeholder="Rider ID (optional)"
-                value={selectedRiderId}
-                onChange={(e) => {
-                  setSelectedRiderId(e.target.value);
+              <Select 
+                value={selectedRiderId} 
+                onValueChange={(value) => {
+                  setSelectedRiderId(value);
                   setCurrentPage(1);
                 }}
-                data-testid="input-rider-filter"
-              />
+              >
+                <SelectTrigger data-testid="select-rider-filter">
+                  <SelectValue placeholder="All Riders" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Riders</SelectItem>
+                  {riders.map((r: any) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.user?.firstName} {r.user?.lastName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           
