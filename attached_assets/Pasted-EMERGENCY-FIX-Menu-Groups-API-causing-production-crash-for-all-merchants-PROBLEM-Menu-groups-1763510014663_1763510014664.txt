@@ -1,0 +1,81 @@
+EMERGENCY FIX - Menu Groups API causing production crash for all merchants:
+
+PROBLEM:
+Menu groups API endpoint is returning 500 error and crashing merchant dashboard with "TypeError: da.map is not a function"
+
+Error:
+GET /api/restaurants/:id/menu-groups returns 500 Internal Server Error
+Frontend tries to call .map() on error response instead of array
+
+REQUIRED FIXES:
+
+1. FIX BACKEND API ENDPOINT:
+
+   In the menu-groups API endpoint handler:
+   
+   Add proper error handling to ALWAYS return an array:
+```javascript
+   // Instead of letting errors crash with 500
+   try {
+     const groups = await fetchMenuGroups(restaurantId);
+     return res.json(groups || []);
+   } catch (error) {
+     console.error('Menu groups fetch error:', error);
+     // Return empty array instead of 500 error
+     return res.json([]);
+   }
+```
+
+   Never let this endpoint return 500 error - always return array (empty or with data)
+
+2. FIX FRONTEND NULL SAFETY:
+
+   In merchant dashboard where menu groups are displayed:
+   
+   Find the code that uses menuGroups.map()
+   
+   Add defensive checks:
+```javascript
+   // Make sure default is empty array
+   const { data: menuGroups = [] } = useQuery('menu-groups', ...)
+   
+   // And when mapping:
+   {Array.isArray(menuGroups) && menuGroups.map(...)}
+```
+
+3. CHECK DATABASE QUERY:
+
+   The API is probably failing because:
+   - menu_groups table doesn't exist in production
+   - Query has syntax error
+   - Missing relationship/foreign key
+   
+   Add database check:
+   - If table doesn't exist, return empty array
+   - If query fails, return empty array
+   - Log the actual error for debugging
+
+4. ADD FALLBACK BEHAVIOR:
+
+   If merchant has no menu groups:
+   - Show empty state message
+   - "No menu groups yet. Create your first group!"
+   - Don't crash the dashboard
+
+5. VERIFY MIGRATIONS:
+
+   Ensure these tables exist:
+   - menu_groups table
+   - menu_group_items table
+   
+   If migrations haven't run, the API will fail.
+
+CRITICAL: This is blocking ALL merchants from accessing their dashboard in production. Fix must:
+- Prevent 500 errors from this endpoint
+- Add null safety in frontend
+- Return empty array as fallback
+- Allow merchants to login even if menu groups fail
+
+Test to this dev environment first, then I will push the fix to production.
+
+The merchant dashboard should work even if menu groups feature is unavailable - it shouldn't crash the entire dashboard.
