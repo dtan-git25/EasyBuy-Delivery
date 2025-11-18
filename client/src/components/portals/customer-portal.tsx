@@ -199,7 +199,6 @@ function OrderRatingDisplay({ order, onRateClick }: { order: Order; onRateClick:
 export default function CustomerPortal() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("distance");
-  const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [showCart, setShowCart] = useState(false);
   const [showAllCarts, setShowAllCarts] = useState(false);
@@ -250,16 +249,7 @@ export default function CustomerPortal() {
     queryKey: ["/api/restaurants"],
   });
 
-  // Fetch active categories from the database
-  const { data: categories = [] } = useQuery<any[]>({
-    queryKey: ["/api/categories"],
-    queryFn: async () => {
-      const response = await fetch("/api/categories?activeOnly=true");
-      return response.json();
-    }
-  });
-
-  // Fetch ALL menu items for filtering purposes
+  // Fetch ALL menu items for search purposes
   const { data: allMenuItems = [] } = useQuery<MenuItem[]>({
     queryKey: ["/api/all-menu-items"],
     queryFn: async () => {
@@ -283,6 +273,12 @@ export default function CustomerPortal() {
   // Fetch menu organized by groups for customer view
   const { data: menuByGroups } = useQuery<{ groups: any[]; ungroupedItems: any[] }>({
     queryKey: ["/api/restaurants", selectedRestaurant?.id, "menu-by-groups"],
+    queryFn: async () => {
+      if (!selectedRestaurant?.id) return { groups: [], ungroupedItems: [] };
+      const response = await fetch(`/api/restaurants/${selectedRestaurant.id}/menu-by-groups`);
+      if (!response.ok) throw new Error('Failed to fetch menu by groups');
+      return response.json();
+    },
     enabled: !!selectedRestaurant?.id,
   });
 
@@ -595,17 +591,11 @@ export default function CustomerPortal() {
 
   const filteredRestaurants = useMemo(() => {
     const filtered = restaurants.filter((restaurant: Restaurant) => {
-      // Search: Check restaurant name, cuisine, AND menu item categories
-      const restaurantMenuItems = allMenuItems.filter(item => item.restaurantId === restaurant.id);
-      const menuCategories = restaurantMenuItems.map(item => item.category.toLowerCase()).join(' ');
+      // Search: Check restaurant name and cuisine
       const matchesSearch = restaurant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           restaurant.cuisine.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           menuCategories.includes(searchQuery.toLowerCase());
+                           restaurant.cuisine.toLowerCase().includes(searchQuery.toLowerCase());
       
-      // Category filter: Check if restaurant has items in selected category
-      const matchesCategory = !selectedCategory || restaurantMenuItems.some(item => item.category === selectedCategory);
-      
-      return matchesSearch && matchesCategory && restaurant.isActive;
+      return matchesSearch && restaurant.isActive;
     });
 
     // Sort restaurants by distance (farthest to nearest)
@@ -626,7 +616,7 @@ export default function CustomerPortal() {
 
     // Sort from farthest to nearest (descending order)
     return restaurantsWithDistance.sort((a, b) => b.distance - a.distance);
-  }, [restaurants, allMenuItems, searchQuery, selectedCategory, customerLocation]);
+  }, [restaurants, searchQuery, customerLocation]);
 
   // Menu items are now organized by groups from the API
   // menuByGroups contains: { groups: [...], ungroupedItems: [...] }
@@ -1445,21 +1435,6 @@ export default function CustomerPortal() {
                     data-testid="input-restaurant-search"
                   />
                 </div>
-                <div className="flex gap-2">
-                  <Select value={selectedCategory || "all"} onValueChange={(value) => setSelectedCategory(value === "all" ? "" : value)}>
-                    <SelectTrigger className="w-48 text-gray-900 dark:text-gray-100" data-testid="select-category-filter">
-                      <SelectValue placeholder="All Categories" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
-                      {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.name} data-testid={`category-option-${category.id}`}>
-                          {category.icon && `${category.icon} `}{category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
               </div>
             </div>
           </div>
@@ -1513,7 +1488,6 @@ export default function CustomerPortal() {
                 className="mt-4" 
                 onClick={() => {
                   setSearchQuery("");
-                  setSelectedCategory("");
                 }}
                 data-testid="button-clear-filters"
               >

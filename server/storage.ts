@@ -542,14 +542,14 @@ export class DatabaseStorage implements IStorage {
     groups: any[];
     ungroupedItems: any[];
   }> {
-    // Get all menu groups for this restaurant
+    // Get all menu groups for this restaurant, sorted by display order
     const groups = await db
       .select()
       .from(menuGroups)
       .where(eq(menuGroups.restaurantId, restaurantId))
       .orderBy(asc(menuGroups.displayOrder));
     
-    // For each group, get its items
+    // For each group, get its items sorted by display order
     const groupsWithItems = await Promise.all(
       groups.map(async (group) => {
         const items = await db
@@ -572,6 +572,7 @@ export class DatabaseStorage implements IStorage {
               id: item.menuItemId,
               ...item.menuItem,
             })),
+          // Items are already sorted by displayOrder from the query
         };
       })
     );
@@ -592,8 +593,10 @@ export class DatabaseStorage implements IStorage {
         )
       );
     
-    // Filter out items that are already in groups
-    const ungroupedItems = allItems.filter(item => !groupedItemIds.has(item.id));
+    // Filter out items that are already in groups, sort by name
+    const ungroupedItems = allItems
+      .filter(item => !groupedItemIds.has(item.id))
+      .sort((a, b) => a.name.localeCompare(b.name));
     
     return {
       groups: groupsWithItems,

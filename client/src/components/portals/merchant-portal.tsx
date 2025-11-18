@@ -1937,6 +1937,7 @@ export default function MerchantPortal() {
       const newIndex = menuGroups.findIndex((g: any) => g.id === over.id);
       
       const reorderedGroups = arrayMove(menuGroups, oldIndex, newIndex);
+      const previousGroups = menuGroups;
       
       // Optimistically update the UI
       queryClient.setQueryData(
@@ -1950,8 +1951,16 @@ export default function MerchantPortal() {
         displayOrder: index
       }));
       
-      // Send to backend
-      reorderMenuGroupsMutation.mutate(updates);
+      // Send to backend with rollback on error
+      reorderMenuGroupsMutation.mutate(updates, {
+        onError: () => {
+          // Rollback optimistic update on failure
+          queryClient.setQueryData(
+            ["/api/restaurants", userRestaurant?.id, "menu-groups"],
+            previousGroups
+          );
+        }
+      });
     }
   };
 
