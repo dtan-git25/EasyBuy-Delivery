@@ -958,7 +958,7 @@ function AdminEarningsHistory() {
     
     if (searchTerm) params.append('search', searchTerm);
     if (selectedMerchantId && selectedMerchantId !== 'all') params.append('merchantId', selectedMerchantId);
-    if (selectedRiderId) params.append('riderId', selectedRiderId);
+    if (selectedRiderId && selectedRiderId !== 'all') params.append('riderId', selectedRiderId);
     
     const now = new Date();
     let start, end;
