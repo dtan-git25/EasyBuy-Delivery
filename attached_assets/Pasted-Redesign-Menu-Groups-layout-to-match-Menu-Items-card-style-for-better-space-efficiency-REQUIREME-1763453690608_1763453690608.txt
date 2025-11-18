@@ -1,0 +1,94 @@
+Redesign Menu Groups layout to match Menu Items card style for better space efficiency:
+
+REQUIREMENT:
+
+Change Menu Groups from large expanded cards to compact cards similar to Menu Items layout.
+
+CURRENT LAYOUT (inefficient - takes too much space):
+┌─────────────────────────────────────────────────────┐
+│ ☰ Inumin                              [Edit] [Del]  │
+│                                                      │
+│ 1 item(s) in this group                             │
+│ [Drinks]                                            │
+└─────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────┐
+│ ☰ Tinapay                             [Edit] [Del]  │
+│                                                      │
+│ 2 item(s) in this group                             │
+│ [Burger] [Drinks]                                   │
+└─────────────────────────────────────────────────────┘
+
+REQUIRED LAYOUT (compact - like menu items):
+┌─────────────────────────────────────────────────────┐
+│ ☰ Inumin                                            │
+│    1 item • Drinks           [Edit] [Disable] [Del] │
+└─────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────┐
+│ ☰ Tinapay                                           │
+│    2 items • Burger, Drinks  [Edit] [Disable] [Del] │
+└─────────────────────────────────────────────────────┘
+
+DESIGN SPECIFICATIONS:
+
+1. COMPACT CARD STYLE:
+   Match the Menu Items card design:
+   - Single row per group
+   - Drag handle (☰) on left
+   - Group name prominent
+   - Item count and item names inline
+   - Action buttons on right
+
+2. CARD CONTENT:
+   - Left: Drag handle + Group name
+   - Middle: Item count + Item names preview
+   - Right: Edit, Disable (optional), Delete buttons
+
+3. ITEM PREVIEW:
+   Show item names in compact format:
+   - "1 item • Drinks"
+   - "2 items • Burger, Drinks"
+   - "5 items • Burger, Drinks, Fries..." (truncate if many)
+
+4. ACTIONS:
+   - Edit icon: Opens edit group modal
+   - Delete icon: Delete confirmation
+   - Optional: Disable toggle (to hide group without deleting)
+
+5. DRAG HANDLE:
+   - ☰ icon on far left
+   - Visible on hover or always visible
+   - Allows drag to reorder groups
+
+6. STYLING:
+   - White background
+   - Border
+   - Rounded corners
+   - Hover state
+   - Match Menu Items card styling exactly
+
+7. RESPONSIVE:
+   - Stack on mobile
+   - Actions move to dropdown menu on small screens
+
+8. EXAMPLE LAYOUT:
+
+   Menu Groups                    [+ Create Group]
+   
+   ┌─────────────────────────────────────────────────┐
+   │ ☰ Inumin                                        │
+   │    1 item • Drinks             [📝] [🗑️]        │
+   └─────────────────────────────────────────────────┘
+   
+   ┌─────────────────────────────────────────────────┐
+   │ ☰ Tinapay                                       │
+   │    2 items • Burger, Drinks    [📝] [🗑️]        │
+   └─────────────────────────────────────────────────┘
+   
+   ┌─────────────────────────────────────────────────┐
+   │ ☰ Best Sellers                                  │
+   │    5 items • Burger, Fries...  [📝] [🗑️]        │
+   └─────────────────────────────────────────────────┘
+
+This matches the clean, space-efficient design of the Menu Items section and allows merchants to see more groups at once without scrolling.

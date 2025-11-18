@@ -202,28 +202,35 @@ function SortableMenuGroup({
     transition,
   };
 
+  const itemCount = group.items?.length || 0;
+  const itemNames = group.items?.map((item: any) => item.name) || [];
+  const itemPreview = itemNames.length > 3 
+    ? `${itemNames.slice(0, 3).join(', ')}...`
+    : itemNames.join(', ');
+
   return (
     <div ref={setNodeRef} style={style}>
-      <Card className="border-l-4 border-l-primary">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 flex-1">
-              <button
-                type="button"
-                className="cursor-grab active:cursor-grabbing p-1 hover:bg-accent rounded"
-                {...attributes}
-                {...listeners}
-              >
-                <GripVertical className="h-5 w-5 text-muted-foreground" />
-              </button>
-              <div>
-                <CardTitle className="text-base">{group.groupName}</CardTitle>
-                {group.description && (
-                  <p className="text-sm text-muted-foreground mt-1">{group.description}</p>
-                )}
-              </div>
+      <Card className="hover:bg-accent/5 transition-colors">
+        <CardContent className="p-4">
+          <div className="flex flex-col md:flex-row md:items-center gap-4">
+            <button
+              type="button"
+              className="cursor-grab active:cursor-grabbing p-1 hover:bg-accent rounded self-start md:self-center"
+              {...attributes}
+              {...listeners}
+            >
+              <GripVertical className="h-5 w-5 text-muted-foreground" />
+            </button>
+            
+            <div className="flex-1 min-w-0">
+              <h4 className="font-semibold text-base mb-1">{group.groupName}</h4>
+              <p className="text-sm text-muted-foreground">
+                {itemCount} {itemCount === 1 ? 'item' : 'items'}
+                {itemPreview && ` • ${itemPreview}`}
+              </p>
             </div>
-            <div className="flex gap-2">
+            
+            <div className="flex gap-2 flex-shrink-0 w-full md:w-auto justify-end md:justify-start">
               <Button
                 variant="outline"
                 size="sm"
@@ -233,29 +240,16 @@ function SortableMenuGroup({
                 <Edit className="h-4 w-4" />
               </Button>
               <Button
-                variant="destructive"
+                variant="outline"
                 size="sm"
                 onClick={() => onDelete(group)}
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
                 data-testid={`button-delete-group-${group.id}`}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground mb-2">
-            {group.items?.length || 0} item(s) in this group
-          </p>
-          {group.items && group.items.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {group.items.map((item: any) => (
-                <Badge key={item.id} variant="secondary">
-                  {item.name}
-                </Badge>
-              ))}
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>
