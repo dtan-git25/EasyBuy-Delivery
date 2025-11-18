@@ -326,6 +326,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/restaurants/:id/menu-by-groups", async (req, res) => {
+    try {
+      const menu = await storage.getRestaurantMenuByGroups(req.params.id);
+      res.json(menu);
+    } catch (error) {
+      console.error("Error fetching menu by groups:", error);
+      res.status(500).json({ error: "Failed to fetch menu" });
+    }
+  });
+
   app.post("/api/restaurants", async (req, res) => {
     if (!req.isAuthenticated() || req.user?.role !== 'merchant') {
       return res.status(401).json({ error: "Unauthorized" });

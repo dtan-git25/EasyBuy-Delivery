@@ -1,0 +1,105 @@
+Fix two issues with Menu Groups:
+
+PROBLEM 1: Groups not showing in customer storefront - still showing categories
+
+Customer storefront should display items grouped by merchant's custom Menu Groups, but it's still displaying by categories.
+
+FIX REQUIRED:
+
+1. UPDATE CUSTOMER STOREFRONT QUERY:
+   When customer views a merchant's menu, fetch menu items grouped by menu_groups instead of categories.
+
+   Query should:
+   - Fetch all menu groups for this merchant (ordered by display_order)
+   - For each group, fetch items in that group (ordered by display_order within group)
+   - Also fetch ungrouped items (items not in any group)
+
+2. CUSTOMER STOREFRONT DISPLAY:
+
+   Replace category grouping with menu group grouping:
+
+   FROM (current - wrong):
+   Burgers ▼
+     • Cheeseburger - ₱155
+   Drinks ▼
+     • Iced Tea - ₱30
+
+   TO (required - correct):
+   Best Sellers ▼
+     • Cheeseburger - ₱155
+     • Fries - ₱80
+   Breakfast Menu ▼
+     • Pancakes - ₱120
+   Other Items ▼
+     • (ungrouped items)
+
+3. CHECK FRONTEND COMPONENT:
+   - Find customer merchant view component
+   - Update to use groups instead of categories for display
+   - Fetch groups from API
+   - Render items under their groups
+
+4. API ENDPOINT:
+   Ensure there's an endpoint that returns:
+```json
+   {
+     "groups": [
+       {
+         "id": 1,
+         "name": "Best Sellers",
+         "display_order": 1,
+         "items": [...]
+       },
+       {
+         "id": 2,
+         "name": "Breakfast Menu",
+         "display_order": 2,
+         "items": [...]
+       }
+     ],
+     "ungrouped_items": [...]
+   }
+```
+
+PROBLEM 2: Menu groups cannot be rearranged - not draggable
+
+In Merchant Menu Management, groups should be draggable to reorder but drag functionality is not working.
+
+FIX REQUIRED:
+
+1. ADD DRAG AND DROP:
+   Implement drag and drop for menu groups list:
+   - Each group row should have drag handle (☰ icon)
+   - Drag to reorder groups
+   - Save new order to database
+
+2. IMPLEMENTATION:
+   Use drag and drop library or native HTML5 drag:
+   - Add draggable="true" to group rows
+   - Add drag handles
+   - Implement onDragStart, onDragOver, onDrop handlers
+   - Update display_order in database on drop
+
+3. SIMILAR TO OPTION TYPE REORDERING:
+   Use the same drag and drop pattern used for reordering product options (which is already working).
+
+4. SAVE ORDER:
+   When user drags and drops:
+   - Update display_order values
+   - Save to database: UPDATE menu_groups SET display_order = ? WHERE id = ?
+   - Re-fetch or update UI to show new order
+
+5. VISUAL FEEDBACK:
+   - Drag handle icon visible on hover
+   - Visual indication during drag
+   - Drop zone highlighting
+   - Cursor changes to grab/grabbing
+
+6. ALSO FOR ITEMS WITHIN GROUP:
+   Items within each group should also be draggable to reorder within that group.
+
+Both issues need fixing:
+1. Customer sees groups instead of categories
+2. Merchant can drag to reorder groups
+
+Implement drag and drop functionality for menu groups and ensure customer storefront fetches and displays by groups.

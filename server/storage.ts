@@ -538,6 +538,69 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getRestaurantMenuByGroups(restaurantId: string): Promise<{
+    groups: any[];
+    ungroupedItems: any[];
+  }> {
+    // Get all menu groups for this restaurant
+    const groups = await db
+      .select()
+      .from(menuGroups)
+      .where(eq(menuGroups.restaurantId, restaurantId))
+      .orderBy(asc(menuGroups.displayOrder));
+    
+    // For each group, get its items
+    const groupsWithItems = await Promise.all(
+      groups.map(async (group) => {
+        const items = await db
+          .select({
+            id: menuGroupItems.id,
+            menuItemId: menuGroupItems.menuItemId,
+            displayOrder: menuGroupItems.displayOrder,
+            menuItem: menuItems,
+          })
+          .from(menuGroupItems)
+          .leftJoin(menuItems, eq(menuGroupItems.menuItemId, menuItems.id))
+          .where(eq(menuGroupItems.groupId, group.id))
+          .orderBy(asc(menuGroupItems.displayOrder));
+        
+        return {
+          ...group,
+          items: items
+            .filter(item => item.menuItem && item.menuItem.isAvailable)
+            .map(item => ({
+              id: item.menuItemId,
+              ...item.menuItem,
+            })),
+        };
+      })
+    );
+    
+    // Get all grouped item IDs
+    const groupedItemIds = new Set(
+      groupsWithItems.flatMap(g => g.items.map((item: any) => item.id))
+    );
+    
+    // Get all items for this restaurant
+    const allItems = await db
+      .select()
+      .from(menuItems)
+      .where(
+        and(
+          eq(menuItems.restaurantId, restaurantId),
+          eq(menuItems.isAvailable, true)
+        )
+      );
+    
+    // Filter out items that are already in groups
+    const ungroupedItems = allItems.filter(item => !groupedItemIds.has(item.id));
+    
+    return {
+      groups: groupsWithItems,
+      ungroupedItems,
+    };
+  }
+
   async getRiders(): Promise<(Rider & { user: User })[]> {
     const result = await db
       .select()

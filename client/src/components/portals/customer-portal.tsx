@@ -280,6 +280,12 @@ export default function CustomerPortal() {
     enabled: !!selectedRestaurant?.id,
   });
 
+  // Fetch menu organized by groups for customer view
+  const { data: menuByGroups } = useQuery<{ groups: any[]; ungroupedItems: any[] }>({
+    queryKey: ["/api/restaurants", selectedRestaurant?.id, "menu-by-groups"],
+    enabled: !!selectedRestaurant?.id,
+  });
+
   // Enhanced tracking queries
   const { data: orders = [] } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
@@ -622,14 +628,8 @@ export default function CustomerPortal() {
     return restaurantsWithDistance.sort((a, b) => b.distance - a.distance);
   }, [restaurants, allMenuItems, searchQuery, selectedCategory, customerLocation]);
 
-  // Group menu items by category
-  const menuItemsByCategory = menuItems.reduce((acc: Record<string, MenuItem[]>, item) => {
-    if (!acc[item.category]) {
-      acc[item.category] = [];
-    }
-    acc[item.category].push(item);
-    return acc;
-  }, {});
+  // Menu items are now organized by groups from the API
+  // menuByGroups contains: { groups: [...], ungroupedItems: [...] }
 
   const openOptionsModal = (menuItem: MenuItem) => {
     if (!selectedRestaurant) return;
@@ -895,17 +895,23 @@ export default function CustomerPortal() {
             <h2 className="text-2xl font-bold">Menu</h2>
           </div>
           
-          {menuItems.length === 0 ? (
+          {!menuByGroups || (menuByGroups.groups.length === 0 && menuByGroups.ungroupedItems.length === 0) ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground">No menu items available at this restaurant.</p>
             </div>
           ) : (
             <div className="space-y-8">
-              {Object.entries(menuItemsByCategory).map(([category, items]) => (
-                <div key={category}>
-                  <h3 className="text-xl font-semibold mb-4 text-foreground">{category}</h3>
+              {/* Display Menu Groups */}
+              {menuByGroups.groups.map((group) => (
+                <div key={group.id}>
+                  <div className="mb-4">
+                    <h3 className="text-xl font-semibold text-foreground">{group.groupName}</h3>
+                    {group.description && (
+                      <p className="text-sm text-muted-foreground mt-1">{group.description}</p>
+                    )}
+                  </div>
                   <div className="space-y-4">
-                    {items.map((item) => (
+                    {group.items.map((item: any) => (
                       <Card key={item.id} className="p-4" data-testid={`menu-item-${item.id}`}>
                         <div className="flex gap-4">
                           {/* Menu Item Image */}
@@ -955,6 +961,62 @@ export default function CustomerPortal() {
                   </div>
                 </div>
               ))}
+              
+              {/* Display Ungrouped Items */}
+              {menuByGroups.ungroupedItems.length > 0 && (
+                <div>
+                  <h3 className="text-xl font-semibold mb-4 text-foreground">Other Items</h3>
+                  <div className="space-y-4">
+                    {menuByGroups.ungroupedItems.map((item: any) => (
+                      <Card key={item.id} className="p-4" data-testid={`menu-item-${item.id}`}>
+                        <div className="flex gap-4">
+                          {/* Menu Item Image */}
+                          {item.image ? (
+                            <div className="flex-shrink-0">
+                              <img 
+                                src={item.image} 
+                                alt={item.name}
+                                className="w-24 h-24 object-cover rounded-md"
+                                data-testid={`img-menu-item-${item.id}`}
+                              />
+                            </div>
+                          ) : (
+                            <div className="flex-shrink-0 w-24 h-24 bg-muted rounded-md flex items-center justify-center">
+                              <ShoppingCart className="h-8 w-8 text-muted-foreground" />
+                            </div>
+                          )}
+                          
+                          {/* Menu Item Details */}
+                          <div className="flex-1 flex justify-between items-start">
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-foreground">{item.name}</h4>
+                              {item.description && (
+                                <p className="text-sm text-muted-foreground mb-2">{item.description}</p>
+                              )}
+                              <div className="flex items-center justify-between mt-2">
+                                <span className="text-lg font-bold text-green-600">₱{(Number(item.price) * (1 + selectedRestaurant.markup / 100)).toFixed(2)}</span>
+                                <div className="flex items-center space-x-2">
+                                  {!item.isAvailable ? (
+                                    <Badge variant="destructive">Unavailable</Badge>
+                                  ) : (
+                                    <Button
+                                      onClick={() => openOptionsModal(item)}
+                                      data-testid={`button-add-to-cart-${item.id}`}
+                                    >
+                                      <ShoppingCart className="mr-2 h-4 w-4" />
+                                      Add to Cart
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
