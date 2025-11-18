@@ -774,6 +774,239 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Menu Group routes
+  app.get("/api/restaurants/:restaurantId/menu-groups", async (req, res) => {
+    try {
+      const groups = await storage.getMenuGroups(req.params.restaurantId);
+      res.json(groups);
+    } catch (error) {
+      console.error("Error fetching menu groups:", error);
+      res.status(500).json({ error: "Failed to fetch menu groups" });
+    }
+  });
+
+  app.get("/api/menu-groups/:id", async (req, res) => {
+    try {
+      const group = await storage.getMenuGroup(req.params.id);
+      if (!group) {
+        return res.status(404).json({ error: "Menu group not found" });
+      }
+      res.json(group);
+    } catch (error) {
+      console.error("Error fetching menu group:", error);
+      res.status(500).json({ error: "Failed to fetch menu group" });
+    }
+  });
+
+  app.post("/api/menu-groups", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'merchant') {
+      return res.status(401).json({ error: "Unauthorized - Merchant access required" });
+    }
+
+    try {
+      const { restaurantId, groupName, description, displayOrder = 0, menuItems = [] } = req.body;
+
+      // Verify restaurant ownership
+      const restaurant = await storage.getRestaurant(restaurantId);
+      if (!restaurant || restaurant.ownerId !== req.user.id) {
+        return res.status(403).json({ error: "Forbidden - You can only create groups for your own restaurants" });
+      }
+
+      // Create the group
+      const newGroup = await storage.createMenuGroup({
+        restaurantId,
+        groupName,
+        description,
+        displayOrder,
+      });
+
+      // Add items to the group
+      if (menuItems && menuItems.length > 0) {
+        for (let i = 0; i < menuItems.length; i++) {
+          await storage.addItemToGroup(newGroup.id, menuItems[i], i);
+        }
+      }
+
+      // Fetch the group with items
+      const groupWithItems = await storage.getMenuGroup(newGroup.id);
+      res.status(201).json(groupWithItems);
+    } catch (error) {
+      console.error("Error creating menu group:", error);
+      res.status(500).json({ error: "Failed to create menu group" });
+    }
+  });
+
+  app.patch("/api/menu-groups/:id", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'merchant') {
+      return res.status(401).json({ error: "Unauthorized - Merchant access required" });
+    }
+
+    try {
+      const group = await storage.getMenuGroup(req.params.id);
+      if (!group) {
+        return res.status(404).json({ error: "Menu group not found" });
+      }
+
+      const restaurant = await storage.getRestaurant(group.restaurantId);
+      if (!restaurant || restaurant.ownerId !== req.user.id) {
+        return res.status(403).json({ error: "Forbidden - You can only update groups for your own restaurants" });
+      }
+
+      const { groupName, description, displayOrder, menuItems } = req.body;
+
+      // Update group basic info
+      const updateData: any = {};
+      if (groupName !== undefined) updateData.groupName = groupName;
+      if (description !== undefined) updateData.description = description;
+      if (displayOrder !== undefined) updateData.displayOrder = displayOrder;
+
+      if (Object.keys(updateData).length > 0) {
+        await storage.updateMenuGroup(req.params.id, updateData);
+      }
+
+      // If menuItems is provided, update the items in the group
+      if (menuItems !== undefined) {
+        // First, remove all existing items
+        const currentGroup = await storage.getMenuGroup(req.params.id);
+        for (const item of currentGroup.items) {
+          await storage.removeItemFromGroup(req.params.id, item.menuItemId);
+        }
+
+        // Then add the new items
+        for (let i = 0; i < menuItems.length; i++) {
+          await storage.addItemToGroup(req.params.id, menuItems[i], i);
+        }
+      }
+
+      const updatedGroup = await storage.getMenuGroup(req.params.id);
+      res.json(updatedGroup);
+    } catch (error) {
+      console.error("Error updating menu group:", error);
+      res.status(500).json({ error: "Failed to update menu group" });
+    }
+  });
+
+  app.delete("/api/menu-groups/:id", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'merchant') {
+      return res.status(401).json({ error: "Unauthorized - Merchant access required" });
+    }
+
+    try {
+      const group = await storage.getMenuGroup(req.params.id);
+      if (!group) {
+        return res.status(404).json({ error: "Menu group not found" });
+      }
+
+      const restaurant = await storage.getRestaurant(group.restaurantId);
+      if (!restaurant || restaurant.ownerId !== req.user.id) {
+        return res.status(403).json({ error: "Forbidden - You can only delete groups for your own restaurants" });
+      }
+
+      await storage.deleteMenuGroup(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting menu group:", error);
+      res.status(500).json({ error: "Failed to delete menu group" });
+    }
+  });
+
+  app.post("/api/menu-groups/:groupId/items", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'merchant') {
+      return res.status(401).json({ error: "Unauthorized - Merchant access required" });
+    }
+
+    try {
+      const { menuItemId, displayOrder = 0 } = req.body;
+      
+      const group = await storage.getMenuGroup(req.params.groupId);
+      if (!group) {
+        return res.status(404).json({ error: "Menu group not found" });
+      }
+
+      const restaurant = await storage.getRestaurant(group.restaurantId);
+      if (!restaurant || restaurant.ownerId !== req.user.id) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+
+      const item = await storage.addItemToGroup(req.params.groupId, menuItemId, displayOrder);
+      res.status(201).json(item);
+    } catch (error) {
+      console.error("Error adding item to group:", error);
+      res.status(500).json({ error: "Failed to add item to group" });
+    }
+  });
+
+  app.delete("/api/menu-groups/:groupId/items/:menuItemId", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'merchant') {
+      return res.status(401).json({ error: "Unauthorized - Merchant access required" });
+    }
+
+    try {
+      const group = await storage.getMenuGroup(req.params.groupId);
+      if (!group) {
+        return res.status(404).json({ error: "Menu group not found" });
+      }
+
+      const restaurant = await storage.getRestaurant(group.restaurantId);
+      if (!restaurant || restaurant.ownerId !== req.user.id) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+
+      await storage.removeItemFromGroup(req.params.groupId, req.params.menuItemId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error removing item from group:", error);
+      res.status(500).json({ error: "Failed to remove item from group" });
+    }
+  });
+
+  app.patch("/api/menu-groups/:groupId/items/reorder", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'merchant') {
+      return res.status(401).json({ error: "Unauthorized - Merchant access required" });
+    }
+
+    try {
+      const { updates } = req.body; // Array of { id, displayOrder }
+
+      const group = await storage.getMenuGroup(req.params.groupId);
+      if (!group) {
+        return res.status(404).json({ error: "Menu group not found" });
+      }
+
+      const restaurant = await storage.getRestaurant(group.restaurantId);
+      if (!restaurant || restaurant.ownerId !== req.user.id) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+
+      await storage.updateGroupItemsOrder(updates);
+      res.status(200).json({ message: "Items reordered successfully" });
+    } catch (error) {
+      console.error("Error reordering group items:", error);
+      res.status(500).json({ error: "Failed to reorder items" });
+    }
+  });
+
+  app.patch("/api/restaurants/:restaurantId/menu-groups/reorder", async (req, res) => {
+    if (!req.isAuthenticated() || req.user?.role !== 'merchant') {
+      return res.status(401).json({ error: "Unauthorized - Merchant access required" });
+    }
+
+    try {
+      const { updates } = req.body; // Array of { id, displayOrder }
+
+      const restaurant = await storage.getRestaurant(req.params.restaurantId);
+      if (!restaurant || restaurant.ownerId !== req.user.id) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+
+      await storage.updateGroupsDisplayOrder(updates);
+      res.status(200).json({ message: "Groups reordered successfully" });
+    } catch (error) {
+      console.error("Error reordering groups:", error);
+      res.status(500).json({ error: "Failed to reorder groups" });
+    }
+  });
+
   // Order routes
   app.get("/api/orders", async (req, res) => {
     if (!req.isAuthenticated()) {
