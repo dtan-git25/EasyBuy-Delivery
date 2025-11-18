@@ -1,0 +1,79 @@
+Make summary cards in Earnings History match this exact card style:
+
+REFERENCE DESIGN:
+
+Use the exact same card design as Admin Reports > Earnings Distribution:
+
+┌────────────────────────────────────────────────────────────────┐
+│ Merchant Earnings    App Earnings       Rider Earnings         │
+│ ₱505.00             ₱622.60             ₱617.60                │
+│ Base items revenue  Delivery % + markup Delivery % + convenience│
+└────────────────────────────────────────────────────────────────┘
+
+CARD SPECIFICATIONS:
+
+1. LAYOUT:
+   - 3-4 cards in horizontal row
+   - Equal width
+   - Slight gap between cards
+   - Light colored backgrounds (yellow/green/blue tints)
+
+2. CARD STRUCTURE:
+   Each card contains:
+   - Top: Label text (small, medium weight)
+   - Middle: Large amount (bold, prominent)
+   - Bottom: Description text (smallest, light gray)
+
+3. STYLING:
+   - Background: Light pastel colors
+     * Yellow tint for merchant
+     * Green tint for app
+     * Blue tint for rider
+   - Border: Rounded corners
+   - Padding: Comfortable spacing
+   - Typography hierarchy clear
+
+4. APPLY TO ALL SUMMARY CARDS:
+
+   ADMIN - Earnings History:
+   ┌──────────────┬──────────────┬──────────────┬──────────────┐
+   │Total Orders  │App Revenue   │Rider Payouts │Merchant Pay  │
+   │    100       │  ₱7,000.00   │  ₱7,500.00   │ ₱49,000.00   │
+   │All completed │Platform share│Total paid out│Total paid out│
+   └──────────────┴──────────────┴──────────────┴──────────────┘
+
+   MERCHANT - Earnings History:
+   ┌──────────────┬──────────────┬──────────────┐
+   │Total Orders  │Total Earnings│Avg per Order │
+   │     25       │  ₱12,250.00  │   ₱490.00    │
+   │Completed     │Base revenue  │Average       │
+   └──────────────┴──────────────┴──────────────┘
+
+   RIDER - Earnings History:
+   ┌──────────────┬──────────────┬──────────────┐
+   │Total         │Total Earnings│Avg per       │
+   │Deliveries    │              │Delivery      │
+   │     50       │  ₱3,750.00   │   ₱75.00     │
+   │Completed     │Total earned  │Average       │
+   └──────────────┴──────────────┴──────────────┘
+
+5. COLOR SCHEME:
+   - Merchant cards: Light yellow/gold tint
+   - App cards: Light green/teal tint
+   - Rider cards: Light blue tint
+   - Or use neutral light gray for all
+
+6. TEXT FORMATTING:
+   - Label: 14px, medium weight, dark gray
+   - Amount: 24-28px, bold, primary color
+   - Description: 12px, light weight, gray
+
+7. RESPONSIVE:
+   Desktop: All cards in one row
+   Tablet: 2 cards per row
+   Mobile: 1-2 cards per row (stack vertically)
+
+8. CONSISTENCY:
+   Use the EXACT same component used for Earnings Distribution cards - just change the data/labels.
+
+This ensures perfect visual consistency across all report sections in the platform.
