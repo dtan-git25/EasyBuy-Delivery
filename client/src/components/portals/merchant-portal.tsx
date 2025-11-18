@@ -2098,6 +2098,29 @@ export default function MerchantPortal() {
                 </Card>
               ) : (
                 <>
+                  {/* Menu Groups Section */}
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle>Menu Groups</CardTitle>
+                        <Button size="sm" data-testid="button-create-group">
+                          <Plus className="mr-2 h-4 w-4" />
+                          Create Group
+                        </Button>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Organize your menu items into custom groups like "Best Sellers", "Breakfast Menu", etc.
+                      </p>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-center py-8 text-muted-foreground">
+                        <p>Menu Groups feature coming soon. For now, use categories to organize your menu.</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Separator className="my-6" />
+
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold text-foreground">Menu Items</h3>
                     <Dialog open={isAddMenuItemOpen} onOpenChange={setIsAddMenuItemOpen}>
