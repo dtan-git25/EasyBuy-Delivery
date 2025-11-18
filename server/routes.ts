@@ -299,6 +299,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Riders route
+  app.get("/api/riders", async (req, res) => {
+    try {
+      const riders = await storage.getRiders();
+      res.json(riders);
+    } catch (error) {
+      console.error("Error fetching riders:", error);
+      res.status(500).json({ error: "Failed to fetch riders" });
+    }
+  });
+
   // Merchant-specific endpoint to get their own restaurant (including inactive ones)
   app.get("/api/merchant/my-restaurant", async (req, res) => {
     if (!req.isAuthenticated() || req.user?.role !== 'merchant') {
