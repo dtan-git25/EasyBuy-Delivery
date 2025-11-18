@@ -1115,7 +1115,7 @@ function AdminEarningsHistory() {
                 <SelectContent>
                   <SelectItem value="all">All Riders</SelectItem>
                   {riders.map((r: any) => (
-                    <SelectItem key={r.id} value={r.id}>
+                    <SelectItem key={r.id} value={r.userId}>
                       {r.user?.firstName} {r.user?.lastName}
                     </SelectItem>
                   ))}

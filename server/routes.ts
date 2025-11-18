@@ -1297,7 +1297,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Filter by rider
       if (riderId) {
+        console.log('🔍 Filtering by rider:', riderId, typeof riderId);
+        console.log('📊 Sample order riderIds:', orders.slice(0, 3).map(o => ({ id: o.id, riderId: o.riderId, type: typeof o.riderId })));
+        const beforeCount = orders.length;
         orders = orders.filter(o => o.riderId === riderId);
+        console.log('✅ Filtered orders:', beforeCount, '->', orders.length);
       }
       
       // Sort by date descending

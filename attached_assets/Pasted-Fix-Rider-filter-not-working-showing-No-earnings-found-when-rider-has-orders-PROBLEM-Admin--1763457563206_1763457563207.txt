@@ -1,0 +1,84 @@
+Fix Rider filter not working - showing "No earnings found" when rider has orders:
+
+PROBLEM:
+
+Admin > Reports > Earnings History:
+- Selected "Rider 1" from dropdown
+- Shows: "No earnings found for selected period"
+- But Rider 1 has 8 completed orders
+
+DEBUGGING NEEDED:
+
+1. CHECK FILTER QUERY:
+   When rider is selected, verify the database query:
+   - Is rider_id being passed correctly?
+   - Is the WHERE clause correct?
+   - Log the query: console.log('Filtering by rider:', riderId)
+   - Log results: console.log('Found orders:', orders)
+
+2. CHECK RIDER ID VALUE:
+   - What value is being sent when "Rider 1" is selected?
+   - Is it the correct rider ID from database?
+   - Is it numeric or string?
+   - Type mismatch issue? (e.g., "1" vs 1)
+
+3. CHECK QUERY STRUCTURE:
+   
+   Should be:
+SELECT * FROM orders
+WHERE rider_id = ?
+AND status IN ('completed', 'cancelled')
+AND created_at BETWEEN ? AND ?
+
+   Verify:
+   - rider_id field exists in orders table
+   - rider_id matches between dropdown value and database
+   - No type conversion issues
+
+4. CHECK DROPDOWN VALUE:
+   
+   When selecting "Rider 1":
+   - What value is captured? Log it
+   - Is it the rider's database ID?
+   - Or rider name/username?
+   - Must match rider_id in orders table
+
+5. CHECK DATE RANGE:
+   - Current filter: "Last 30 Days"
+   - Are all 8 orders within last 30 days?
+   - Try "All Time" to see if orders appear
+
+6. CHECK ORDER STATUS:
+   - Are orders status = 'completed'?
+   - Or different status?
+   - Verify query includes correct statuses
+
+7. COMPARE WITH MERCHANT FILTER:
+   - Merchant filter works correctly
+   - Use same query pattern for rider filter
+   - Check if logic is identical
+
+8. TEST QUERY DIRECTLY:
+   
+   Run query in database:
+SELECT * FROM orders WHERE rider_id = 1 AND status = 'completed'
+   
+   Do results appear?
+   - Yes: Filter implementation issue
+   - No: Data issue or wrong rider_id
+
+9. VERIFY RIDER-ORDER RELATIONSHIP:
+   
+   Check orders table:
+   - Do the 8 orders have rider_id = 1?
+   - Or different rider_id value?
+   - Verify relationship is correct
+
+10. CHECK API ENDPOINT:
+    
+    Admin earnings history API:
+    - Is rider filter parameter being received?
+    - Is it being applied to query?
+    - Log request parameters
+
+Add extensive logging to identify where the filter is failing and share the console output.
