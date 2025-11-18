@@ -179,6 +179,89 @@ function SortableOptionType({
   );
 }
 
+// Sortable Menu Group Component
+function SortableMenuGroup({
+  group,
+  onEdit,
+  onDelete,
+}: {
+  group: any;
+  onEdit: (group: any) => void;
+  onDelete: (group: any) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: group.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <Card className="border-l-4 border-l-primary">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 flex-1">
+              <button
+                type="button"
+                className="cursor-grab active:cursor-grabbing p-1 hover:bg-accent rounded"
+                {...attributes}
+                {...listeners}
+              >
+                <GripVertical className="h-5 w-5 text-muted-foreground" />
+              </button>
+              <div>
+                <CardTitle className="text-base">{group.groupName}</CardTitle>
+                {group.description && (
+                  <p className="text-sm text-muted-foreground mt-1">{group.description}</p>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onEdit(group)}
+                data-testid={`button-edit-group-${group.id}`}
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => onDelete(group)}
+                data-testid={`button-delete-group-${group.id}`}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground mb-2">
+            {group.items?.length || 0} item(s) in this group
+          </p>
+          {group.items && group.items.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {group.items.map((item: any) => (
+                <Badge key={item.id} variant="secondary">
+                  {item.name}
+                </Badge>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 // Full rating display for account settings tab
 function MerchantRatingDisplay({ merchantId }: { merchantId?: string }) {
   const { data: ratingData } = useQuery<{ average: { average: number; count: number }; ratings: any[] }>({
@@ -1178,6 +1261,30 @@ export default function MerchantPortal() {
     },
   });
 
+  const reorderMenuGroupsMutation = useMutation({
+    mutationFn: async (updates: { id: string; displayOrder: number }[]) => {
+      const response = await apiRequest("PATCH", `/api/restaurants/${userRestaurant?.id}/menu-groups/reorder`, { updates });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to reorder groups');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/menu-groups"] });
+      toast({
+        title: "Groups reordered",
+        description: "Menu group order has been updated.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Reorder failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const requestReapprovalMutation = useMutation({
     mutationFn: async () => {
       const response = await apiRequest("POST", "/api/merchant/request-reapproval", {});
@@ -1821,6 +1928,33 @@ export default function MerchantPortal() {
     }));
   };
 
+  // Handler for menu group drag and drop
+  const handleGroupDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      const oldIndex = menuGroups.findIndex((g: any) => g.id === active.id);
+      const newIndex = menuGroups.findIndex((g: any) => g.id === over.id);
+      
+      const reorderedGroups = arrayMove(menuGroups, oldIndex, newIndex);
+      
+      // Optimistically update the UI
+      queryClient.setQueryData(
+        ["/api/restaurants", userRestaurant?.id, "menu-groups"],
+        reorderedGroups
+      );
+      
+      // Prepare updates with new display order
+      const updates = reorderedGroups.map((group: any, index: number) => ({
+        id: group.id,
+        displayOrder: index
+      }));
+      
+      // Send to backend
+      reorderMenuGroupsMutation.mutate(updates);
+    }
+  };
+
   const calculateItemPrice = (basePrice: string, selectedOptions: Record<string, string>) => {
     let total = parseFloat(basePrice);
     Object.entries(selectedOptions).forEach(([optionType, optionValue]) => {
@@ -2286,54 +2420,27 @@ export default function MerchantPortal() {
                           <p>No groups yet. Create your first group to organize your menu.</p>
                         </div>
                       ) : (
-                        <div className="space-y-4">
-                          {menuGroups.map((group: any) => (
-                            <Card key={group.id} className="border-l-4 border-l-primary">
-                              <CardHeader className="pb-3">
-                                <div className="flex items-center justify-between">
-                                  <div>
-                                    <CardTitle className="text-base">{group.groupName}</CardTitle>
-                                    {group.description && (
-                                      <p className="text-sm text-muted-foreground mt-1">{group.description}</p>
-                                    )}
-                                  </div>
-                                  <div className="flex gap-2">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => handleOpenEditGroup(group)}
-                                      data-testid={`button-edit-group-${group.id}`}
-                                    >
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      variant="destructive"
-                                      size="sm"
-                                      onClick={() => setDeletingGroup(group)}
-                                      data-testid={`button-delete-group-${group.id}`}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              </CardHeader>
-                              <CardContent>
-                                <p className="text-sm text-muted-foreground mb-2">
-                                  {group.items?.length || 0} item(s) in this group
-                                </p>
-                                {group.items && group.items.length > 0 && (
-                                  <div className="flex flex-wrap gap-2">
-                                    {group.items.map((item: any) => (
-                                      <Badge key={item.id} variant="secondary">
-                                        {item.name}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                )}
-                              </CardContent>
-                            </Card>
-                          ))}
-                        </div>
+                        <DndContext
+                          sensors={sensors}
+                          collisionDetection={closestCenter}
+                          onDragEnd={handleGroupDragEnd}
+                        >
+                          <SortableContext
+                            items={menuGroups.map((g: any) => g.id)}
+                            strategy={verticalListSortingStrategy}
+                          >
+                            <div className="space-y-4">
+                              {menuGroups.map((group: any) => (
+                                <SortableMenuGroup
+                                  key={group.id}
+                                  group={group}
+                                  onEdit={handleOpenEditGroup}
+                                  onDelete={setDeletingGroup}
+                                />
+                              ))}
+                            </div>
+                          </SortableContext>
+                        </DndContext>
                       )}
                     </CardContent>
                   </Card>
