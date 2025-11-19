@@ -1,0 +1,70 @@
+Export menu_groups and menu_group_items table schemas to migration file for Git:
+
+SITUATION:
+
+We are in DEV environment. The menu_groups and menu_group_items tables already exist in the dev database and are working. We need to export these table schemas to a migration file so they can be pushed to Git and applied to production.
+
+REQUIREMENT:
+
+Create a migration file containing the CREATE TABLE statements for:
+1. menu_groups table
+2. menu_group_items table
+
+STEPS:
+
+1. EXPORT TABLE SCHEMAS FROM DEV DATABASE:
+
+   Generate the CREATE TABLE statements for both tables with their:
+   - Column definitions
+   - Data types
+   - Primary keys
+   - Foreign keys
+   - Indexes
+   - Constraints
+
+2. CREATE MIGRATION FILE:
+
+   Create file: `/db/migrations/002_create_menu_groups.sql`
+   
+   Include:
+```sql
+   -- Migration: Create menu groups tables
+   -- Date: 2025-01-17
+   -- Description: Add menu groups feature for merchant menu organization
+   
+   CREATE TABLE IF NOT EXISTS menu_groups (
+     -- Add all columns, keys, indexes from existing table
+   );
+   
+   CREATE TABLE IF NOT EXISTS menu_group_items (
+     -- Add all columns, keys, indexes from existing table
+   );
+```
+
+3. EXTRACT EXACT SCHEMA:
+
+   Get the actual schema from dev database:
+   - Show the EXACT structure of menu_groups table
+   - Show the EXACT structure of menu_group_items table
+   - Include all columns, types, constraints, indexes
+   - Use IF NOT EXISTS to make it safe to run multiple times
+
+4. VERIFY MIGRATION FILE:
+
+   Ensure the migration file:
+   - Has correct SQL syntax
+   - Includes all necessary constraints
+   - Can be run safely in production
+   - Won't conflict with existing tables
+
+5. SAVE TO GIT:
+
+   After creating the migration file:
+   - It will be tracked in Git
+   - Can be committed
+   - Will be pushed to GitHub
+   - Can be run in production
+
+Generate the complete CREATE TABLE statements for menu_groups and menu_group_items from the existing dev database and save them to a migration file that can be committed to Git.
+
+This way, when we push to GitHub and pull in production, we'll have the schema to create these tables.
