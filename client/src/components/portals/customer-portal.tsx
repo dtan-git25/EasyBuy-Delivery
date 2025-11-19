@@ -1823,7 +1823,7 @@ export default function CustomerPortal() {
                           </div>
                           {parseFloat((order as any).multiMerchantFee || '0') > 0 && (
                             <div className="flex justify-between">
-                              <span>Multi-Merchant Fee:</span>
+                              <span>Multi-Merchant Fee {isGroupedOrder ? `(${merchantOrders.length} stores)` : ''}:</span>
                               <span>₱{parseFloat((order as any).multiMerchantFee || '0').toFixed(2)}</span>
                             </div>
                           )}
