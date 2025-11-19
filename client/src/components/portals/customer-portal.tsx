@@ -561,13 +561,12 @@ export default function CustomerPortal() {
             case 'chat_message':
               // Show toast notification for new chat messages
               if (data.message?.sender?.id !== user.id) {
-                const order = orders.find(o => o.id === data.orderId);
                 const senderName = data.message?.sender ? 
                   `${data.message.sender.firstName} ${data.message.sender.lastName}` : 
                   'Someone';
                 toast({
                   title: `New message from ${senderName}`,
-                  description: order ? `Order #${order.orderNumber}: ${data.message?.message || ''}` : data.message?.message || '',
+                  description: data.message?.message || '',
                 });
               }
               break;
@@ -580,7 +579,7 @@ export default function CustomerPortal() {
       socket.addEventListener('message', handleMessage);
       return () => socket.removeEventListener('message', handleMessage);
     }
-  }, [socket, user, sendMessage, queryClient, selectedOrderForTracking, orders, toast]);
+  }, [socket, user, sendMessage, queryClient, selectedOrderForTracking]);
 
   // Pre-fill phone number from user profile
   useEffect(() => {
