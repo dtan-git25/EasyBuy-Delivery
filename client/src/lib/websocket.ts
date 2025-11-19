@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface WebSocketMessage {
   type: string;
@@ -64,7 +64,7 @@ export function useWebSocket() {
     setIsConnected(false);
   };
 
-  const sendMessage = useCallback((message: WebSocketMessage) => {
+  const sendMessage = (message: WebSocketMessage) => {
     if (socket && socket.readyState === WebSocket.OPEN) {
       try {
         socket.send(JSON.stringify(message));
@@ -74,7 +74,7 @@ export function useWebSocket() {
     } else {
       console.warn("WebSocket is not connected. Message not sent:", message);
     }
-  }, [socket]);
+  };
 
   useEffect(() => {
     connect();

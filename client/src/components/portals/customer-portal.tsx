@@ -561,12 +561,13 @@ export default function CustomerPortal() {
             case 'chat_message':
               // Show toast notification for new chat messages
               if (data.message?.sender?.id !== user.id) {
+                const order = orders.find(o => o.id === data.orderId);
                 const senderName = data.message?.sender ? 
                   `${data.message.sender.firstName} ${data.message.sender.lastName}` : 
                   'Someone';
                 toast({
                   title: `New message from ${senderName}`,
-                  description: data.message?.message || '',
+                  description: order ? `Order #${order.orderNumber}: ${data.message?.message || ''}` : data.message?.message || '',
                 });
               }
               break;
@@ -579,7 +580,7 @@ export default function CustomerPortal() {
       socket.addEventListener('message', handleMessage);
       return () => socket.removeEventListener('message', handleMessage);
     }
-  }, [socket, user, sendMessage, queryClient, selectedOrderForTracking]);
+  }, [socket, user, sendMessage, queryClient, selectedOrderForTracking, orders, toast]);
 
   // Pre-fill phone number from user profile
   useEffect(() => {
@@ -1826,10 +1827,10 @@ export default function CustomerPortal() {
                               <span>₱{parseFloat((order as any).multiMerchantFee || '0').toFixed(2)}</span>
                             </div>
                           )}
-                          {parseFloat((order as any).convenienceFee || '0') > 0 && (
+                          {parseFloat(order.convenienceFee || '0') > 0 && (
                             <div className="flex justify-between">
                               <span>Rider's Convenience Fee:</span>
-                              <span>₱{parseFloat((order as any).convenienceFee || '0').toFixed(2)}</span>
+                              <span>₱{parseFloat(order.convenienceFee || '0').toFixed(2)}</span>
                             </div>
                           )}
                           <div className="flex justify-between font-semibold text-base pt-2 border-t">
