@@ -803,6 +803,15 @@ export class DatabaseStorage implements IStorage {
         sum + parseFloat(row.orders.deliveryFee as string), 0
       );
       
+      // Get group-level fees (take maximum across all orders to handle 0.00 vs actual fee)
+      const multiMerchantFee = Math.max(
+        ...orderRows.map(row => parseFloat(row.orders.multiMerchantFee as string) || 0)
+      ).toFixed(2);
+      
+      const convenienceFee = Math.max(
+        ...orderRows.map(row => parseFloat(row.orders.convenienceFee as string) || 0)
+      ).toFixed(2);
+      
       customerOrderGroups.push({
         // Group-level data
         id: isGroup ? groupKey : firstOrder.id,
@@ -826,6 +835,8 @@ export class DatabaseStorage implements IStorage {
         // Combined order data
         total: combinedTotal.toFixed(2),
         deliveryFee: combinedDeliveryFee.toFixed(2),
+        multiMerchantFee, // Group-level fee (same for all orders)
+        convenienceFee, // Group-level fee (same for all orders)
         paymentMethod: firstOrder.paymentMethod,
         createdAt: firstOrder.createdAt,
         completedAt: firstOrder.completedAt,

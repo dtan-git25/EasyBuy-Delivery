@@ -1,0 +1,94 @@
+Add Multi-Merchant Fee and Rider's Convenience Fee to Customer My Order card:
+
+REQUIREMENT:
+
+In Customer > My Orders card, show the complete breakdown including Multi-Merchant Fee and Rider's Convenience Fee, matching the checkout modal display.
+
+In Order #GROUP-7351f024-43a0-4fa0-927e-86a27f90af27
+
+CURRENT DISPLAY (incomplete):
+- Mcdo Subtotal: ₱74.75
+- Jollibee Subtotal: ₱60.50
+- Total: ₱135.25 ✓
+- Delivery Fee: ₱160.00 ✓
+- Grand Total: ₱335.25 ✓
+
+REQUIRED DISPLAY (complete):
+- Mcdo Subtotal: ₱74.75
+- Jollibee Subtotal: ₱60.50
+- Total: ₱135.25 ✓
+- Delivery Fee (9.6 km - farthest): ₱160.00 ✓
+- Multi-Merchant Fee (2 stores): ₱20.00 ← ADD THIS
+- Rider's Convenience Fee: ₱20.00 ← ADD THIS
+- Grand Total: ₱335.25 ✓
+
+IMPLEMENTATION:
+
+1. ADD FEE LINES:
+   
+   After "Delivery Fee" line, add:
+Multi-Merchant Fee (X stores): ₱20.00
+Rider's Convenience Fee: ₱20.00
+
+2. CONDITIONAL DISPLAY:
+   
+   Multi-Merchant Fee:
+   - Only show if order has 2+ merchants
+   - Show merchant count: "(2 stores)"
+   - If single merchant order, don't show this line
+
+3. DATA SOURCE:
+   
+   Ensure order data includes:
+   - multi_merchant_fee (from database)
+   - convenience_fee or rider_commission (from database)
+   - merchant_count (to show in label)
+
+4. COMPLETE BREAKDOWN STRUCTURE:
+   
+   Order Items:
+   [Merchant 1 items and subtotal]
+   [Merchant 2 items and subtotal]
+   
+   Fees:
+   Items Subtotal: ₱135.25
+   Delivery Fee (9.6 km - farthest): ₱160.00
+   Multi-Merchant Fee (2 stores): ₱20.00
+   Rider's Convenience Fee: ₱20.00
+   ─────────────────────────────
+   Grand Total: ₱335.25
+
+5. STYLING:
+   
+   Match the checkout modal style:
+   - Same text formatting
+   - Same spacing
+   - Same alignment
+   - Fee labels with amounts right-aligned
+
+6. APPLY TO ALL ORDER VIEWS:
+   
+   Show complete breakdown in:
+   - My Orders list cards
+   - Order details page
+   - Order tracking page
+   - Order history
+
+7. HANDLE SINGLE MERCHANT:
+   
+   For single merchant orders:
+   Items Subtotal: ₱135.25
+   Delivery Fee (4 km): ₱80.00
+   Rider's Convenience Fee: ₱20.00 ← Still show this
+   (No Multi-Merchant Fee line)
+   ─────────────────────────────
+   Grand Total: ₱235.25
+
+8. VERIFY CALCULATIONS:
+   
+   Ensure:
+   - All fees are fetched from order record
+   - Grand Total = Items + Delivery + Multi-Merchant + Convenience
+   - Numbers match what was charged at checkout
+
+This provides complete transparency showing customers exactly what they paid for, matching the checkout breakdown they saw before placing the order.
