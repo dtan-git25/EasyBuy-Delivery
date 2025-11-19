@@ -1521,6 +1521,20 @@ export default function RiderPortal() {
                               })()}</span>
                             </div>
                             <div className="flex justify-between">
+                              <span className="text-muted-foreground">Markup:</span>
+                              <span>₱{(() => {
+                                if (isGroupedOrder) {
+                                  // Sum all merchant markups
+                                  return order.merchantOrders.reduce((sum: number, mo: any) => {
+                                    return sum + parseFloat(mo.markup || '0');
+                                  }, 0).toFixed(2);
+                                } else {
+                                  // Single merchant order markup
+                                  return parseFloat(order.markup || '0').toFixed(2);
+                                }
+                              })()}</span>
+                            </div>
+                            <div className="flex justify-between">
                               <span className="text-muted-foreground">Delivery Fee:</span>
                               <span>₱{parseFloat(order.deliveryFee).toFixed(2)}</span>
                             </div>

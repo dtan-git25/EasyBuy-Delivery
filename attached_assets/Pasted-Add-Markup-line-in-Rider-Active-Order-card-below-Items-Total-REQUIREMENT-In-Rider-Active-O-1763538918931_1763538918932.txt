@@ -1,0 +1,84 @@
+Add Markup line in Rider Active Order card below Items Total:
+
+REQUIREMENT:
+
+In Rider > Active Orders card, show the total markup amount for all merchants in the order as a separate line.
+
+CURRENT DISPLAY:
+Order Breakdown:
+Items Total: ₱120.00
+Delivery Fee: ₱160.00
+Multi-Merchant Fee: ₱20.00
+Rider's Convenience Fee: ₱10.00
+
+REQUIRED DISPLAY:
+Order Breakdown:
+Items Total: ₱120.00 (base prices shown above)
+Markup: ₱15.25 ← ADD THIS LINE
+Delivery Fee: ₱160.00
+Multi-Merchant Fee: ₱20.00
+Rider's Convenience Fee: ₱10.00
+
+IMPLEMENTATION:
+
+1. CALCULATE TOTAL MARKUP:
+   
+   Sum markup from all merchants in the order:
+   - Jollibee markup: ₱X
+   - Mcdo markup: ₱Y
+   - Total Markup: ₱X + ₱Y
+
+2. DATA SOURCE:
+   
+   Get markup amount from:
+   - order.total_markup (if stored at order level)
+   - Or sum: merchant1.markup + merchant2.markup + ...
+   - This is the difference between customer-paid and base prices
+
+3. DISPLAY POSITION:
+   
+   Show immediately after Items Total:
+Items Total: ₱120.00
+Markup: ₱15.25
+─────────────────────
+Subtotal: ₱135.25 (Items + Markup = what customer paid for items)
+Delivery Fee: ₱160.00
+Multi-Merchant Fee: ₱20.00
+Rider's Convenience Fee: ₱10.00
+─────────────────────
+Total to Collect: ₱335.25
+
+4. EXPLANATION FOR RIDER:
+   
+   This helps rider understand:
+   - Items Total (₱120) = base prices merchants receive
+   - Markup (₱15.25) = platform commission on items
+   - Customer actually pays ₱135.25 for items
+
+5. CALCULATION EXAMPLE:
+   
+   Jollibee:
+   - Base prices: ₱50.00
+   - Customer paid: ₱55.00
+   - Markup: ₱5.00
+   
+   Mcdo:
+   - Base prices: ₱60.00
+   - Customer paid: ₱70.25
+   - Markup: ₱10.25
+   
+   Total Markup: ₱5.00 + ₱10.25 = ₱15.25
+
+6. STYLING:
+   
+   - Label: "Markup"
+   - Amount: Right-aligned
+   - Same text styling as other fee lines
+   - Clear visual hierarchy
+
+7. APPLY TO ALL ORDERS:
+   
+   Show markup line for:
+   - Single merchant orders
+   - Multi-merchant orders
+   - Any order with markup applied
