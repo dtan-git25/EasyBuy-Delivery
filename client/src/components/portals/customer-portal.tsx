@@ -1801,6 +1801,14 @@ export default function CustomerPortal() {
 
                       {/* Order Cost Breakdown */}
                       <div className="border-t pt-3 mb-4">
+                        {(() => {
+                          console.log('=== ORDER FEE DEBUG ===');
+                          console.log('Order ID:', order.id);
+                          console.log('multiMerchantFee:', order.multiMerchantFee, (order as any).multiMerchantFee);
+                          console.log('convenienceFee:', order.convenienceFee, (order as any).convenienceFee);
+                          console.log('Full order keys:', Object.keys(order));
+                          return null;
+                        })()}
                         <div className="space-y-1 text-sm">
                           <div className="flex justify-between">
                             <span>Total:</span>
