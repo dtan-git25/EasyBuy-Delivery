@@ -1,0 +1,139 @@
+Create database migration system to track schema changes in Git:
+
+REQUIREMENT:
+
+We need a way to include database SCHEMA changes (table structure) in Git, while excluding actual DATA, so when we push to production, we can run migrations to update the database structure.
+
+SOLUTION - CREATE MIGRATION SYSTEM:
+
+1. CREATE MIGRATIONS FOLDER:
+   
+   Create folder structure:
+/db
+/migrations
+- 001_initial_schema.sql
+- 002_create_menu_groups.sql
+- 003_add_earnings_fields.sql
+
+2. CREATE MIGRATION FILES:
+   
+   For menu groups feature, create file: 
+   `/db/migrations/002_create_menu_groups.sql`
+```sql
+   -- Migration: Create menu groups tables
+   -- Date: 2025-01-17
+   
+   CREATE TABLE IF NOT EXISTS menu_groups (
+     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+     merchant_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+     group_name VARCHAR(255) NOT NULL,
+     description TEXT,
+     display_order INTEGER DEFAULT 0,
+     created_at TIMESTAMP DEFAULT NOW(),
+     updated_at TIMESTAMP DEFAULT NOW()
+   );
+   
+   CREATE INDEX IF NOT EXISTS idx_menu_groups_merchant 
+   ON menu_groups(merchant_id);
+   
+   CREATE TABLE IF NOT EXISTS menu_group_items (
+     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+     group_id UUID NOT NULL REFERENCES menu_groups(id) ON DELETE CASCADE,
+     menu_item_id UUID NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
+     display_order INTEGER DEFAULT 0,
+     created_at TIMESTAMP DEFAULT NOW(),
+     UNIQUE(group_id, menu_item_id)
+   );
+   
+   CREATE INDEX IF NOT EXISTS idx_menu_group_items_group 
+   ON menu_group_items(group_id);
+   
+   CREATE INDEX IF NOT EXISTS idx_menu_group_items_item 
+   ON menu_group_items(menu_item_id);
+```
+
+3. CREATE MIGRATION RUNNER SCRIPT:
+   
+   Create file: `/db/run-migrations.js` or similar
+   
+   This script:
+   - Reads all migration files in order
+   - Executes each SQL file
+   - Tracks which migrations have run
+   - Only runs new migrations
+
+4. CREATE ROLLBACK MIGRATIONS:
+   
+   For each migration, create a rollback:
+   `/db/migrations/002_create_menu_groups_rollback.sql`
+```sql
+   -- Rollback: Drop menu groups tables
+   DROP TABLE IF EXISTS menu_group_items;
+   DROP TABLE IF EXISTS menu_groups;
+```
+
+5. DOCUMENT ALL SCHEMA CHANGES:
+   
+   Every time database structure changes:
+   - Create new migration file
+   - Number it sequentially
+   - Add clear comments
+   - Include both UP and DOWN (rollback) scripts
+
+6. UPDATE .GITIGNORE:
+   
+   Make sure it includes:
+Database files (data)
+*.db
+*.sqlite
+*.sqlite3
+But ALLOW migration files
+!/db/migrations/**/*.sql
+
+7. DEPLOYMENT WORKFLOW:
+   
+   When deploying to production:
+```bash
+   # 1. Pull latest code (includes migration files)
+   git pull origin main
+   
+   # 2. Run migrations
+   npm run migrate
+   # or: node db/run-migrations.js
+   # or: run SQL files manually
+   
+   # 3. Restart application
+```
+
+8. CREATE MIGRATION TABLE:
+   
+   Track which migrations have run:
+```sql
+   CREATE TABLE IF NOT EXISTS schema_migrations (
+     id SERIAL PRIMARY KEY,
+     migration_name VARCHAR(255) UNIQUE NOT NULL,
+     executed_at TIMESTAMP DEFAULT NOW()
+   );
+```
+
+9. EXAMPLE WORKFLOW:
+   
+   Developer adds menu groups feature:
+   1. Create tables in dev database
+   2. Export schema to migration file
+   3. Commit migration file to Git
+   4. Push to GitHub
+   5. In production: Pull code + Run migrations
+
+10. FOR THIS SPECIFIC CASE:
+    
+    Right now, create the migration file for menu groups:
+    - Extract current schema from dev database
+    - Save as migration file
+    - Commit to Git
+    - Push to GitHub
+    - Run migration in production
+
+This ensures all database schema changes are version controlled and can be applied to any environment (dev, staging, production) consistently.
+
+Create the migration system now so future database changes are properly tracked and deployable.
