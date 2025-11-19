@@ -1804,7 +1804,18 @@ export default function CustomerPortal() {
                         <div className="space-y-1 text-sm">
                           <div className="flex justify-between">
                             <span>Total:</span>
-                            <span>₱{(parseFloat(order.subtotal) + parseFloat(order.markup)).toFixed(2)}</span>
+                            <span>₱{(() => {
+                              if (isGroupedOrder) {
+                                // Sum all merchant subtotals and markups
+                                const totalAmount = merchantOrders.reduce((sum: number, mo: any) => {
+                                  return sum + parseFloat(mo.subtotal || '0') + parseFloat(mo.markup || '0');
+                                }, 0);
+                                return totalAmount.toFixed(2);
+                              } else {
+                                // Single merchant order
+                                return (parseFloat(order.subtotal) + parseFloat(order.markup)).toFixed(2);
+                              }
+                            })()}</span>
                           </div>
                           <div className="flex justify-between">
                             <span>Delivery Fee:</span>

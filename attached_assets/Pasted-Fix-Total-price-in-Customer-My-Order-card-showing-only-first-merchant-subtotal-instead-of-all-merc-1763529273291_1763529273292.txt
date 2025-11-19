@@ -1,0 +1,91 @@
+Fix Total price in Customer My Order card - showing only first merchant subtotal instead of all merchants:
+
+PROBLEM:
+
+In Customer > My Orders card for multi-merchant order:
+
+CURRENT (WRONG):
+- Mcdo Subtotal: ₱74.75 ✓
+- Jollibee Subtotal: ₱60.50 ✓
+- Total: ₱74.75 ✗ (only showing Mcdo subtotal)
+- Delivery Fee: ₱160.00 ✓
+- Grand Total: ₱335.25 ✓
+
+REQUIRED (CORRECT):
+- Mcdo Subtotal: ₱74.75 ✓
+- Jollibee Subtotal: ₱60.50 ✓
+- Total: ₱135.25 ✓ (sum of both merchants)
+- Delivery Fee: ₱160.00 ✓
+- Grand Total: ₱335.25 ✓
+
+ISSUE:
+
+The "Total:" line (items subtotal) is only showing the first merchant's subtotal (₱74.75) instead of the sum of all merchants (₱74.75 + ₱60.50 = ₱135.25).
+
+FIX REQUIRED:
+
+1. LOCATE THE CALCULATION:
+   
+   In Customer My Orders card component, find where "Total:" is calculated.
+   
+   Current (wrong):
+```javascript
+   // Showing only first merchant
+   total = firstMerchant.subtotal  // ₱74.75
+```
+   
+   Required (correct):
+```javascript
+   // Sum all merchants
+   total = merchants.reduce((sum, merchant) => sum + merchant.subtotal, 0)
+   // ₱74.75 + ₱60.50 = ₱135.25
+```
+
+2. VERIFY BREAKDOWN STRUCTURE:
+   
+   For multi-merchant orders:
+   
+   Merchant 1 Subtotal: ₱74.75
+   Merchant 2 Subtotal: ₱60.50
+   ─────────────────────────────
+   Total (Items): ₱135.25  ← Sum of all merchant subtotals
+   Delivery Fee: ₱160.00
+   Multi-Merchant Fee: ₱20.00 (if shown)
+   Rider's Convenience Fee: ₱20.00 (if shown)
+   ─────────────────────────────
+   Grand Total: ₱335.25
+
+3. CALCULATION LOGIC:
+```javascript
+   // Calculate items total (sum of all merchants)
+   const itemsTotal = orderMerchants.reduce((sum, merchant) => {
+     return sum + merchant.subtotal;
+   }, 0);
+   
+   // Then add fees
+   const grandTotal = itemsTotal + deliveryFee + multiFee + convenienceFee;
+```
+
+4. DISPLAY:
+   
+   Show clear hierarchy:
+   - Individual merchant subtotals (grouped by merchant)
+   - Total: (sum of all merchant subtotals)
+   - Fees (delivery, multi-merchant, convenience)
+   - Grand Total: (everything combined)
+
+5. CHECK DATA SOURCE:
+   
+   Verify the order data structure:
+   - Is total_amount correctly calculated in database?
+   - Is items_subtotal the sum of all merchants?
+   - Or is it only storing first merchant's subtotal?
+
+6. ENSURE CONSISTENCY:
+   
+   This should match the checkout calculation:
+   - Checkout shows ₱135.25 for items total
+   - My Orders should show same ₱135.25 for items total
+   - Not just ₱74.75 from first merchant
+
+The "Total:" line should sum ALL merchant subtotals, not just the first one. Fix the calculation to iterate through all merchants and sum their subtotals.
