@@ -588,7 +588,7 @@ export default function RiderPortal() {
       socket.addEventListener('message', handleMessage);
       return () => socket.removeEventListener('message', handleMessage);
     }
-  }, [socket, user, sendMessage, queryClient, toast]);
+  }, [socket, user, sendMessage, queryClient]);
 
   const updateOrderMutation = useMutation({
     mutationFn: async ({ orderId, status }: { orderId: string; status: string }) => {
