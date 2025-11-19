@@ -1,0 +1,101 @@
+Fix Grand Total calculation error in Customer My Orders and Rider Active Orders:
+
+In Order #GROUP-7351f024-43a0-4fa0-927e-86a27f90af27
+
+PROBLEM:
+
+Both Customer My Orders card and Rider Active Orders card showing WRONG Grand Total.
+
+CORRECT CALCULATION:
+- Items Total: ₱120.00
+- Markup: ₱15.25
+- Delivery Fee: ₱160.00
+- Multi-Merchant Fee: ₱20.00
+- Rider's Convenience Fee: ₱10.00
+─────────────────────────
+CORRECT TOTAL: ₱325.25
+
+CURRENT (WRONG):
+- Shows: ₱335.25 ✗
+- Difference: ₱10.00 extra
+
+DEBUGGING:
+
+1. CHECK CALCULATION:
+   
+   Verify the total calculation:
+   ₱120.00 (items) + ₱15.25 (markup) + ₱160.00 (delivery) + ₱20.00 (multi) + ₱10.00 (convenience)
+   = ₱325.25 ✓
+   
+   Current shows ₱335.25 = ₱10 overcharged
+
+2. LIKELY CAUSES:
+   
+   A. Double-counting a fee:
+   - Rider's Convenience Fee added twice?
+   - Multi-Merchant Fee added twice?
+   - Some ₱10 fee counted twice
+   
+   B. Extra fee being added:
+   - Unknown ₱10 charge
+   - Old fee not removed from calculation
+   
+   C. Wrong field being summed:
+   - Using wrong total from database
+   - Calculation includes extra amount
+
+3. CHECK CALCULATION CODE:
+   
+   Find where Grand Total / Total to Collect is calculated:
+   
+   Should be:
+```javascript
+   grandTotal = itemsTotal + markup + deliveryFee + multiMerchantFee + convenienceFee
+   grandTotal = 120 + 15.25 + 160 + 20 + 10 = 325.25
+```
+   
+   Currently calculating:
+```javascript
+   grandTotal = ??? = 335.25
+```
+
+4. VERIFY BREAKDOWN:
+   
+   Log each component:
+```javascript
+   console.log('Items Total:', itemsTotal); // Should be 120
+   console.log('Markup:', markup); // Should be 15.25
+   console.log('Delivery Fee:', deliveryFee); // Should be 160
+   console.log('Multi-Merchant Fee:', multiMerchantFee); // Should be 20
+   console.log('Convenience Fee:', convenienceFee); // Should be 10
+   console.log('Grand Total:', grandTotal); // Should be 325.25
+   console.log('Actual showing:', displayedTotal); // Shows 335.25
+```
+
+5. CHECK DATABASE:
+   
+   Query this order:
+   - What is stored as total_amount?
+   - Is it ₱335.25 (wrong) or ₱325.25 (correct)?
+   - If database has wrong amount, fix order creation logic
+
+6. FIX IN BOTH PLACES:
+   
+   Customer My Orders card:
+   - Grand Total: ₱325.25
+   
+   Rider Active Orders card:
+   - Total to Collect from Customer: ₱325.25
+
+7. VERIFY CHECKOUT:
+   
+   Check if checkout also showed ₱335.25 (wrong) or ₱325.25 (correct):
+   - If checkout was correct (₱325.25), then display is wrong
+   - If checkout was wrong (₱335.25), then calculation is wrong from start
+
+
+The ₱10 difference suggests either Rider's Convenience Fee (₱10) is being added twice, or there's an extra ₱10 fee being included that shouldn't be.
+
+Find the calculation code and ensure it sums: Items + Markup + Delivery + Multi-Merchant + Convenience = ₱325.25
+
+Currently it's adding ₱10 extra somewhere.

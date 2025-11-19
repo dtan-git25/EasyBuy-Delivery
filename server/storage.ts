@@ -795,22 +795,27 @@ export class DatabaseStorage implements IStorage {
         updatedAt: row.orders.updatedAt,
       }));
       
-      // Calculate combined totals
-      const combinedTotal = orderRows.reduce((sum, row) => 
-        sum + parseFloat(row.orders.total as string), 0
+      // Calculate combined subtotals and markups (sum per merchant)
+      const combinedSubtotal = orderRows.reduce((sum, row) => 
+        sum + parseFloat(row.orders.subtotal as string), 0
       );
-      const combinedDeliveryFee = orderRows.reduce((sum, row) => 
-        sum + parseFloat(row.orders.deliveryFee as string), 0
+      const combinedMarkup = orderRows.reduce((sum, row) => 
+        sum + parseFloat(row.orders.markup as string), 0
       );
       
       // Get group-level fees (take maximum across all orders to handle 0.00 vs actual fee)
+      const deliveryFee = Math.max(
+        ...orderRows.map(row => parseFloat(row.orders.deliveryFee as string) || 0)
+      );
       const multiMerchantFee = Math.max(
         ...orderRows.map(row => parseFloat(row.orders.multiMerchantFee as string) || 0)
-      ).toFixed(2);
-      
+      );
       const convenienceFee = Math.max(
         ...orderRows.map(row => parseFloat(row.orders.convenienceFee as string) || 0)
-      ).toFixed(2);
+      );
+      
+      // Calculate correct total: subtotals + markups + fees (only once each)
+      const combinedTotal = combinedSubtotal + combinedMarkup + deliveryFee + multiMerchantFee + convenienceFee;
       
       customerOrderGroups.push({
         // Group-level data
@@ -834,9 +839,9 @@ export class DatabaseStorage implements IStorage {
         
         // Combined order data
         total: combinedTotal.toFixed(2),
-        deliveryFee: combinedDeliveryFee.toFixed(2),
-        multiMerchantFee, // Group-level fee (same for all orders)
-        convenienceFee, // Group-level fee (same for all orders)
+        deliveryFee: deliveryFee.toFixed(2),
+        multiMerchantFee: multiMerchantFee.toFixed(2), // Group-level fee (same for all orders)
+        convenienceFee: convenienceFee.toFixed(2), // Group-level fee (same for all orders)
         paymentMethod: firstOrder.paymentMethod,
         createdAt: firstOrder.createdAt,
         completedAt: firstOrder.completedAt,
