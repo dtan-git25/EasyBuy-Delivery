@@ -1801,14 +1801,6 @@ export default function CustomerPortal() {
 
                       {/* Order Cost Breakdown */}
                       <div className="border-t pt-3 mb-4">
-                        {(() => {
-                          console.log('=== ORDER FEE DEBUG ===');
-                          console.log('Order ID:', order.id);
-                          console.log('multiMerchantFee:', order.multiMerchantFee, (order as any).multiMerchantFee);
-                          console.log('convenienceFee:', order.convenienceFee, (order as any).convenienceFee);
-                          console.log('Full order keys:', Object.keys(order));
-                          return null;
-                        })()}
                         <div className="space-y-1 text-sm">
                           <div className="flex justify-between">
                             <span>Total:</span>
@@ -1835,10 +1827,10 @@ export default function CustomerPortal() {
                               <span>₱{parseFloat((order as any).multiMerchantFee || '0').toFixed(2)}</span>
                             </div>
                           )}
-                          {parseFloat(order.convenienceFee || '0') > 0 && (
+                          {parseFloat((order as any).convenienceFee || '0') > 0 && (
                             <div className="flex justify-between">
                               <span>Rider's Convenience Fee:</span>
-                              <span>₱{parseFloat(order.convenienceFee || '0').toFixed(2)}</span>
+                              <span>₱{parseFloat((order as any).convenienceFee || '0').toFixed(2)}</span>
                             </div>
                           )}
                           <div className="flex justify-between font-semibold text-base pt-2 border-t">
