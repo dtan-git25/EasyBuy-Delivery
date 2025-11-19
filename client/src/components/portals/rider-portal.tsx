@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { useTrackingChannel } from "@/hooks/use-tracking-channel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -513,82 +514,65 @@ export default function RiderPortal() {
   // WebSocket for real-time order updates
   const { socket, sendMessage } = useWebSocket();
 
-  // Listen for real-time order updates
-  useEffect(() => {
-    if (socket && user) {
-      // Join tracking for real-time order updates
-      sendMessage({
-        type: 'join_tracking',
-        userId: user.id,
-        userRole: user.role
-      });
-
-      const handleMessage = (event: MessageEvent) => {
-        try {
-          const data = JSON.parse(event.data);
+  // Memoized message handler for WebSocket tracking channel
+  const handleTrackingMessage = useCallback((data: any) => {
+    switch (data.type) {
+      case 'new_order':
+        // New order created - refresh pending orders list
+        queryClient.invalidateQueries({ queryKey: ["/api/orders/pending"] });
+        toast({
+          title: "New Order Available",
+          description: `New order #${data.order.orderNumber || 'pending'} is ready for pickup!`,
+        });
+        break;
+        
+      case 'new_order_group':
+        // Multi-merchant order group created - refresh pending orders list
+        queryClient.invalidateQueries({ queryKey: ["/api/orders/pending"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+        
+        const merchantCount = data.merchantCount || (data.orders?.length) || 'multiple';
+        toast({
+          title: "New Multi-Merchant Order Available",
+          description: `New order group with ${merchantCount} restaurants is ready for pickup!`,
+        });
+        break;
+        
+      case 'order_update':
+        // Existing order updated - refresh both lists
+        queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/orders/pending"] });
+        
+        // Show toast for order status changes
+        if (data.order && data.updatedBy) {
+          const statusText = data.order.status === 'cancelled' 
+            ? 'cancelled by merchant' 
+            : data.order.status;
           
-          switch (data.type) {
-            case 'new_order':
-              // New order created - refresh pending orders list
-              queryClient.invalidateQueries({ queryKey: ["/api/orders/pending"] });
-              toast({
-                title: "New Order Available",
-                description: `New order #${data.order.orderNumber || 'pending'} is ready for pickup!`,
-              });
-              break;
-              
-            case 'new_order_group':
-              // Multi-merchant order group created - refresh pending orders list
-              queryClient.invalidateQueries({ queryKey: ["/api/orders/pending"] });
-              queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
-              
-              const merchantCount = data.merchantCount || (data.orders?.length) || 'multiple';
-              toast({
-                title: "New Multi-Merchant Order Available",
-                description: `New order group with ${merchantCount} restaurants is ready for pickup!`,
-              });
-              break;
-              
-            case 'order_update':
-              // Existing order updated - refresh both lists
-              queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
-              queryClient.invalidateQueries({ queryKey: ["/api/orders/pending"] });
-              
-              // Show toast for order status changes
-              if (data.order && data.updatedBy) {
-                const statusText = data.order.status === 'cancelled' 
-                  ? 'cancelled by merchant' 
-                  : data.order.status;
-                
-                toast({
-                  title: "Order Status Updated",
-                  description: `Order #${data.order.orderNumber} is now ${statusText}`,
-                });
-              }
-              break;
-
-            case 'chat_message':
-              // Show toast notification for new chat messages
-              if (data.message?.sender?.id !== user.id) {
-                const senderName = data.message?.sender ? 
-                  `${data.message.sender.firstName} ${data.message.sender.lastName}` : 
-                  'Someone';
-                toast({
-                  title: `New message from ${senderName}`,
-                  description: data.message?.message || '',
-                });
-              }
-              break;
-          }
-        } catch (error) {
-          console.error('WebSocket message parsing error:', error);
+          toast({
+            title: "Order Status Updated",
+            description: `Order #${data.order.orderNumber} is now ${statusText}`,
+          });
         }
-      };
+        break;
 
-      socket.addEventListener('message', handleMessage);
-      return () => socket.removeEventListener('message', handleMessage);
+      case 'chat_message':
+        // Show toast notification for new chat messages
+        if (user && data.message?.sender?.id !== user.id) {
+          const senderName = data.message?.sender ? 
+            `${data.message.sender.firstName} ${data.message.sender.lastName}` : 
+            'Someone';
+          toast({
+            title: `New message from ${senderName}`,
+            description: data.message?.message || '',
+          });
+        }
+        break;
     }
-  }, [socket, user, sendMessage, queryClient]);
+  }, [queryClient, toast, user]);
+
+  // Use shared tracking channel hook to prevent infinite loops
+  useTrackingChannel(socket, user, sendMessage, handleTrackingMessage);
 
   const updateOrderMutation = useMutation({
     mutationFn: async ({ orderId, status }: { orderId: string; status: string }) => {
