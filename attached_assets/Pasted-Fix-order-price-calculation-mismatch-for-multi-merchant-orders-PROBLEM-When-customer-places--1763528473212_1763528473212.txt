@@ -1,0 +1,107 @@
+Fix order price calculation mismatch for multi-merchant orders:
+
+PROBLEM:
+
+When customer places multi-merchant order, the prices in checkout are correct, but after order is placed, individual merchant subtotals are WRONG (inflated) while total remains correct.
+
+CHECKOUT (CORRECT):
+- Mcdo subtotal: ₱74.75 ✓
+- Jollibee subtotal: ₱60.50 ✓
+- Items Subtotal: ₱135.25 ✓
+- Delivery Fee: ₱160.00
+- Multi-Merchant Fee: ₱20.00
+- Rider's Convenience Fee: ₱20.00
+- Total: ₱335.25 ✓
+
+AFTER ORDER PLACED (WRONG):
+- Mcdo subtotal: ₱84.75 ✗ (should be ₱74.75)
+- Jollibee subtotal: ₱250.50 ✗ (should be ₱60.50)
+- But Total: ₱335.25 ✓ (correct)
+
+ISSUE:
+
+When saving the order to database, the merchant subtotals are being calculated incorrectly. The individual store subtotals are being inflated, possibly by:
+- Adding fees to merchant subtotals
+- Incorrect grouping calculation
+- Adding delivery/multi-merchant fee to wrong place
+
+DEBUGGING:
+
+1. CHECK ORDER CREATION CODE:
+   
+   When multi-merchant order is placed, verify:
+   - How are merchant subtotals calculated?
+   - Are fees being added to merchant totals?
+   - Should be: items only, no fees
+
+2. VERIFY SAVED DATA:
+   
+   Check database after order placed:
+   - What subtotal is saved for Mcdo merchant?
+   - What subtotal is saved for Jollibee merchant?
+   - Are they inflated in database or only in display?
+
+3. LIKELY CAUSES:
+
+   A. Fees added to merchant subtotal:
+   - Multi-merchant fee added to merchant total
+   - Delivery fee portion added to merchant
+   - Should be: Merchant subtotal = items ONLY
+
+   B. Calculation during save:
+   - Correct in checkout
+   - Wrong calculation when creating order records
+   - Check order creation mutation
+
+   C. Display issue:
+   - Saved correctly in database
+   - Wrong calculation when displaying
+   - Check order display component
+
+4. CORRECT CALCULATION:
+
+   For multi-merchant order:
+   
+   Mcdo:
+   - French Fries × 1: ₱74.75
+   - Mcdo Subtotal: ₱74.75 (items only)
+   
+   Jollibee:
+   - Burger × 1: ₱49.50
+   - Drinks × 1: ₱11.00
+   - Jollibee Subtotal: ₱60.50 (items only)
+   
+   Order level:
+   - Items Subtotal: ₱135.25 (sum of merchants)
+   - Delivery Fee: ₱160.00
+   - Multi-Merchant Fee: ₱20.00
+   - Rider's Convenience Fee: ₱20.00
+   - Total: ₱335.25
+
+   Merchant subtotals should NEVER include fees!
+
+5. FIX THE CALCULATION:
+
+   In order creation code:
+   - Calculate merchant subtotal = sum of items only
+   - Don't add any fees to merchant subtotal
+   - Fees are order-level, not merchant-level
+   - Each merchant gets their items total only
+
+6. CHECK SPLIT ORDER LOGIC:
+
+   For multi-merchant:
+   - Create separate order record per merchant?
+   - Or single order with multiple merchants?
+   - Ensure subtotals are correctly separated
+
+7. VERIFY DISPLAY:
+
+   In Customer My Orders:
+   - Should show correct merchant subtotals
+   - Pull from database correctly
+   - Display items total for each merchant
+
+The merchant subtotals are being inflated by ₱10 (Mcdo: 74.75→84.75) and much more for Jollibee (60.50→250.50). Find where fees or extra amounts are being added to merchant subtotals during order creation or display.
+
+Fix the calculation so merchant subtotals remain as items-only totals, with fees calculated at order level.

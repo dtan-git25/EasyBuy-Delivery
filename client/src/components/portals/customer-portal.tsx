@@ -1759,7 +1759,7 @@ export default function CustomerPortal() {
                                 </div>
                                 <div className="mt-2 pt-2 border-t flex justify-between items-center text-sm">
                                   <span className="font-medium">Subtotal:</span>
-                                  <span className="font-semibold">₱{merchantOrder.total}</span>
+                                  <span className="font-semibold">₱{(parseFloat(merchantOrder.subtotal) + parseFloat(merchantOrder.markup)).toFixed(2)}</span>
                                 </div>
                               </div>
                             ))}
