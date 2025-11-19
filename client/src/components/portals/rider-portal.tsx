@@ -1461,7 +1461,7 @@ export default function RiderPortal() {
                                   </div>
                                   <div className="mt-2 pt-2 border-t flex justify-between items-center">
                                     <span className="text-sm font-medium">Subtotal:</span>
-                                    <span className="font-semibold">₱{merchantOrder.total}</span>
+                                    <span className="font-semibold">₱{parseFloat(merchantOrder.subtotal).toFixed(2)}</span>
                                   </div>
                                 </div>
                               ))}
@@ -1508,7 +1508,17 @@ export default function RiderPortal() {
                           <div className="space-y-1 text-sm">
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Items Total:</span>
-                              <span>₱{(parseFloat(order.subtotal) + parseFloat(order.markup)).toFixed(2)}</span>
+                              <span>₱{(() => {
+                                if (isGroupedOrder) {
+                                  // Sum all merchant subtotals (items only)
+                                  return order.merchantOrders.reduce((sum: number, mo: any) => {
+                                    return sum + parseFloat(mo.subtotal || '0');
+                                  }, 0).toFixed(2);
+                                } else {
+                                  // Single merchant order (subtotal only, no markup shown to rider)
+                                  return parseFloat(order.subtotal).toFixed(2);
+                                }
+                              })()}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Delivery Fee:</span>

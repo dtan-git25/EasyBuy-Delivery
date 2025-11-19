@@ -1,0 +1,89 @@
+Fix Rider Active Order card showing inflated merchant subtotals:
+
+PROBLEM CONFIRMED:
+
+Order ID: GROUP-7351f024-43a0-4fa0-927e-86a27f90af27
+
+CURRENT (WRONG):
+- Jollibee Subtotal: ₱250.50 ✗
+- Mcdo Subtotal: ₱84.75 ✗
+- Items Total: ₱60.50 ✗
+
+EXPECTED (CORRECT):
+- Jollibee Subtotal: ₱55.00 ✓ (Burger ₱45 + Drinks ₱10)
+- Mcdo Subtotal: ₱65.00 ✓ (French Fries)
+- Items Total: ₱120.00 ✓ (₱55 + ₱65)
+
+ISSUE:
+
+The merchant subtotals are being MASSIVELY INFLATED - similar to the issue we fixed in Customer My Orders. Fees or other amounts are being added to merchant subtotals when they should only show item costs.
+
+ROOT CAUSE:
+
+This is the SAME bug we fixed for Customer view - merchant subtotals are including fees or being calculated incorrectly for Rider view.
+
+REQUIRED FIX:
+
+1. MERCHANT SUBTOTALS = ITEMS ONLY:
+   
+   Jollibee:
+   - Burger × 1 (with options): ₱45.00
+   - Drinks × 1: ₱10.00
+   - Jollibee Subtotal: ₱55.00 (items only, no fees)
+   
+   Mcdo:
+   - French Fries × 1 (with options): ₱65.00
+   - Mcdo Subtotal: ₱65.00 (items only, no fees)
+
+2. ITEMS TOTAL = SUM OF MERCHANT SUBTOTALS:
+   
+   Items Total: ₱55.00 + ₱65.00 = ₱120.00
+
+3. CHECK CALCULATION IN RIDER COMPONENT:
+   
+   In Rider Active Order card:
+   - How are merchant subtotals calculated?
+   - Are fees being added to merchant totals?
+   - Use the SAME fix applied to Customer My Orders
+
+4. COMPARE WITH CUSTOMER VIEW:
+   
+   Customer My Orders now shows correct subtotals.
+   Apply the SAME calculation logic to Rider Active Orders.
+
+5. VERIFY DATA SOURCE:
+   
+   Check if:
+   - Wrong field being used for merchant subtotals
+   - Fees being added during calculation
+   - Total amount divided incorrectly
+
+6. CORRECT BREAKDOWN FOR RIDER:
+Jollibee                          ACCEPTED
+Burger × 1                      ₱45.00
+Toppings: Cheese              (₱5.00)
+Size: Small                   (₱20.00)
+Drinks × 1                      ₱10.00
+Subtotal:                         ₱55.00 ← ITEMS ONLY
+Mcdo                              ACCEPTED
+French Fries × 1                ₱65.00
+Size: Large                   (₱15.00)
+Subtotal:                         ₱65.00 ← ITEMS ONLY
+Order Breakdown:
+Items Total:                      ₱120.00
+Delivery Fee:                     ₱160.00
+Multi-Merchant Fee:               ₱20.00
+Rider's Convenience Fee:          ₱10.00
+Total to Collect:                 ₱310.00
+YOUR EARNINGS:                    ₱100.00
+
+7. FIX PATTERN:
+   
+   Use the same logic that fixed Customer My Orders:
+   - Merchant subtotal = sum of items for that merchant ONLY
+   - No fees in merchant subtotals
+   - Fees shown separately in Order Breakdown
+
+The merchant subtotals are being inflated by including fees or wrong calculations. Apply the same fix used for Customer view to Rider view.
+
+This is critical for rider to know correct amounts and for proper earnings calculation.
