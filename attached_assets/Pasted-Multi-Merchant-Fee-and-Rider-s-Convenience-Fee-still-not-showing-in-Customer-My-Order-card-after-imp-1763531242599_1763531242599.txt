@@ -1,0 +1,106 @@
+Multi-Merchant Fee and Rider's Convenience Fee still not showing in Customer My Order card after implementation attempt:
+
+PROBLEM:
+
+After trying to add the fee lines, they still don't appear in Customer > My Orders card.
+
+DEBUGGING NEEDED:
+
+1. CHECK ORDER DATA:
+   
+   First verify the data exists in the order record:
+   
+   Log the order object in My Orders component:
+```javascript
+   console.log('Order data:', order);
+   console.log('Multi-merchant fee:', order.multi_merchant_fee);
+   console.log('Convenience fee:', order.convenience_fee || order.rider_commission);
+```
+   
+   Check if these fields exist and have values.
+
+2. CHECK DATABASE FIELDS:
+   
+   Verify the orders table has these columns:
+   - multi_merchant_fee
+   - convenience_fee (or rider_commission)
+   
+   Are these fields populated when order is created?
+
+3. CHECK COMPONENT CODE:
+   
+   Find the Customer My Orders card component:
+   - Locate where fees are displayed
+   - Check if Multi-Merchant Fee and Convenience Fee lines were added
+   - Verify the code is actually rendering these lines
+
+4. COMMON ISSUES:
+   
+   A. Data not fetched:
+   - Query doesn't include these fields
+   - Fields exist but not selected in query
+   
+   B. Conditional hiding:
+   - Code has condition that hides these lines
+   - Check for: if (showFees) or similar
+   
+   C. Field name mismatch:
+   - Code looks for "convenienceFee" but database has "rider_commission"
+   - Code looks for "multiMerchantFee" but database has "multi_merchant_fee"
+   
+   D. Wrong component edited:
+   - Multiple order display components
+   - Edited one, but different one is being used
+
+5. VERIFY LOCATION:
+   
+   The My Orders card is different from:
+   - Order details page
+   - Order tracking page
+   - Checkout modal
+   
+   Make sure editing the correct component that shows in My Orders list.
+
+6. STEP-BY-STEP FIX:
+   
+   Step 1: Check if data exists
+```javascript
+   console.log('Full order:', JSON.stringify(order, null, 2));
+```
+   
+   Step 2: If data exists, verify display code
+   - Look for where "Delivery Fee" is displayed
+   - Add lines right after it for the other fees
+   
+   Step 3: If data doesn't exist
+   - Update order query to include these fields
+   - Ensure they're saved when order is created
+
+7. EXPECTED STRUCTURE:
+   
+   In the component, should have something like:
+```javascript
+   <div>Items Subtotal: {itemsTotal}</div>
+   <div>Delivery Fee: {deliveryFee}</div>
+   <div>Multi-Merchant Fee: {multiMerchantFee}</div>  ← Add
+   <div>Convenience Fee: {convenienceFee}</div>  ← Add
+   <div>Grand Total: {grandTotal}</div>
+```
+
+8. TEST WITH CONSOLE:
+   
+   Add visible test text to verify component is being edited:
+```javascript
+   <div>TEST: FEES SECTION</div>
+   <div>Multi-Merchant Fee: ₱20.00</div>
+   <div>Convenience Fee: ₱20.00</div>
+```
+   
+   If "TEST" doesn't appear, you're editing wrong component.
+
+Without seeing the actual component code or data structure, add extensive logging to identify:
+- Is the data available?
+- Is the component being rendered?
+- Why aren't the lines showing?
+
+Share the console logs showing the order data structure so we can see if the fees are present.

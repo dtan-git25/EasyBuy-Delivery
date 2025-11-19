@@ -789,6 +789,8 @@ export class DatabaseStorage implements IStorage {
         subtotal: row.orders.subtotal,
         markup: row.orders.markup,
         deliveryFee: row.orders.deliveryFee,
+        multiMerchantFee: row.orders.multiMerchantFee,
+        convenienceFee: row.orders.convenienceFee,
         total: row.orders.total,
         status: row.orders.status,
         createdAt: row.orders.createdAt,
@@ -826,6 +828,8 @@ export class DatabaseStorage implements IStorage {
         // Combined order data
         total: combinedTotal.toFixed(2),
         deliveryFee: combinedDeliveryFee.toFixed(2),
+        multiMerchantFee: firstOrder.multiMerchantFee,
+        convenienceFee: firstOrder.convenienceFee,
         paymentMethod: firstOrder.paymentMethod,
         createdAt: firstOrder.createdAt,
         completedAt: firstOrder.completedAt,
