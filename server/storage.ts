@@ -945,10 +945,27 @@ export class DatabaseStorage implements IStorage {
         updatedAt: row.orders.updatedAt,
       }));
       
-      // Calculate combined totals for the group
-      const combinedTotal = sortedRows.reduce((sum, row) => 
-        sum + parseFloat(row.orders.total as string), 0
+      // Calculate combined subtotals and markups (sum per merchant)
+      const combinedSubtotal = sortedRows.reduce((sum, row) => 
+        sum + parseFloat(row.orders.subtotal as string), 0
       );
+      const combinedMarkup = sortedRows.reduce((sum, row) => 
+        sum + parseFloat(row.orders.markup as string), 0
+      );
+      
+      // Get group-level fees (take maximum across all orders to handle 0.00 vs actual fee)
+      const deliveryFee = Math.max(
+        ...sortedRows.map(row => parseFloat(row.orders.deliveryFee as string) || 0)
+      );
+      const multiMerchantFee = Math.max(
+        ...sortedRows.map(row => parseFloat(row.orders.multiMerchantFee as string) || 0)
+      );
+      const convenienceFee = Math.max(
+        ...sortedRows.map(row => parseFloat(row.orders.convenienceFee as string) || 0)
+      );
+      
+      // Calculate correct total: subtotals + markups + fees (only once each)
+      const combinedTotal = combinedSubtotal + combinedMarkup + deliveryFee + multiMerchantFee + convenienceFee;
       
       riderOrderGroups.push({
         // Group-level data (use unique identifier for the group view)
@@ -970,6 +987,9 @@ export class DatabaseStorage implements IStorage {
         
         // Combined order data
         total: combinedTotal.toFixed(2),
+        deliveryFee: deliveryFee.toFixed(2),
+        multiMerchantFee: multiMerchantFee.toFixed(2),
+        convenienceFee: convenienceFee.toFixed(2),
         paymentMethod: firstOrder.paymentMethod,
         createdAt: firstOrder.createdAt,
         
@@ -983,11 +1003,8 @@ export class DatabaseStorage implements IStorage {
         restaurantLongitude: merchantOrders[0].restaurantLongitude,
         status: firstOrder.status, // Overall status (could be enhanced to show combined status)
         items: firstOrder.items,
-        subtotal: firstOrder.subtotal,
-        markup: firstOrder.markup,
-        deliveryFee: firstOrder.deliveryFee,
-        multiMerchantFee: firstOrder.multiMerchantFee,
-        convenienceFee: firstOrder.convenienceFee,
+        subtotal: combinedSubtotal.toFixed(2),
+        markup: combinedMarkup.toFixed(2),
         deliveryDistance: firstOrder.deliveryDistance,
         riderEarningsAmount: firstOrder.riderEarningsAmount,
         appEarningsPercentageUsed: firstOrder.appEarningsPercentageUsed,
@@ -1024,19 +1041,27 @@ export class DatabaseStorage implements IStorage {
       const firstOrder = orderRows[0].orders;
       const isGroup = orderRows.length > 1;
       
-      // Calculate combined totals for the group
-      const combinedTotal = orderRows.reduce((sum, row) => 
-        sum + parseFloat(row.orders.total as string), 0
-      );
+      // Calculate combined subtotals and markups (sum per merchant)
       const combinedSubtotal = orderRows.reduce((sum, row) => 
         sum + parseFloat(row.orders.subtotal as string), 0
       );
       const combinedMarkup = orderRows.reduce((sum, row) => 
         sum + parseFloat(row.orders.markup as string), 0
       );
-      const combinedDeliveryFee = orderRows.reduce((sum, row) => 
-        sum + parseFloat(row.orders.deliveryFee as string), 0
+      
+      // Get group-level fees (take maximum across all orders to handle 0.00 vs actual fee)
+      const deliveryFee = Math.max(
+        ...orderRows.map(row => parseFloat(row.orders.deliveryFee as string) || 0)
       );
+      const multiMerchantFee = Math.max(
+        ...orderRows.map(row => parseFloat(row.orders.multiMerchantFee as string) || 0)
+      );
+      const convenienceFee = Math.max(
+        ...orderRows.map(row => parseFloat(row.orders.convenienceFee as string) || 0)
+      );
+      
+      // Calculate correct total: subtotals + markups + fees (only once each)
+      const combinedTotal = combinedSubtotal + combinedMarkup + deliveryFee + multiMerchantFee + convenienceFee;
       
       // Get customer info (same for all orders in group)
       const customerUser = orderRows[0].users;
@@ -1060,7 +1085,9 @@ export class DatabaseStorage implements IStorage {
         total: combinedTotal.toFixed(2),
         subtotal: combinedSubtotal.toFixed(2),
         markup: combinedMarkup.toFixed(2),
-        deliveryFee: combinedDeliveryFee.toFixed(2),
+        deliveryFee: deliveryFee.toFixed(2),
+        multiMerchantFee: multiMerchantFee.toFixed(2),
+        convenienceFee: convenienceFee.toFixed(2),
         deliveryAddress: firstOrder.deliveryAddress,
         phoneNumber: customerUser?.phone || firstOrder.phoneNumber,
         createdAt: firstOrder.createdAt,
@@ -1074,8 +1101,8 @@ export class DatabaseStorage implements IStorage {
           address: 'Multiple locations', // Indicate multiple pickups
         } : restaurants[0],
         restaurants, // Array of all restaurants in the group
-        distance: `${(combinedDeliveryFee / 10).toFixed(1)} km`,
-        commission: (combinedDeliveryFee * 0.7).toFixed(2),
+        distance: `${(deliveryFee / 10).toFixed(1)} km`,
+        commission: (deliveryFee * 0.7).toFixed(2),
       });
     });
     
