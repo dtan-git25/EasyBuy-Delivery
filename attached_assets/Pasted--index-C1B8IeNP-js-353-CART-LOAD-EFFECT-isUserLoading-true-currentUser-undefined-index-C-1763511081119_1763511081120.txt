@@ -1,0 +1,382 @@
+
+﻿
+index-C1B8IeNP.js:353 🔄 CART LOAD EFFECT - isUserLoading: true currentUser: undefined
+index-C1B8IeNP.js:353 ⏳ User query still loading, waiting...
+index-C1B8IeNP.js:353 💾 CART SAVE EFFECT - currentUser: undefined cartCount: 0 isUserLoading: true
+index-C1B8IeNP.js:353 ⏳ User still loading, skipping save/clear to prevent data loss
+index-C1B8IeNP.js:501 ✅ Service Worker registered successfully: https://easybuydelivery.com/
+auth:1 <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes">
+index-C1B8IeNP.js:48 
+ GET https://easybuydelivery.com/api/user 401 (Unauthorized)
+(anonymous)	@	index-C1B8IeNP.js:48
+a	@	index-C1B8IeNP.js:48
+_	@	index-C1B8IeNP.js:48
+start	@	index-C1B8IeNP.js:48
+fetch	@	index-C1B8IeNP.js:48
+$h	@	index-C1B8IeNP.js:48
+onSubscribe	@	index-C1B8IeNP.js:48
+subscribe	@	index-C1B8IeNP.js:48
+(anonymous)	@	index-C1B8IeNP.js:48
+s4	@	index-C1B8IeNP.js:38
+nb	@	index-C1B8IeNP.js:40
+cd	@	index-C1B8IeNP.js:40
+iT	@	index-C1B8IeNP.js:40
+ec	@	index-C1B8IeNP.js:38
+jG	@	index-C1B8IeNP.js:40
+vc	@	index-C1B8IeNP.js:40
+L4	@	index-C1B8IeNP.js:40
+S	@	index-C1B8IeNP.js:25
+D	@	index-C1B8IeNP.js:25
+index-C1B8IeNP.js:353 🔄 CART LOAD EFFECT - isUserLoading: false currentUser: undefined
+index-C1B8IeNP.js:353 💾 localStorage data: EMPTY
+index-C1B8IeNP.js:353 🚫 No user logged in, clearing cart
+index-C1B8IeNP.js:353 💾 CART SAVE EFFECT - currentUser: undefined cartCount: 0 isUserLoading: false
+index-C1B8IeNP.js:353 🗑️ No user (after load complete), removing from localStorage
+index-C1B8IeNP.js:48 
+ GET https://easybuydelivery.com/api/settings 401 (Unauthorized)
+(anonymous)	@	index-C1B8IeNP.js:48
+a	@	index-C1B8IeNP.js:48
+_	@	index-C1B8IeNP.js:48
+start	@	index-C1B8IeNP.js:48
+fetch	@	index-C1B8IeNP.js:48
+$h	@	index-C1B8IeNP.js:48
+onSubscribe	@	index-C1B8IeNP.js:48
+subscribe	@	index-C1B8IeNP.js:48
+(anonymous)	@	index-C1B8IeNP.js:48
+s4	@	index-C1B8IeNP.js:38
+nb	@	index-C1B8IeNP.js:40
+cd	@	index-C1B8IeNP.js:40
+iT	@	index-C1B8IeNP.js:40
+ec	@	index-C1B8IeNP.js:38
+jG	@	index-C1B8IeNP.js:40
+vc	@	index-C1B8IeNP.js:40
+L4	@	index-C1B8IeNP.js:40
+S	@	index-C1B8IeNP.js:25
+D	@	index-C1B8IeNP.js:25
+index-C1B8IeNP.js:353 💾 CART SAVE EFFECT - currentUser: undefined cartCount: 0 isUserLoading: false
+index-C1B8IeNP.js:353 🗑️ No user (after load complete), removing from localStorage
+auth:1 [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) 
+index-C1B8IeNP.js:353 🔄 CART LOAD EFFECT - isUserLoading: false currentUser: 4b16fc9a-d250-4e33-923a-6fea60d04c1c
+index-C1B8IeNP.js:353 💾 localStorage data: EMPTY
+index-C1B8IeNP.js:353 📭 No saved carts in localStorage for logged in user
+index-C1B8IeNP.js:353 💾 CART SAVE EFFECT - currentUser: 4b16fc9a-d250-4e33-923a-6fea60d04c1c cartCount: 0 isUserLoading: false
+index-C1B8IeNP.js:353 ✅ Saving to localStorage: 
+{version: 2, userId: '4b16fc9a-d250-4e33-923a-6fea60d04c1c', cartCount: 0, activeRestaurantId: null}
+index-C1B8IeNP.js:411 WebSocket connected
+index-C1B8IeNP.js:432 
+ GET https://easybuydelivery.com/api/restaurants/d376a532-cb28-4944-9321-ee0f4edff900/menu-groups 500 (Internal Server Error)
+queryFn	@	index-C1B8IeNP.js:432
+a	@	index-C1B8IeNP.js:48
+_	@	index-C1B8IeNP.js:48
+start	@	index-C1B8IeNP.js:48
+fetch	@	index-C1B8IeNP.js:48
+$h	@	index-C1B8IeNP.js:48
+setOptions	@	index-C1B8IeNP.js:48
+(anonymous)	@	index-C1B8IeNP.js:48
+nb	@	index-C1B8IeNP.js:40
+cd	@	index-C1B8IeNP.js:40
+jG	@	index-C1B8IeNP.js:40
+vc	@	index-C1B8IeNP.js:40
+iT	@	index-C1B8IeNP.js:40
+ec	@	index-C1B8IeNP.js:38
+(anonymous)	@	index-C1B8IeNP.js:40
+setTimeout		
+s	@	index-C1B8IeNP.js:48
+o	@	index-C1B8IeNP.js:48
+batch	@	index-C1B8IeNP.js:48
+go	@	index-C1B8IeNP.js:48
+setData	@	index-C1B8IeNP.js:48
+onSuccess	@	index-C1B8IeNP.js:48
+m	@	index-C1B8IeNP.js:48
+Promise.then		
+_	@	index-C1B8IeNP.js:48
+start	@	index-C1B8IeNP.js:48
+fetch	@	index-C1B8IeNP.js:48
+$h	@	index-C1B8IeNP.js:48
+onSubscribe	@	index-C1B8IeNP.js:48
+subscribe	@	index-C1B8IeNP.js:48
+(anonymous)	@	index-C1B8IeNP.js:48
+s4	@	index-C1B8IeNP.js:38
+nb	@	index-C1B8IeNP.js:40
+cd	@	index-C1B8IeNP.js:40
+jG	@	index-C1B8IeNP.js:40
+vc	@	index-C1B8IeNP.js:40
+iT	@	index-C1B8IeNP.js:40
+ec	@	index-C1B8IeNP.js:38
+(anonymous)	@	index-C1B8IeNP.js:40
+setTimeout		
+s	@	index-C1B8IeNP.js:48
+o	@	index-C1B8IeNP.js:48
+batch	@	index-C1B8IeNP.js:48
+go	@	index-C1B8IeNP.js:48
+setData	@	index-C1B8IeNP.js:48
+setQueryData	@	index-C1B8IeNP.js:48
+onSuccess	@	index-C1B8IeNP.js:353
+execute	@	index-C1B8IeNP.js:48
+await in execute		
+mutate	@	index-C1B8IeNP.js:48
+(anonymous)	@	index-C1B8IeNP.js:48
+I	@	index-C1B8IeNP.js:400
+(anonymous)	@	index-C1B8IeNP.js:393
+await in (anonymous)		
+B7	@	index-C1B8IeNP.js:37
+U7	@	index-C1B8IeNP.js:37
+q7	@	index-C1B8IeNP.js:37
+OE	@	index-C1B8IeNP.js:37
+UF	@	index-C1B8IeNP.js:37
+(anonymous)	@	index-C1B8IeNP.js:37
+ES	@	index-C1B8IeNP.js:40
+hF	@	index-C1B8IeNP.js:37
+gw	@	index-C1B8IeNP.js:37
+rS	@	index-C1B8IeNP.js:37
+aK	@	index-C1B8IeNP.js:37
+index-C1B8IeNP.js:40 TypeError: da.map is not a function
+    at Eae (index-C1B8IeNP.js:432:87803)
+    at wS (index-C1B8IeNP.js:38:17018)
+    at h_ (index-C1B8IeNP.js:40:3139)
+    at U4 (index-C1B8IeNP.js:40:44833)
+    at z4 (index-C1B8IeNP.js:40:39790)
+    at bG (index-C1B8IeNP.js:40:39718)
+    at cx (index-C1B8IeNP.js:40:39570)
+    at N_ (index-C1B8IeNP.js:40:35934)
+    at iT (index-C1B8IeNP.js:40:36738)
+    at ec (index-C1B8IeNP.js:38:3279)
+f_	@	index-C1B8IeNP.js:40
+n.callback	@	index-C1B8IeNP.js:40
+FE	@	index-C1B8IeNP.js:38
+tT	@	index-C1B8IeNP.js:40
+R4	@	index-C1B8IeNP.js:40
+vG	@	index-C1B8IeNP.js:40
+jG	@	index-C1B8IeNP.js:40
+vc	@	index-C1B8IeNP.js:40
+iT	@	index-C1B8IeNP.js:40
+ec	@	index-C1B8IeNP.js:38
+(anonymous)	@	index-C1B8IeNP.js:40
+setTimeout		
+s	@	index-C1B8IeNP.js:48
+o	@	index-C1B8IeNP.js:48
+batch	@	index-C1B8IeNP.js:48
+go	@	index-C1B8IeNP.js:48
+setData	@	index-C1B8IeNP.js:48
+onSuccess	@	index-C1B8IeNP.js:48
+m	@	index-C1B8IeNP.js:48
+Promise.then		
+_	@	index-C1B8IeNP.js:48
+start	@	index-C1B8IeNP.js:48
+fetch	@	index-C1B8IeNP.js:48
+$h	@	index-C1B8IeNP.js:48
+setOptions	@	index-C1B8IeNP.js:48
+(anonymous)	@	index-C1B8IeNP.js:48
+nb	@	index-C1B8IeNP.js:40
+cd	@	index-C1B8IeNP.js:40
+jG	@	index-C1B8IeNP.js:40
+vc	@	index-C1B8IeNP.js:40
+iT	@	index-C1B8IeNP.js:40
+ec	@	index-C1B8IeNP.js:38
+(anonymous)	@	index-C1B8IeNP.js:40
+setTimeout		
+s	@	index-C1B8IeNP.js:48
+o	@	index-C1B8IeNP.js:48
+batch	@	index-C1B8IeNP.js:48
+go	@	index-C1B8IeNP.js:48
+setData	@	index-C1B8IeNP.js:48
+onSuccess	@	index-C1B8IeNP.js:48
+m	@	index-C1B8IeNP.js:48
+Promise.then		
+_	@	index-C1B8IeNP.js:48
+start	@	index-C1B8IeNP.js:48
+fetch	@	index-C1B8IeNP.js:48
+$h	@	index-C1B8IeNP.js:48
+onSubscribe	@	index-C1B8IeNP.js:48
+subscribe	@	index-C1B8IeNP.js:48
+(anonymous)	@	index-C1B8IeNP.js:48
+s4	@	index-C1B8IeNP.js:38
+nb	@	index-C1B8IeNP.js:40
+cd	@	index-C1B8IeNP.js:40
+jG	@	index-C1B8IeNP.js:40
+vc	@	index-C1B8IeNP.js:40
+iT	@	index-C1B8IeNP.js:40
+ec	@	index-C1B8IeNP.js:38
+(anonymous)	@	index-C1B8IeNP.js:40
+setTimeout		
+s	@	index-C1B8IeNP.js:48
+o	@	index-C1B8IeNP.js:48
+batch	@	index-C1B8IeNP.js:48
+go	@	index-C1B8IeNP.js:48
+setData	@	index-C1B8IeNP.js:48
+setQueryData	@	index-C1B8IeNP.js:48
+onSuccess	@	index-C1B8IeNP.js:353
+execute	@	index-C1B8IeNP.js:48
+await in execute		
+mutate	@	index-C1B8IeNP.js:48
+(anonymous)	@	index-C1B8IeNP.js:48
+I	@	index-C1B8IeNP.js:400
+(anonymous)	@	index-C1B8IeNP.js:393
+await in (anonymous)		
+B7	@	index-C1B8IeNP.js:37
+U7	@	index-C1B8IeNP.js:37
+q7	@	index-C1B8IeNP.js:37
+OE	@	index-C1B8IeNP.js:37
+UF	@	index-C1B8IeNP.js:37
+(anonymous)	@	index-C1B8IeNP.js:37
+ES	@	index-C1B8IeNP.js:40
+hF	@	index-C1B8IeNP.js:37
+gw	@	index-C1B8IeNP.js:37
+rS	@	index-C1B8IeNP.js:37
+aK	@	index-C1B8IeNP.js:37
+index-C1B8IeNP.js:432 Uncaught TypeError: da.map is not a function
+    at Eae (index-C1B8IeNP.js:432:87803)
+    at wS (index-C1B8IeNP.js:38:17018)
+    at h_ (index-C1B8IeNP.js:40:3139)
+    at U4 (index-C1B8IeNP.js:40:44833)
+    at z4 (index-C1B8IeNP.js:40:39790)
+    at bG (index-C1B8IeNP.js:40:39718)
+    at cx (index-C1B8IeNP.js:40:39570)
+    at N_ (index-C1B8IeNP.js:40:35934)
+    at iT (index-C1B8IeNP.js:40:36738)
+    at ec (index-C1B8IeNP.js:38:3279)
+Eae	@	index-C1B8IeNP.js:432
+wS	@	index-C1B8IeNP.js:38
+h_	@	index-C1B8IeNP.js:40
+U4	@	index-C1B8IeNP.js:40
+z4	@	index-C1B8IeNP.js:40
+bG	@	index-C1B8IeNP.js:40
+cx	@	index-C1B8IeNP.js:40
+N_	@	index-C1B8IeNP.js:40
+iT	@	index-C1B8IeNP.js:40
+ec	@	index-C1B8IeNP.js:38
+(anonymous)	@	index-C1B8IeNP.js:40
+setTimeout		
+s	@	index-C1B8IeNP.js:48
+o	@	index-C1B8IeNP.js:48
+batch	@	index-C1B8IeNP.js:48
+go	@	index-C1B8IeNP.js:48
+setData	@	index-C1B8IeNP.js:48
+onSuccess	@	index-C1B8IeNP.js:48
+m	@	index-C1B8IeNP.js:48
+Promise.then		
+_	@	index-C1B8IeNP.js:48
+start	@	index-C1B8IeNP.js:48
+fetch	@	index-C1B8IeNP.js:48
+$h	@	index-C1B8IeNP.js:48
+setOptions	@	index-C1B8IeNP.js:48
+(anonymous)	@	index-C1B8IeNP.js:48
+nb	@	index-C1B8IeNP.js:40
+cd	@	index-C1B8IeNP.js:40
+jG	@	index-C1B8IeNP.js:40
+vc	@	index-C1B8IeNP.js:40
+iT	@	index-C1B8IeNP.js:40
+ec	@	index-C1B8IeNP.js:38
+(anonymous)	@	index-C1B8IeNP.js:40
+setTimeout		
+s	@	index-C1B8IeNP.js:48
+o	@	index-C1B8IeNP.js:48
+batch	@	index-C1B8IeNP.js:48
+go	@	index-C1B8IeNP.js:48
+setData	@	index-C1B8IeNP.js:48
+onSuccess	@	index-C1B8IeNP.js:48
+m	@	index-C1B8IeNP.js:48
+Promise.then		
+_	@	index-C1B8IeNP.js:48
+start	@	index-C1B8IeNP.js:48
+fetch	@	index-C1B8IeNP.js:48
+$h	@	index-C1B8IeNP.js:48
+onSubscribe	@	index-C1B8IeNP.js:48
+subscribe	@	index-C1B8IeNP.js:48
+(anonymous)	@	index-C1B8IeNP.js:48
+s4	@	index-C1B8IeNP.js:38
+nb	@	index-C1B8IeNP.js:40
+cd	@	index-C1B8IeNP.js:40
+jG	@	index-C1B8IeNP.js:40
+vc	@	index-C1B8IeNP.js:40
+iT	@	index-C1B8IeNP.js:40
+ec	@	index-C1B8IeNP.js:38
+(anonymous)	@	index-C1B8IeNP.js:40
+setTimeout		
+s	@	index-C1B8IeNP.js:48
+o	@	index-C1B8IeNP.js:48
+batch	@	index-C1B8IeNP.js:48
+go	@	index-C1B8IeNP.js:48
+setData	@	index-C1B8IeNP.js:48
+setQueryData	@	index-C1B8IeNP.js:48
+onSuccess	@	index-C1B8IeNP.js:353
+execute	@	index-C1B8IeNP.js:48
+await in execute		
+mutate	@	index-C1B8IeNP.js:48
+(anonymous)	@	index-C1B8IeNP.js:48
+I	@	index-C1B8IeNP.js:400
+(anonymous)	@	index-C1B8IeNP.js:393
+await in (anonymous)		
+B7	@	index-C1B8IeNP.js:37
+U7	@	index-C1B8IeNP.js:37
+q7	@	index-C1B8IeNP.js:37
+OE	@	index-C1B8IeNP.js:37
+UF	@	index-C1B8IeNP.js:37
+(anonymous)	@	index-C1B8IeNP.js:37
+ES	@	index-C1B8IeNP.js:40
+hF	@	index-C1B8IeNP.js:37
+gw	@	index-C1B8IeNP.js:37
+rS	@	index-C1B8IeNP.js:37
+aK	@	index-C1B8IeNP.js:37
+logo.jpg:1 
+ GET https://easybuydelivery.com/uploads/logo/logo.jpg 404 (Not Found)
+Image		
+tT	@	index-C1B8IeNP.js:40
+R4	@	index-C1B8IeNP.js:40
+vG	@	index-C1B8IeNP.js:40
+jG	@	index-C1B8IeNP.js:40
+vc	@	index-C1B8IeNP.js:40
+iT	@	index-C1B8IeNP.js:40
+ec	@	index-C1B8IeNP.js:38
+(anonymous)	@	index-C1B8IeNP.js:40
+setTimeout		
+s	@	index-C1B8IeNP.js:48
+o	@	index-C1B8IeNP.js:48
+batch	@	index-C1B8IeNP.js:48
+go	@	index-C1B8IeNP.js:48
+setData	@	index-C1B8IeNP.js:48
+onSuccess	@	index-C1B8IeNP.js:48
+m	@	index-C1B8IeNP.js:48
+Promise.then		
+_	@	index-C1B8IeNP.js:48
+start	@	index-C1B8IeNP.js:48
+fetch	@	index-C1B8IeNP.js:48
+$h	@	index-C1B8IeNP.js:48
+onSubscribe	@	index-C1B8IeNP.js:48
+subscribe	@	index-C1B8IeNP.js:48
+(anonymous)	@	index-C1B8IeNP.js:48
+s4	@	index-C1B8IeNP.js:38
+nb	@	index-C1B8IeNP.js:40
+cd	@	index-C1B8IeNP.js:40
+jG	@	index-C1B8IeNP.js:40
+vc	@	index-C1B8IeNP.js:40
+iT	@	index-C1B8IeNP.js:40
+ec	@	index-C1B8IeNP.js:38
+(anonymous)	@	index-C1B8IeNP.js:40
+setTimeout		
+s	@	index-C1B8IeNP.js:48
+o	@	index-C1B8IeNP.js:48
+batch	@	index-C1B8IeNP.js:48
+go	@	index-C1B8IeNP.js:48
+setData	@	index-C1B8IeNP.js:48
+setQueryData	@	index-C1B8IeNP.js:48
+onSuccess	@	index-C1B8IeNP.js:353
+execute	@	index-C1B8IeNP.js:48
+await in execute		
+mutate	@	index-C1B8IeNP.js:48
+(anonymous)	@	index-C1B8IeNP.js:48
+I	@	index-C1B8IeNP.js:400
+(anonymous)	@	index-C1B8IeNP.js:393
+await in (anonymous)		
+B7	@	index-C1B8IeNP.js:37
+U7	@	index-C1B8IeNP.js:37
+q7	@	index-C1B8IeNP.js:37
+OE	@	index-C1B8IeNP.js:37
+UF	@	index-C1B8IeNP.js:37
+(anonymous)	@	index-C1B8IeNP.js:37
+ES	@	index-C1B8IeNP.js:40
+hF	@	index-C1B8IeNP.js:37
+gw	@	index-C1B8IeNP.js:37
+rS	@	index-C1B8IeNP.js:37
+aK	@	index-C1B8IeNP.js:37
+index-C1B8IeNP.js:411 WebSocket connected

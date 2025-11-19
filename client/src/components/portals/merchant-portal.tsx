@@ -1530,8 +1530,19 @@ export default function MerchantPortal() {
     queryKey: ["/api/menu-groups", userRestaurant?.id],
     queryFn: async () => {
       if (!userRestaurant) return [];
-      const response = await fetch(`/api/restaurants/${userRestaurant.id}/menu-groups`);
-      return response.json();
+      try {
+        const response = await fetch(`/api/restaurants/${userRestaurant.id}/menu-groups`);
+        if (!response.ok) {
+          console.error('Menu groups fetch failed, using empty array');
+          return [];
+        }
+        const data = await response.json();
+        // Ensure we always return an array
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error('Menu groups error, using empty array:', error);
+        return [];
+      }
     },
     enabled: !!userRestaurant,
   });

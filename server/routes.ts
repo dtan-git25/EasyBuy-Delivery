@@ -799,10 +799,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/restaurants/:restaurantId/menu-groups", async (req, res) => {
     try {
       const groups = await storage.getMenuGroups(req.params.restaurantId);
-      res.json(groups);
+      res.json(groups || []);
     } catch (error) {
-      console.error("Error fetching menu groups:", error);
-      res.status(500).json({ error: "Failed to fetch menu groups" });
+      console.error("⚠️ MENU GROUPS ERROR (returning empty array):", error);
+      // CRITICAL: Always return empty array instead of 500 to prevent merchant dashboard crash
+      res.json([]);
     }
   });
 
