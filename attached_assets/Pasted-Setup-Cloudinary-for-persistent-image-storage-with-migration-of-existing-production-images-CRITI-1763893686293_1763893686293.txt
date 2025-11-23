@@ -1,0 +1,202 @@
+Setup Cloudinary for persistent image storage with migration of existing production images:
+
+CRITICAL ISSUE:
+All uploaded images (logo, merchant photos, menu photos) disappear after 2 days or on app restart because they're stored in ephemeral /uploads folder. Production already has merchant images that need to be preserved and migrated to Cloudinary.
+
+REQUIREMENTS:
+
+1. INSTALL CLOUDINARY PACKAGES:
+   npm install cloudinary multer-storage-cloudinary
+
+2. SETUP ENVIRONMENT-SPECIFIC FOLDERS:
+   
+   Development uploads to: easybuydelivery-dev/
+   Production uploads to: easybuydelivery-prod/
+   
+   Detect environment from NODE_ENV or similar and use appropriate folder prefix.
+   
+   Folder structure:
+   - easybuydelivery-{env}/logos/
+   - easybuydelivery-{env}/merchants/{merchant_id}/
+   - easybuydelivery-{env}/menu_items/{merchant_id}/
+
+3. CONFIGURE CLOUDINARY:
+   
+   Add environment variables (will be provided in Secrets):
+   - CLOUDINARY_CLOUD_NAME
+   - CLOUDINARY_API_KEY
+   - CLOUDINARY_API_SECRET
+   
+   Configure cloudinary.v2 with these credentials.
+
+4. UPDATE ALL IMAGE UPLOAD ENDPOINTS:
+   
+   Replace local file system uploads with Cloudinary:
+   
+   A. Admin Logo Upload:
+      - Upload to: easybuydelivery-{env}/logos/logo
+      - Overwrite existing
+      - Save secure_url to database (settings or config table)
+   
+   B. Merchant Store Photos:
+      - Upload to: easybuydelivery-{env}/merchants/{merchant_id}/store_{timestamp}
+      - Save secure_url to merchants/restaurants table
+      - Support multiple photos if applicable
+   
+   C. Menu Item Photos:
+      - Upload to: easybuydelivery-{env}/menu_items/{merchant_id}/item_{menu_item_id}
+      - Save secure_url to menu_items table
+      - Overwrite if updating existing item
+
+5. IMAGE OPTIMIZATION:
+   
+   Apply transformations on upload:
+   - Resize: max 1200x900 (maintain aspect ratio)
+   - Quality: auto
+   - Format: auto (webp when supported)
+   - Crop: fill for consistent sizing
+
+6. UPDATE DATABASE SCHEMA:
+   
+   Ensure these columns can store full Cloudinary URLs (VARCHAR(500) or TEXT):
+   - Logo: logo_url or similar
+   - Merchant: store_image_url, banner_image_url, etc.
+   - Menu items: image_url or photo_url
+
+7. CREATE MIGRATION SCRIPT:
+   
+   Endpoint: POST /api/owner/migrate-images-to-cloudinary
+   
+   This script will:
+   
+   A. Scan Local Storage:
+      - Recursively scan /uploads directory
+      - Find all image files (*.jpg, *.jpeg, *.png, *.gif, *.webp)
+      - Identify image type by path structure
+   
+   B. Upload to Cloudinary:
+      - /uploads/logo/* → easybuydelivery-{env}/logos/
+      - /uploads/merchants/{id}/* → easybuydelivery-{env}/merchants/{id}/
+      - /uploads/menu_items/* or similar → easybuydelivery-{env}/menu_items/{merchant_id}/
+      - Preserve original filename patterns
+   
+   C. Update Database:
+      - Find all records with local file paths (/uploads/...)
+      - Update with new Cloudinary URLs (https://res.cloudinary.com/...)
+      - Track which records were updated
+   
+   D. Error Handling:
+      - Continue on individual failures
+      - Log each error with details
+      - Return comprehensive report
+   
+   E. Safety Features:
+      - DON'T delete original files (keep as backup)
+      - Skip if record already has Cloudinary URL (check for res.cloudinary.com)
+      - Can be re-run safely (idempotent)
+      - Validate uploads before updating database
+   
+   F. Return Response:
+      {
+        success: true/false,
+        summary: {
+          totalFilesFound: number,
+          successfulUploads: number,
+          failedUploads: number,
+          databaseRecordsUpdated: number,
+          skippedAlreadyMigrated: number
+        },
+        details: [
+          { file: string, status: 'success'|'failed'|'skipped', url?: string, error?: string }
+        ],
+        errors: string[]
+      }
+
+8. ADD OWNER ADMIN UI - APP SETTINGS TAB:
+   
+   Create new tab in Owner/Admin dashboard: "App Settings"
+   
+   Inside App Settings, create card: "Media Management"
+   
+   Media Management Card contains:
+   
+   A. Current Storage Info:
+      - Display current storage type (Local or Cloudinary)
+      - Show statistics if available
+   
+   B. Migration Section:
+      - Button: "Migrate Images to Cloudinary"
+      - Warning message: "This will transfer all existing images to permanent cloud storage. This is a one-time process."
+      - Progress indicator during migration
+      - Results display after completion:
+        * Total images migrated
+        * Success count
+        * Failed count (with error details)
+        * Updated database records
+   
+   C. Post-Migration Status:
+      - Show "Migration Complete" message
+      - Display migration date/time
+      - Option to view migration log/report
+      - Disable/hide migration button after successful migration
+   
+   D. Cloudinary Status:
+      - Show if Cloudinary is configured
+      - Display environment (dev/prod folder)
+      - Test connection button (optional)
+
+9. UPDATE FRONTEND IMAGE DISPLAY:
+   
+   Change all image sources from local paths to database URLs:
+   
+   Before: <img src="/uploads/logo/logo.jpg" />
+   After: <img src={logoUrl} /> // From database
+   
+   Add error handling:
+   - Fallback to placeholder image if load fails
+   - Default images for missing photos
+
+10. CLEANUP OLD IMAGE REFERENCES:
+    
+    When merchant/admin updates image:
+    - Delete old image from Cloudinary using public_id
+    - Extract public_id from old URL before upload
+    - Prevents orphaned images
+
+11. LOGGING:
+    
+    Log all Cloudinary operations:
+    - Uploads (success/failure)
+    - Deletions
+    - Migration progress
+    - Errors with stack traces
+
+12. TESTING REQUIREMENTS:
+    
+    After implementation, verify:
+    - New uploads go to Cloudinary
+    - Images display correctly from Cloudinary
+    - Migration script transfers all existing images
+    - Database updated with Cloudinary URLs
+    - App restart doesn't lose images
+    - Both dev and prod use separate folders
+    - Migration UI works in owner dashboard
+
+TECHNICAL DETAILS:
+
+- Use multer with cloudinary-multer-storage for uploads
+- Store Cloudinary URLs in database, not local paths
+- Handle async operations properly
+- Add try-catch for all Cloudinary calls
+- Validate environment variables on startup
+- Use appropriate HTTP status codes for errors
+
+SECURITY:
+
+- Only owner/admin can access migration endpoint
+- Validate file types before upload
+- Limit file sizes (e.g., 5MB max)
+- Sanitize filenames
+- Rate limit upload endpoints
+
+This implementation will permanently solve the image persistence issue and preserve all existing merchant images currently in production.

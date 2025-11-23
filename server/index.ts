@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { createSystemAccount } from "./auth";
 import { storage } from "./storage";
+import { validateCloudinaryConfig } from "./cloudinary";
 
 const app = express();
 app.use(express.json());
@@ -71,6 +72,13 @@ async function initializeSystemAccounts() {
 
   // Initialize system accounts
   await initializeSystemAccounts();
+
+  // Validate Cloudinary configuration
+  if (validateCloudinaryConfig()) {
+    log("✓ Cloudinary configured successfully");
+  } else {
+    log("⚠ Cloudinary not configured - images will not persist");
+  }
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

@@ -17,6 +17,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { geocodeAddress, calculateDistance } from "./geocoding";
+import { cloudinary, getCloudinaryFolder, deleteCloudinaryImage, validateCloudinaryConfig } from "./cloudinary";
 
 // Helper function to check if user is admin or owner
 function isAdminOrOwner(role?: string): boolean {
@@ -87,23 +88,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Configure multer for menu item images
   const menuItemImageUpload = multer({
-    storage: multer.diskStorage({
-      destination: async (req, file, cb) => {
-        try {
-          const menuItemsDir = path.join(process.cwd(), 'uploads', 'menu-items');
-          await fs.promises.mkdir(menuItemsDir, { recursive: true });
-          cb(null, menuItemsDir);
-        } catch (error) {
-          console.error('Error creating menu items upload directory:', error);
-          cb(error as Error);
-        }
-      },
-      filename: (req, file, cb) => {
-        const fileExtension = path.extname(file.originalname);
-        const fileName = `menu_${Date.now()}${fileExtension}`;
-        cb(null, fileName);
-      }
-    }),
+    storage: multer.memoryStorage(),
     limits: {
       fileSize: 5 * 1024 * 1024, // 5MB limit
     },
@@ -122,23 +107,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Configure multer for restaurant photos
   const restaurantPhotoUpload = multer({
-    storage: multer.diskStorage({
-      destination: async (req, file, cb) => {
-        try {
-          const restaurantsDir = path.join(process.cwd(), 'uploads', 'restaurants');
-          await fs.promises.mkdir(restaurantsDir, { recursive: true });
-          cb(null, restaurantsDir);
-        } catch (error) {
-          console.error('Error creating restaurants upload directory:', error);
-          cb(error as Error);
-        }
-      },
-      filename: (req, file, cb) => {
-        const fileExtension = path.extname(file.originalname);
-        const fileName = `restaurant_${Date.now()}${fileExtension}`;
-        cb(null, fileName);
-      }
-    }),
+    storage: multer.memoryStorage(),
     limits: {
       fileSize: 5 * 1024 * 1024, // 5MB limit
     },
@@ -157,23 +126,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Configure multer for app logo
   const logoUpload = multer({
-    storage: multer.diskStorage({
-      destination: async (req, file, cb) => {
-        try {
-          const logoDir = path.join(process.cwd(), 'uploads', 'logo');
-          await fs.promises.mkdir(logoDir, { recursive: true });
-          cb(null, logoDir);
-        } catch (error) {
-          console.error('Error creating logo upload directory:', error);
-          cb(error as Error);
-        }
-      },
-      filename: (req, file, cb) => {
-        const fileExtension = path.extname(file.originalname);
-        const fileName = `logo${fileExtension}`;
-        cb(null, fileName);
-      }
-    }),
+    storage: multer.memoryStorage(),
     limits: {
       fileSize: 2 * 1024 * 1024, // 2MB limit for logo
     },
@@ -419,8 +372,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No image file provided" });
       }
 
-      const imageUrl = `/uploads/menu-items/${req.file.filename}`;
-      res.json({ imageUrl });
+      // Get merchant's restaurant to use as folder organization
+      const restaurants = await storage.getRestaurantsByOwner(req.user.id);
+      const merchantId = restaurants.length > 0 ? restaurants[0].id : req.user.id;
+
+      // Upload to Cloudinary
+      const uploadResult = await new Promise<any>((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            folder: getCloudinaryFolder.menuItems(merchantId),
+            public_id: `item_${Date.now()}`,
+            transformation: [
+              { width: 1200, height: 900, crop: 'limit' },
+              { quality: 'auto' },
+              { fetch_format: 'auto' }
+            ]
+          },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        uploadStream.end(req.file!.buffer);
+      });
+
+      res.json({ imageUrl: uploadResult.secure_url });
     } catch (error) {
       console.error("Error uploading menu item image:", error);
       res.status(500).json({ error: "Failed to upload image" });
@@ -437,8 +413,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No image file provided" });
       }
 
-      const imageUrl = `/uploads/restaurants/${req.file.filename}`;
-      res.json({ imageUrl });
+      // Get merchant's restaurant ID
+      const restaurants = await storage.getRestaurantsByOwner(req.user.id);
+      const merchantId = restaurants.length > 0 ? restaurants[0].id : req.user.id;
+
+      // Upload to Cloudinary
+      const uploadResult = await new Promise<any>((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            folder: getCloudinaryFolder.merchants(merchantId),
+            public_id: `store_${Date.now()}`,
+            transformation: [
+              { width: 1200, height: 900, crop: 'limit' },
+              { quality: 'auto' },
+              { fetch_format: 'auto' }
+            ]
+          },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        uploadStream.end(req.file!.buffer);
+      });
+
+      res.json({ imageUrl: uploadResult.secure_url });
     } catch (error) {
       console.error("Error uploading restaurant image:", error);
       res.status(500).json({ error: "Failed to upload image" });
@@ -455,14 +454,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No image file provided" });
       }
 
-      const logoUrl = `/uploads/logo/${req.file.filename}`;
+      // Get current logo to delete old one
+      const settings = await storage.getSystemSettings();
+      const oldLogoUrl = settings?.logo;
+
+      // Upload to Cloudinary
+      const uploadResult = await new Promise<any>((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            folder: getCloudinaryFolder.logos(),
+            public_id: 'logo',
+            overwrite: true,
+            transformation: [
+              { width: 1200, height: 900, crop: 'limit' },
+              { quality: 'auto' },
+              { fetch_format: 'auto' }
+            ]
+          },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        uploadStream.end(req.file!.buffer);
+      });
+
+      const logoUrl = uploadResult.secure_url;
       
-      // Update system settings with the new logo path
+      // Update system settings with the new logo URL
       await storage.updateSystemSettings({ logo: logoUrl });
       
-      // Generate PWA icons from the uploaded logo
-      const { generatePWAIcons } = await import('./generate-icons');
-      await generatePWAIcons();
+      // Delete old logo from Cloudinary if it exists and is different
+      if (oldLogoUrl && oldLogoUrl !== logoUrl && oldLogoUrl.includes('res.cloudinary.com')) {
+        await deleteCloudinaryImage(oldLogoUrl);
+      }
       
       res.json({ logoUrl });
     } catch (error) {
@@ -4791,6 +4816,249 @@ export async function registerRoutes(app: Express): Promise<Server> {
       delete ws.userId;
       delete ws.userRole;
     });
+  });
+
+  // Owner/Admin endpoint to migrate existing images to Cloudinary
+  app.post("/api/owner/migrate-images-to-cloudinary", async (req, res) => {
+    if (!req.isAuthenticated() || !isAdminOrOwner(req.user?.role)) {
+      return res.status(401).json({ error: "Unauthorized - Admin/Owner access required" });
+    }
+
+    try {
+      const uploadsDir = path.join(process.cwd(), 'uploads');
+      const response = {
+        success: true,
+        summary: {
+          totalFilesFound: 0,
+          successfulUploads: 0,
+          failedUploads: 0,
+          databaseRecordsUpdated: 0,
+          skippedAlreadyMigrated: 0
+        },
+        details: [] as Array<{ file: string; status: 'success' | 'failed' | 'skipped'; url?: string; error?: string }>,
+        errors: [] as string[]
+      };
+
+      // Helper function to recursively find all image files
+      async function findImages(dir: string, baseDir: string): Promise<{ path: string; relativePath: string; type: string }[]> {
+        const images: { path: string; relativePath: string; type: string }[] = [];
+        
+        try {
+          if (!fs.existsSync(dir)) {
+            return images;
+          }
+          
+          const entries = await fs.promises.readdir(dir, { withFileTypes: true });
+          
+          for (const entry of entries) {
+            const fullPath = path.join(dir, entry.name);
+            
+            if (entry.isDirectory()) {
+              const subImages = await findImages(fullPath, baseDir);
+              images.push(...subImages);
+            } else if (entry.isFile()) {
+              const ext = path.extname(entry.name).toLowerCase();
+              if (['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'].includes(ext)) {
+                const relativePath = path.relative(baseDir, fullPath);
+                let type = 'unknown';
+                
+                if (relativePath.includes('logo')) {
+                  type = 'logo';
+                } else if (relativePath.includes('restaurants') || relativePath.includes('merchants')) {
+                  type = 'merchant';
+                } else if (relativePath.includes('menu-items') || relativePath.includes('menu_items')) {
+                  type = 'menu_item';
+                }
+                
+                images.push({ path: fullPath, relativePath, type });
+              }
+            }
+          }
+        } catch (error) {
+          console.error(`Error reading directory ${dir}:`, error);
+        }
+        
+        return images;
+      }
+
+      // Find all images
+      const allImages = await findImages(uploadsDir, uploadsDir);
+      response.summary.totalFilesFound = allImages.length;
+
+      console.log(`Found ${allImages.length} images to migrate`);
+
+      // Migrate each image
+      for (const image of allImages) {
+        try {
+          // Check if file exists
+          if (!fs.existsSync(image.path)) {
+            response.details.push({
+              file: image.relativePath,
+              status: 'failed',
+              error: 'File not found'
+            });
+            response.errors.push(`File not found: ${image.relativePath}`);
+            response.summary.failedUploads++;
+            continue;
+          }
+
+          const localPath = `/${image.relativePath.replace(/\\/g, '/')}`;
+          
+          // Check if already migrated to Cloudinary
+          let alreadyMigrated = false;
+          
+          // Check system settings
+          if (image.type === 'logo') {
+            const settings = await storage.getSystemSettings();
+            if (settings?.logo && settings.logo.includes('res.cloudinary.com')) {
+              alreadyMigrated = true;
+            }
+          }
+          
+          // Check restaurants
+          if (image.type === 'merchant' && !alreadyMigrated) {
+            const allRestaurants = await storage.getAllRestaurants();
+            for (const restaurant of allRestaurants) {
+              if (restaurant.image && restaurant.image === localPath) {
+                if (restaurant.image.includes('res.cloudinary.com')) {
+                  alreadyMigrated = true;
+                  break;
+                }
+              }
+            }
+          }
+          
+          // Check menu items
+          if (image.type === 'menu_item' && !alreadyMigrated) {
+            const allRestaurants = await storage.getAllRestaurants();
+            for (const restaurant of allRestaurants) {
+              const menuItems = await storage.getMenuItems(restaurant.id);
+              for (const item of menuItems) {
+                if (item.image && item.image === localPath) {
+                  if (item.image.includes('res.cloudinary.com')) {
+                    alreadyMigrated = true;
+                    break;
+                  }
+                }
+              }
+              if (alreadyMigrated) break;
+            }
+          }
+
+          if (alreadyMigrated) {
+            response.details.push({
+              file: image.relativePath,
+              status: 'skipped',
+              error: 'Already migrated to Cloudinary'
+            });
+            response.summary.skippedAlreadyMigrated++;
+            continue;
+          }
+
+          // Determine Cloudinary folder and public_id
+          let cloudinaryFolder = getCloudinaryFolder.logos();
+          let publicId = `migrated_${Date.now()}_${path.basename(image.path, path.extname(image.path))}`;
+          
+          if (image.type === 'logo') {
+            cloudinaryFolder = getCloudinaryFolder.logos();
+            publicId = 'logo_migrated';
+          } else if (image.type === 'merchant') {
+            // Try to extract merchant ID from path
+            const merchantIdMatch = image.relativePath.match(/merchants[\/\\]([^\/\\]+)/);
+            const merchantId = merchantIdMatch ? merchantIdMatch[1] : 'unknown';
+            cloudinaryFolder = getCloudinaryFolder.merchants(merchantId);
+            publicId = `store_${Date.now()}`;
+          } else if (image.type === 'menu_item') {
+            // Try to extract merchant ID or use default
+            cloudinaryFolder = getCloudinaryFolder.menuItems('migrated');
+            publicId = `item_${Date.now()}`;
+          }
+
+          // Upload to Cloudinary
+          const uploadResult = await cloudinary.uploader.upload(image.path, {
+            folder: cloudinaryFolder,
+            public_id: publicId,
+            transformation: [
+              { width: 1200, height: 900, crop: 'limit' },
+              { quality: 'auto' },
+              { fetch_format: 'auto' }
+            ]
+          });
+
+          const cloudinaryUrl = uploadResult.secure_url;
+
+          // Update database records
+          let databaseUpdated = false;
+
+          // Update system settings (logo)
+          if (image.type === 'logo') {
+            const settings = await storage.getSystemSettings();
+            if (settings?.logo && (settings.logo === localPath || !settings.logo.includes('res.cloudinary.com'))) {
+              await storage.updateSystemSettings({ logo: cloudinaryUrl });
+              databaseUpdated = true;
+              response.summary.databaseRecordsUpdated++;
+            }
+          }
+
+          // Update restaurants
+          if (image.type === 'merchant') {
+            const allRestaurants = await storage.getAllRestaurants();
+            for (const restaurant of allRestaurants) {
+              if (restaurant.image && restaurant.image === localPath) {
+                await storage.updateRestaurant(restaurant.id, { image: cloudinaryUrl });
+                databaseUpdated = true;
+                response.summary.databaseRecordsUpdated++;
+              }
+            }
+          }
+
+          // Update menu items
+          if (image.type === 'menu_item') {
+            const allRestaurants = await storage.getAllRestaurants();
+            for (const restaurant of allRestaurants) {
+              const menuItems = await storage.getMenuItems(restaurant.id);
+              for (const item of menuItems) {
+                if (item.image && item.image === localPath) {
+                  await storage.updateMenuItem(item.id, { image: cloudinaryUrl });
+                  databaseUpdated = true;
+                  response.summary.databaseRecordsUpdated++;
+                }
+              }
+            }
+          }
+
+          response.details.push({
+            file: image.relativePath,
+            status: 'success',
+            url: cloudinaryUrl
+          });
+          response.summary.successfulUploads++;
+          
+          console.log(`Migrated: ${image.relativePath} -> ${cloudinaryUrl}`);
+        } catch (error: any) {
+          console.error(`Failed to migrate ${image.relativePath}:`, error);
+          response.details.push({
+            file: image.relativePath,
+            status: 'failed',
+            error: error.message
+          });
+          response.errors.push(`${image.relativePath}: ${error.message}`);
+          response.summary.failedUploads++;
+        }
+      }
+
+      // Set overall success flag
+      response.success = response.summary.failedUploads === 0;
+
+      res.json(response);
+    } catch (error: any) {
+      console.error("Migration error:", error);
+      res.status(500).json({ 
+        success: false,
+        error: "Migration failed", 
+        details: error.message 
+      });
+    }
   });
 
   // Error handling middleware - must be after all routes
