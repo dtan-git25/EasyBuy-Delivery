@@ -1,0 +1,144 @@
+Image URLs still pointing to local /uploads paths instead of Cloudinary URLs after implementation:
+
+PROBLEM:
+
+After Cloudinary setup, images are still showing local URLs like:
+- /uploads/logo/logo.jpg
+- /uploads/merchants/{id}/photo.jpg
+- /uploads/menu_items/item.jpg
+
+Instead of Cloudinary URLs like:
+- https://res.cloudinary.com/your-cloud/image/upload/v123/easybuydelivery-prod/logos/logo.jpg
+
+DEBUGGING NEEDED:
+
+1. CHECK UPLOAD ENDPOINTS:
+   
+   Verify that image upload endpoints are actually using Cloudinary:
+   
+   A. Find all upload endpoints:
+      - POST /api/admin/upload-logo (or similar)
+      - POST /api/merchants/{id}/upload-photo
+      - POST /api/menu-items/{id}/upload-image
+   
+   B. Check if they're using cloudinary.uploader.upload():
+      - Are they still using multer with local diskStorage?
+      - Or using cloudinary multer storage?
+   
+   C. Verify response returns Cloudinary URL:
+      - Should return result.secure_url
+      - Should save this URL to database
+
+2. CHECK DATABASE SAVES:
+   
+   After upload, verify what's being saved:
+   
+   Console.log before database save:
+```javascript
+   console.log('Image URL being saved:', imageUrl);
+   // Should be: https://res.cloudinary.com/...
+   // Not: /uploads/...
+```
+   
+   Check if database UPDATE/INSERT is using Cloudinary URL.
+
+3. TEST NEW UPLOAD:
+   
+   Upload a NEW image after Cloudinary implementation:
+   - Upload via admin/merchant interface
+   - Check network tab - what URL is returned?
+   - Check database - what URL is stored?
+   - Should be Cloudinary URL, not local path
+
+4. CHECK MULTER CONFIGURATION:
+   
+   Verify multer is using Cloudinary storage:
+   
+   WRONG (still local):
+```javascript
+   const storage = multer.diskStorage({
+     destination: './uploads/',
+     filename: (req, file, cb) => {...}
+   });
+```
+   
+   CORRECT (Cloudinary):
+```javascript
+   const { CloudinaryStorage } = require('multer-storage-cloudinary');
+   const storage = new CloudinaryStorage({
+     cloudinary: cloudinary,
+     params: {
+       folder: 'easybuydelivery-prod/logos',
+       allowed_formats: ['jpg', 'png', 'jpeg', 'gif', 'webp']
+     }
+   });
+```
+
+5. CHECK EXISTING IMAGES:
+   
+   For images uploaded BEFORE Cloudinary:
+   - They still have local URLs in database
+   - Migration script needed to transfer them
+   - Have you run the migration yet?
+
+6. VERIFY CLOUDINARY CONNECTION:
+   
+   Test if Cloudinary is actually configured:
+```javascript
+   console.log('Cloudinary config:', {
+     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+     api_key: process.env.CLOUDINARY_API_KEY ? 'SET' : 'NOT SET',
+     api_secret: process.env.CLOUDINARY_API_SECRET ? 'SET' : 'NOT SET'
+   });
+```
+   
+   All three should be SET.
+
+7. CHECK UPLOAD FLOW:
+   
+   Add extensive logging to upload endpoint:
+```javascript
+   console.log('1. Upload started');
+   console.log('2. File received:', req.file);
+   console.log('3. Uploading to Cloudinary...');
+   const result = await cloudinary.uploader.upload(filePath, {...});
+   console.log('4. Cloudinary result:', result.secure_url);
+   console.log('5. Saving to database:', result.secure_url);
+   // Save to database
+   console.log('6. Upload complete');
+```
+
+8. COMMON ISSUES:
+   
+   A. Upload endpoints not updated:
+      - Still using old local storage code
+      - Need to replace with Cloudinary upload
+   
+   B. Cloudinary not configured:
+      - Environment variables not set
+      - cloudinary.config() not called
+   
+   C. Migration not run:
+      - Old images still have local paths
+      - Need to run migration script
+   
+   D. Wrong response:
+      - Returning local path instead of Cloudinary URL
+      - Fix response to return result.secure_url
+
+REQUIRED FIXES:
+
+1. UPDATE ALL UPLOAD ENDPOINTS to use Cloudinary
+2. ENSURE database saves Cloudinary URLs (secure_url)
+3. VERIFY Cloudinary credentials are loaded
+4. TEST with new upload - should get Cloudinary URL
+5. RUN MIGRATION for existing images
+
+Check each upload endpoint and ensure it's actually uploading to Cloudinary and saving the Cloudinary URL to the database.
+
+Share console logs from:
+- Cloudinary configuration on startup
+- Upload process (what URL is being saved)
+- Database record after upload (what URL is stored)
+
+This will help identify where the Cloudinary integration is not working.
