@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { LocationMapViewer } from "@/components/location-map-viewer";
 import { AnnouncementBanner } from "@/components/announcement-banner";
+import { playNotificationSound } from "@/lib/notification-sound";
 
 interface PendingOrder {
   id: string;
@@ -532,6 +533,7 @@ export default function RiderPortal() {
             case 'new_order':
               // New order created - refresh pending orders list
               queryClient.invalidateQueries({ queryKey: ["/api/orders/pending"] });
+              playNotificationSound();
               toast({
                 title: "New Order Available",
                 description: `New order #${data.order.orderNumber || 'pending'} is ready for pickup!`,
@@ -543,6 +545,7 @@ export default function RiderPortal() {
               queryClient.invalidateQueries({ queryKey: ["/api/orders/pending"] });
               queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
               
+              playNotificationSound();
               const merchantCount = data.merchantCount || (data.orders?.length) || 'multiple';
               toast({
                 title: "New Multi-Merchant Order Available",
@@ -571,6 +574,7 @@ export default function RiderPortal() {
             case 'chat_message':
               // Show toast notification for new chat messages
               if (data.message?.sender?.id !== user.id) {
+                playNotificationSound();
                 const senderName = data.message?.sender ? 
                   `${data.message.sender.firstName} ${data.message.sender.lastName}` : 
                   'Someone';
