@@ -1,13 +1,26 @@
-export const playNotificationSound = () => {
+let audioContext: AudioContext | null = null;
+
+const getAudioContext = () => {
+  if (!audioContext) {
+    audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+  }
+  return audioContext;
+};
+
+export const playNotificationSound = async () => {
   try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const context = getAudioContext();
+    
+    if (context.state === 'suspended') {
+      await context.resume();
+    }
     
     const createBellTone = (frequency: number, startTime: number, duration: number) => {
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
       
       oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
+      gainNode.connect(context.destination);
       
       oscillator.frequency.value = frequency;
       oscillator.type = 'sine';
@@ -20,7 +33,7 @@ export const playNotificationSound = () => {
       oscillator.stop(startTime + duration);
     };
     
-    const now = audioContext.currentTime;
+    const now = context.currentTime;
     createBellTone(800, now, 0.3);
     createBellTone(1000, now, 0.25);
     createBellTone(1200, now, 0.2);
