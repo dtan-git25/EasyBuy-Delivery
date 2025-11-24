@@ -1,0 +1,140 @@
+Logo upload failing but merchant and menu item photos upload successfully to Cloudinary:
+
+PROBLEM:
+
+- ✅ Merchant photos: Upload to Cloudinary successfully
+- ✅ Menu item photos: Upload to Cloudinary successfully  
+- ❌ App logo: Fails to upload (folder created but no image)
+
+This indicates:
+- Cloudinary credentials are correct (other uploads work)
+- Cloudinary connection works (other uploads succeed)
+- Issue is SPECIFIC to logo upload endpoint
+
+DEBUGGING:
+
+1. COMPARE WORKING VS BROKEN ENDPOINTS:
+   
+   Find the three upload endpoints:
+   
+   A. Logo upload (BROKEN):
+      - POST /api/admin/upload-logo (or similar path)
+   
+   B. Merchant photo upload (WORKING):
+      - POST /api/merchants/upload-photo (or similar)
+   
+   C. Menu item photo upload (WORKING):
+      - POST /api/menu-items/upload-photo (or similar)
+   
+   Compare the implementations - what's different?
+
+2. CHECK LOGO UPLOAD IMPLEMENTATION:
+   
+   The logo upload likely has different code than the working uploads.
+   
+   Common differences:
+   - Different multer configuration
+   - Different Cloudinary upload parameters
+   - Different error handling
+   - Different file processing
+
+3. COPY WORKING PATTERN:
+   
+   Since merchant/menu uploads work, use the SAME pattern for logo:
+   
+   Find the working merchant photo upload code and replicate it for logo upload.
+   
+   If merchant upload does:
+```javascript
+   const result = await cloudinary.uploader.upload(req.file.path, {
+     folder: `easybuydelivery-dev/merchants/${merchantId}`,
+     ...options
+   });
+```
+   
+   Logo upload should do:
+```javascript
+   const result = await cloudinary.uploader.upload(req.file.path, {
+     folder: 'easybuydelivery-dev/logos',
+     public_id: 'logo',
+     overwrite: true
+   });
+```
+
+4. CHECK MULTER CONFIGURATION:
+   
+   Logo upload might use different multer setup:
+   
+   Compare:
+   - Is logo using same multer instance as other uploads?
+   - Same storage configuration?
+   - Same file size limits?
+   - Same allowed formats?
+
+5. CHECK FILE FIELD NAME:
+   
+   Verify frontend sends correct field name:
+   - Frontend might send: `<input name="logo" />`
+   - Backend expects: `upload.single('logo')`
+   - Field names must match exactly
+
+6. CHECK ROUTE DEFINITION:
+   
+   Logo upload route might have issues:
+```javascript
+   // Check if multer middleware is applied
+   app.post('/api/admin/upload-logo', 
+     upload.single('logo'),  // ← Is this here?
+     async (req, res) => {
+       console.log('req.file:', req.file); // ← Is this defined?
+       // ...
+     }
+   );
+```
+
+7. ADD LOGGING TO LOGO UPLOAD:
+   
+   Add same logging that works in merchant/menu uploads:
+```javascript
+   console.log('Logo upload - file received:', req.file);
+   console.log('Logo upload - uploading to Cloudinary...');
+   const result = await cloudinary.uploader.upload(...);
+   console.log('Logo upload - success:', result.secure_url);
+```
+
+8. CHECK RESPONSE HANDLING:
+   
+   Logo upload might not return/save URL correctly:
+   - Does it return the Cloudinary URL?
+   - Does it save to database?
+   - Check what response is sent to frontend
+
+9. LIKELY ISSUES:
+   
+   A. Different multer configuration for logo
+   B. Missing upload.single() middleware
+   C. Wrong file field name
+   D. Different upload method (not using working pattern)
+   E. Error swallowed/not logged
+   F. Database save failing (but upload succeeds)
+
+10. QUICK FIX:
+    
+    Copy-paste the WORKING merchant photo upload code and modify for logo:
+```javascript
+    // Find the working merchant upload endpoint
+    // Copy the entire function
+    // Change:
+    // - folder: 'easybuydelivery-dev/logos'
+    // - public_id: 'logo'
+    // - database save: settings table instead of merchants
+    // - Keep everything else the same
+```
+
+Share the code for:
+1. Logo upload endpoint (the broken one)
+2. Merchant photo upload endpoint (the working one)
+
+This will show the difference causing the logo upload to fail.
+
+The fact that merchant/menu uploads work proves Cloudinary is configured correctly - logo upload just needs to use the same working pattern.
