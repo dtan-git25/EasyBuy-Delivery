@@ -450,21 +450,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
+      console.log('========== LOGO UPLOAD START ==========');
+      
       if (!req.file) {
+        console.error('❌ No file in request');
         return res.status(400).json({ error: "No image file provided" });
       }
+
+      console.log('✓ File received:', {
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        bufferSize: req.file.buffer.length
+      });
 
       // Get current logo to delete old one
       const settings = await storage.getSystemSettings();
       const oldLogoUrl = settings?.logo;
+      console.log('Current logo in DB:', oldLogoUrl || 'none');
 
       // Upload to Cloudinary
+      const folder = getCloudinaryFolder.logos();
+      console.log('Uploading to Cloudinary folder:', folder);
+      
       const uploadResult = await new Promise<any>((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
-            folder: getCloudinaryFolder.logos(),
-            public_id: 'logo',
-            overwrite: true,
+            folder: folder,
+            public_id: `logo_${Date.now()}`,
             transformation: [
               { width: 1200, height: 900, crop: 'limit' },
               { quality: 'auto' },
@@ -472,8 +485,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ]
           },
           (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
+            if (error) {
+              console.error('❌ Cloudinary upload error:', error);
+              reject(error);
+            } else {
+              console.log('✓ Cloudinary upload success:', {
+                url: result.secure_url,
+                public_id: result.public_id,
+                format: result.format,
+                bytes: result.bytes
+              });
+              resolve(result);
+            }
           }
         );
         uploadStream.end(req.file!.buffer);
@@ -482,15 +505,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const logoUrl = uploadResult.secure_url;
       
       // Update system settings with the new logo URL
+      console.log('Saving to database:', logoUrl);
       await storage.updateSystemSettings({ logo: logoUrl });
+      console.log('✓ Database updated');
       
       // Delete old logo from Cloudinary if it exists and is different
       if (oldLogoUrl && oldLogoUrl !== logoUrl && oldLogoUrl.includes('res.cloudinary.com')) {
+        console.log('Deleting old logo:', oldLogoUrl);
         await deleteCloudinaryImage(oldLogoUrl);
+        console.log('✓ Old logo deleted');
       }
       
+      console.log('========== LOGO UPLOAD COMPLETE ==========');
       res.json({ logoUrl });
     } catch (error) {
+      console.error('========== LOGO UPLOAD FAILED ==========');
       console.error("Error uploading logo:", error);
       res.status(500).json({ error: "Failed to upload logo" });
     }

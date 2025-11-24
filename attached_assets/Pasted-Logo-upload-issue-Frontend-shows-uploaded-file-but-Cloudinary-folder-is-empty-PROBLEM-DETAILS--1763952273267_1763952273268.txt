@@ -1,0 +1,186 @@
+Logo upload issue - Frontend shows uploaded file but Cloudinary folder is empty:
+
+PROBLEM DETAILS:
+
+1. Admin UI shows: "pngtree-hot-and-crispy-fre...x-png-image_16097148.png" selected
+2. Cloudinary "logos" folder exists but is EMPTY (no images inside)
+3. Merchant photos and menu items upload successfully to Cloudinary
+4. Current Logo still shows broken image icon
+
+ANALYSIS:
+
+The frontend file selection is working (file chosen), but the actual upload to Cloudinary is failing silently. This suggests:
+- File is selected in browser ✓
+- Upload request may be sent ✓
+- But Cloudinary upload fails ✗
+- No error shown to user ✗
+
+REQUIRED FIXES:
+
+1. FIND LOGO UPLOAD ENDPOINT:
+   
+   Locate the backend endpoint that handles logo upload:
+   - Likely: POST /api/admin/upload-logo or POST /api/settings/logo
+   
+   Add comprehensive logging:
+```javascript
+   app.post('/api/admin/upload-logo', upload.single('logo'), async (req, res) => {
+     console.log('========== LOGO UPLOAD START ==========');
+     console.log('Step 1: File received?', !!req.file);
+     
+     if (!req.file) {
+       console.error('❌ No file in request');
+       return res.status(400).json({ error: 'No file uploaded' });
+     }
+     
+     console.log('Step 2: File details:', {
+       originalname: req.file.originalname,
+       mimetype: req.file.mimetype,
+       size: req.file.size,
+       fieldname: req.file.fieldname
+     });
+     
+     console.log('Step 3: Cloudinary credentials check:', {
+       cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+       has_api_key: !!process.env.CLOUDINARY_API_KEY,
+       has_api_secret: !!process.env.CLOUDINARY_API_SECRET
+     });
+     
+     try {
+       console.log('Step 4: Starting Cloudinary upload...');
+       
+       const result = await cloudinary.uploader.upload(req.file.path, {
+         folder: 'easybuydelivery-dev/logos',
+         public_id: 'logo',
+         overwrite: true,
+         resource_type: 'image'
+       });
+       
+       console.log('Step 5: ✅ Cloudinary upload SUCCESS');
+       console.log('Step 6: Cloudinary URL:', result.secure_url);
+       console.log('Step 7: Public ID:', result.public_id);
+       
+       // Save to database
+       console.log('Step 8: Saving to database...');
+       // Your database save code here
+       
+       console.log('Step 9: ✅ LOGO UPLOAD COMPLETE');
+       return res.json({ success: true, url: result.secure_url });
+       
+     } catch (error) {
+       console.error('========== LOGO UPLOAD FAILED ==========');
+       console.error('❌ Error:', error.message);
+       console.error('❌ Stack:', error.stack);
+       console.error('❌ Full error:', error);
+       return res.status(500).json({ 
+         error: 'Upload failed', 
+         details: error.message 
+       });
+     }
+   });
+```
+
+2. USE SAME PATTERN AS WORKING UPLOADS:
+   
+   Copy the EXACT implementation from merchant photo upload (which works):
+```javascript
+   // Find this working code (merchant upload)
+   const merchantUploadCode = `your working merchant upload endpoint`;
+   
+   // Apply SAME pattern to logo upload
+   // Only change:
+   // - folder path: 'easybuydelivery-dev/logos'
+   // - public_id: 'logo'
+   // - database table: settings instead of merchants
+```
+
+3. CHECK FRONTEND REQUEST:
+   
+   Verify frontend sends file correctly:
+```javascript
+   const formData = new FormData();
+   formData.append('logo', fileInput.files[0]); // Field name must match backend
+   
+   const response = await fetch('/api/admin/upload-logo', {
+     method: 'POST',
+     body: formData,
+     // Don't set Content-Type header - browser sets it automatically
+   });
+```
+
+4. CHECK ERROR HANDLING IN FRONTEND:
+   
+   Frontend might not be showing errors:
+```javascript
+   try {
+     const response = await uploadLogo(file);
+     if (response.success) {
+       // Show success
+     } else {
+       console.error('Upload failed:', response.error);
+       // Show error to user
+     }
+   } catch (error) {
+     console.error('Upload error:', error);
+     // Show error to user
+   }
+```
+
+5. VERIFY ROUTE IS REGISTERED:
+   
+   Check that logo upload route is actually registered:
+```javascript
+   // In your server/index.js or routes file
+   app.post('/api/admin/upload-logo', ...); // ← Does this exist?
+```
+
+6. CHECK MULTER MIDDLEWARE:
+   
+   Ensure multer is applied to logo route:
+```javascript
+   // Wrong - no multer middleware
+   app.post('/api/admin/upload-logo', async (req, res) => {
+     // req.file will be undefined!
+   });
+   
+   // Correct - with multer middleware
+   app.post('/api/admin/upload-logo', upload.single('logo'), async (req, res) => {
+     // req.file will have the file
+   });
+```
+
+7. TEST WITH SIMPLE FILE FIRST:
+   
+   Try uploading a smaller, simpler file:
+   - Small PNG (under 100KB)
+   - Simple filename (e.g., "logo.png")
+   - See if that works
+
+8. CHECK BROWSER CONSOLE:
+   
+   Open browser DevTools:
+   - Console tab: Any JavaScript errors?
+   - Network tab: 
+     * Is request sent to /api/admin/upload-logo?
+     * What status code? (200, 400, 500?)
+     * What response body?
+
+9. IMMEDIATE ACTION STEPS:
+   
+   A. Add the comprehensive logging code above
+   B. Try uploading logo again
+   C. Check server console output
+   D. Share the logs showing which step fails
+   E. Check browser Network tab for response
+
+10. FALLBACK - MANUAL CLOUDINARY UPLOAD:
+    
+    Temporary workaround while debugging:
+    - Manually upload logo to Cloudinary (via Cloudinary dashboard)
+    - Copy the URL
+    - Manually update database with that URL
+    - Logo will display while you fix the upload endpoint
+
+The key is to add logging to see WHERE exactly the upload fails. Since merchant uploads work, the logo upload needs to follow the same successful pattern.
+
+After adding logging, try uploading again and share the console output to identify the exact failure point.
