@@ -17,12 +17,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ShoppingCart, DollarSign, Bike, Store, Download, Eye, Check, X, Clock, Users, TrendingUp, FileText, AlertCircle, Crown, UserPlus, Trash2, Mail, Phone, MapPin, Calendar, CheckCircle, Utensils, Star, ImageIcon, CreditCard, BarChart3, Settings as SettingsIcon, User, Shield, ChevronDown, ChevronUp } from "lucide-react";
+import { ShoppingCart, DollarSign, Bike, Store, Download, Eye, Check, X, Clock, Users, TrendingUp, FileText, AlertCircle, Crown, UserPlus, Trash2, Mail, Phone, MapPin, Calendar, CheckCircle, Utensils, Star, ImageIcon, CreditCard, BarChart3, Settings as SettingsIcon, User, Shield, ChevronDown, ChevronUp, Megaphone } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { CustomerManagement } from "@/components/customer-management";
 import { RiderManagement } from "@/components/rider-management";
 import { AdminManagement } from "@/components/admin-management";
+import { AnnouncementManagement } from "@/components/announcement-management";
 import { NotificationDropdown } from "@/components/NotificationDropdown";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
@@ -2738,7 +2739,7 @@ export default function AdminPortal() {
                 </div>
 
                 <Tabs defaultValue="riders" className="w-full">
-                  <TabsList className="w-full md:grid md:grid-cols-4">
+                  <TabsList className={`w-full md:grid ${isOwner ? 'md:grid-cols-5' : 'md:grid-cols-5'}`}>
                     <TabsTrigger value="riders" data-testid="tab-rider-management">
                       <Bike className="w-4 h-4 mr-2" />
                       Riders
@@ -2750,6 +2751,10 @@ export default function AdminPortal() {
                     <TabsTrigger value="customers" data-testid="tab-customer-management">
                       <Users className="w-4 h-4 mr-2" />
                       Customers
+                    </TabsTrigger>
+                    <TabsTrigger value="announcements" data-testid="tab-announcements-management">
+                      <Megaphone className="w-4 h-4 mr-2" />
+                      Announcements
                     </TabsTrigger>
                     {isOwner && (
                       <TabsTrigger value="admins" data-testid="tab-admin-management">
@@ -2779,6 +2784,10 @@ export default function AdminPortal() {
 
                   <TabsContent value="customers" className="space-y-6 mt-6">
                     <CustomerManagement />
+                  </TabsContent>
+
+                  <TabsContent value="announcements" className="space-y-6 mt-6">
+                    <AnnouncementManagement />
                   </TabsContent>
 
                   {isOwner && (

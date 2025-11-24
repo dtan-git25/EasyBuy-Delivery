@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { LocationMapViewer } from "@/components/location-map-viewer";
+import { AnnouncementBanner } from "@/components/announcement-banner";
 
 interface PendingOrder {
   id: string;
@@ -1003,6 +1004,9 @@ export default function RiderPortal() {
 
   return (
     <div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+        <AnnouncementBanner />
+      </div>
       {/* Rider Dashboard Header */}
       <section className="bg-card border-b border-border py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

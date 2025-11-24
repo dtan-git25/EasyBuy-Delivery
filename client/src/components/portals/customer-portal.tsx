@@ -17,6 +17,7 @@ import { useWebSocket } from "@/lib/websocket";
 import { useAuth } from "@/hooks/use-auth";
 import { MenuItemOptionsModal } from "@/components/MenuItemOptionsModal";
 import { AddressSelector } from "@/components/address-selector";
+import { AnnouncementBanner } from "@/components/announcement-banner";
 import type { SavedAddress } from "@shared/schema";
 import { calculateDistance, calculateDeliveryFee } from "@/lib/haversine";
 
@@ -1437,6 +1438,7 @@ export default function CustomerPortal() {
 
       {/* Main Content with Tabs */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <AnnouncementBanner />
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full md:grid md:grid-cols-3 mb-8">
             <TabsTrigger value="restaurants" data-testid="tab-restaurants">

@@ -20,6 +20,7 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useToast } from "@/hooks/use-toast";
+import { AnnouncementBanner } from "@/components/announcement-banner";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -2032,6 +2033,9 @@ export default function MerchantPortal() {
 
   return (
     <div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+        <AnnouncementBanner />
+      </div>
       {/* Merchant Header */}
       <section className="bg-card border-b border-border py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
