@@ -2233,63 +2233,6 @@ export default function AdminPortal() {
             </TabsContent>
 
             <TabsContent value="settings" className="space-y-6">
-              {/* Image Migration Card */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <ImageIcon className="mr-2 h-5 w-5 text-primary" />
-                    Image Storage Migration
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Migrate existing images from local storage to Cloudinary for persistent cloud storage.
-                      This will scan all menu items, restaurant photos, and logos, then upload them to Cloudinary.
-                    </p>
-                    <Button 
-                      onClick={async () => {
-                        try {
-                          const response = await apiRequest("POST", "/api/owner/migrate-images-to-cloudinary", {});
-                          const report = await response.json();
-                          
-                          if (report.success) {
-                            toast({
-                              title: "Migration Complete!",
-                              description: `Successfully migrated ${report.summary.successfulUploads} of ${report.summary.totalFilesFound} images. Updated ${report.summary.databaseRecordsUpdated} database records. Skipped ${report.summary.skippedAlreadyMigrated} already migrated.`,
-                            });
-                          } else {
-                            toast({
-                              title: "Migration Completed with Errors",
-                              description: `Migrated ${report.summary.successfulUploads} images, but ${report.summary.failedUploads} failed. Check console for details.`,
-                              variant: "destructive",
-                            });
-                          }
-                          
-                          if (report.errors && report.errors.length > 0) {
-                            console.error("Migration errors:", report.errors);
-                          }
-                          
-                          if (report.details) {
-                            console.log("Migration details:", report.details);
-                          }
-                        } catch (error: any) {
-                          toast({
-                            title: "Migration Failed",
-                            description: error.message || "Failed to migrate images",
-                            variant: "destructive",
-                          });
-                        }
-                      }}
-                      data-testid="button-migrate-images"
-                    >
-                      <ImageIcon className="mr-2 h-4 w-4" />
-                      Migrate Images to Cloud Storage
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
               <div className="grid lg:grid-cols-2 gap-6">
                 {/* Delivery Fee Settings */}
                 <Card>

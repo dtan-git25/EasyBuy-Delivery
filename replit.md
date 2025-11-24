@@ -70,7 +70,8 @@ The frontend is built with React and TypeScript (Vite), utilizing Shadcn/ui (Rad
 - **CORS**: Cross-origin resource sharing middleware.
 
 ### File Handling & Media
-- **Multer**: Secure server-side file uploads.
+- **Multer**: Secure server-side file uploads with memory storage.
+- **Cloudinary**: Cloud-based image storage with environment-specific folders (dev/prod). All new images (logos, restaurant photos, menu items) are automatically uploaded to Cloudinary for persistent storage.
 
 ### Location & Maps
 - **OpenStreetMap**: Map provider.
