@@ -16,6 +16,7 @@ export const getCloudinaryFolder = {
   logos: () => `${FOLDER_PREFIX}/logos`,
   merchants: (merchantId: string) => `${FOLDER_PREFIX}/merchants/${merchantId}`,
   menuItems: (merchantId: string) => `${FOLDER_PREFIX}/menu_items/${merchantId}`,
+  riderDocuments: (riderId: string) => `${FOLDER_PREFIX}/riders/${riderId}/documents`,
 };
 
 // Helper to extract public_id from Cloudinary URL

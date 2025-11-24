@@ -1,0 +1,137 @@
+Add Cloudinary integration for Rider document photo uploads:
+
+REQUIREMENT:
+
+Rider document photo uploads in Rider registration/profile (Documents tab) are still using local /uploads storage. Need to migrate to Cloudinary like other image uploads.
+
+CURRENT SITUATION:
+✅ Admin logo upload: Uses Cloudinary
+✅ Merchant store photos: Uses Cloudinary
+✅ Menu item photos: Uses Cloudinary
+❌ Rider document photos: Still using local /uploads (NEEDS FIX)
+
+IMPLEMENTATION:
+
+1. FIND RIDER DOCUMENT UPLOAD ENDPOINTS:
+   
+   Locate endpoints that handle rider document uploads:
+   - Likely: POST /api/riders/upload-documents
+   - Or: POST /api/riders/{id}/documents
+   - Or similar rider document upload routes
+   
+   These might handle:
+   - Government ID photo
+   - Driver's license
+   - Vehicle registration
+   - Any other verification documents
+
+2. UPDATE TO USE CLOUDINARY:
+   
+   Replace local file storage with Cloudinary upload:
+```javascript
+   // Current (local storage - WRONG):
+   const storage = multer.diskStorage({
+     destination: './uploads/riders/documents/',
+     filename: (req, file, cb) => {...}
+   });
+   
+   // Change to (Cloudinary - CORRECT):
+   const result = await cloudinary.uploader.upload(req.file.path, {
+     folder: `easybuydelivery-${env}/riders/${riderId}/documents`,
+     resource_type: 'image',
+     public_id: `${documentType}_${timestamp}`
+   });
+```
+
+3. FOLDER STRUCTURE IN CLOUDINARY:
+   
+   Organize rider documents:
+easybuydelivery-dev/
+└── riders/
+└── {rider_id}/
+└── documents/
+├── government_id
+├── drivers_license
+├── vehicle_registration
+└── other_docs
+   
+   Or simpler:
+easybuydelivery-dev/riders/{rider_id}/
+├── government_id
+├── drivers_license
+└── vehicle_registration
+
+4. USE SAME PATTERN AS WORKING UPLOADS:
+   
+   Copy the successful implementation from merchant photo upload:
+   - Same multer configuration
+   - Same Cloudinary upload pattern
+   - Same error handling
+   - Just change folder path to riders
+
+5. UPDATE DATABASE:
+   
+   Ensure rider document URLs are stored correctly:
+   - government_id_url: Cloudinary URL
+   - drivers_license_url: Cloudinary URL
+   - vehicle_registration_url: Cloudinary URL
+   - Any other document URL fields
+
+6. HANDLE MULTIPLE DOCUMENTS:
+   
+   If rider can upload multiple documents:
+```javascript
+   // Multiple file upload
+   upload.fields([
+     { name: 'government_id', maxCount: 1 },
+     { name: 'drivers_license', maxCount: 1 },
+     { name: 'vehicle_registration', maxCount: 1 }
+   ])
+   
+   // Upload each to Cloudinary
+   for (const [fieldName, files] of Object.entries(req.files)) {
+     const file = files[0];
+     const result = await cloudinary.uploader.upload(file.path, {
+       folder: `easybuydelivery-${env}/riders/${riderId}/documents`,
+       public_id: fieldName
+     });
+     // Save result.secure_url to database
+   }
+```
+
+7. SECURITY CONSIDERATIONS:
+   
+   For sensitive rider documents:
+   - Use private Cloudinary URLs if needed
+   - Add access control
+   - Consider adding authenticated URLs with expiration
+   - Ensure only admin/owner can view rider documents
+
+8. UPDATE FRONTEND:
+   
+   Change document image display:
+   - From: /uploads/riders/documents/id.jpg
+   - To: Cloudinary URL from database
+
+9. DOCUMENT TYPES TO HANDLE:
+   
+   Common rider documents:
+   - Government-issued ID
+   - Driver's license
+   - Vehicle registration
+   - Insurance documents
+   - Profile photo (if separate from ID)
+   - Background check documents
+   - Any other verification photos
+
+10. TESTING:
+    
+    After implementation:
+    - Upload rider documents during registration
+    - Verify images upload to Cloudinary
+    - Check correct folder structure
+    - Verify URLs saved to database
+    - Test document display in admin/rider views
+    - Test updating/replacing documents
+
+Apply the same Cloudinary integration that works for merchant photos and menu items to rider document uploads. Use consistent patterns and folder organization.

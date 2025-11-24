@@ -41,35 +41,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error('Failed to create uploads directory:', error);
   }
 
-  // Configure multer for rider document uploads using local storage
-  const upload = multer({
-    storage: multer.diskStorage({
-      destination: async (req, file, cb) => {
-        try {
-          const userId = (req as any).user?.id;
-          if (!userId) {
-            return cb(new Error("User not authenticated"));
-          }
-          
-          // Use local uploads directory
-          const riderDir = path.join(process.cwd(), 'uploads', 'riders', userId);
-          
-          // Ensure directory exists
-          await fs.promises.mkdir(riderDir, { recursive: true });
-          
-          cb(null, riderDir);
-        } catch (error) {
-          console.error('Error creating upload directory:', error);
-          cb(error as Error);
-        }
-      },
-      filename: (req, file, cb) => {
-        // Generate unique filename with timestamp
-        const fileExtension = path.extname(file.originalname);
-        const fileName = `${file.fieldname}_${Date.now()}${fileExtension}`;
-        cb(null, fileName);
-      }
-    }),
+  // Configure multer for rider document uploads using memory storage
+  const riderDocumentUpload = multer({
+    storage: multer.memoryStorage(),
     limits: {
       fileSize: 10 * 1024 * 1024, // 10MB limit
     },
@@ -4089,7 +4063,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Rider Document Upload Routes
   app.post("/api/rider/upload-documents", 
-    upload.fields([
+    riderDocumentUpload.fields([
       { name: 'orcrDocument', maxCount: 1 },
       { name: 'motorImage', maxCount: 1 },
       { name: 'idDocument', maxCount: 1 }
@@ -4115,24 +4089,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const documentUrls: { orcrDocument?: string; motorImage?: string; idDocument?: string } = {};
 
-        // Process files that are already stored locally by multer
+        // Upload each document to Cloudinary
         for (const [fieldName, fileArray] of Object.entries(files)) {
           if (fileArray && fileArray.length > 0) {
             const file = fileArray[0];
             
-            // Verify file was stored successfully
-            if (!fs.existsSync(file.path)) {
-              throw new Error(`File storage failed for ${fieldName}`);
-            }
+            // Determine public_id based on document type
+            const publicId = `${fieldName}_${Date.now()}`;
             
-            // Get relative path from project root for database storage
-            const uploadsDir = path.join(process.cwd(), 'uploads');
-            const relativePath = path.relative(uploadsDir, file.path);
+            // Upload to Cloudinary
+            const uploadResult = await new Promise<any>((resolve, reject) => {
+              const uploadStream = cloudinary.uploader.upload_stream(
+                {
+                  folder: getCloudinaryFolder.riderDocuments(rider.id),
+                  public_id: publicId,
+                  resource_type: 'auto', // Supports images and PDFs
+                  transformation: [
+                    { width: 1200, height: 1200, crop: 'limit' },
+                    { quality: 'auto' },
+                    { fetch_format: 'auto' }
+                  ]
+                },
+                (error, result) => {
+                  if (error) reject(error);
+                  else resolve(result);
+                }
+              );
+              uploadStream.end(file.buffer);
+            });
             
-            // Store the relative path in the database (e.g., "riders/userId/filename.png")
-            documentUrls[fieldName as keyof typeof documentUrls] = relativePath;
+            // Store the Cloudinary URL in the database
+            documentUrls[fieldName as keyof typeof documentUrls] = uploadResult.secure_url;
             
-            console.log(`Successfully stored ${fieldName} at ${file.path} (relative: ${relativePath})`);
+            console.log(`Successfully uploaded ${fieldName} to Cloudinary: ${uploadResult.secure_url}`);
           }
         }
 
@@ -4205,7 +4194,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Rider Document Update Route (for approved riders)
   app.post("/api/rider/update-documents",
-    upload.fields([
+    riderDocumentUpload.fields([
       { name: 'orcrDocument', maxCount: 1 },
       { name: 'motorImage', maxCount: 1 },
       { name: 'idDocument', maxCount: 1 }
@@ -4246,24 +4235,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const documentUrls: { orcrDocument?: string; motorImage?: string; idDocument?: string } = {};
 
-        // Process files that are already stored locally by multer
+        // Upload each document to Cloudinary
         for (const [fieldName, fileArray] of Object.entries(files)) {
           if (fileArray && fileArray.length > 0) {
             const file = fileArray[0];
             
-            // Verify file was stored successfully
-            if (!fs.existsSync(file.path)) {
-              throw new Error(`File storage failed for ${fieldName}`);
-            }
+            // Determine public_id based on document type
+            const publicId = `${fieldName}_${Date.now()}`;
             
-            // Get relative path from project root for database storage
-            const uploadsDir = path.join(process.cwd(), 'uploads');
-            const relativePath = path.relative(uploadsDir, file.path);
+            // Upload to Cloudinary
+            const uploadResult = await new Promise<any>((resolve, reject) => {
+              const uploadStream = cloudinary.uploader.upload_stream(
+                {
+                  folder: getCloudinaryFolder.riderDocuments(rider.id),
+                  public_id: publicId,
+                  resource_type: 'auto', // Supports images and PDFs
+                  transformation: [
+                    { width: 1200, height: 1200, crop: 'limit' },
+                    { quality: 'auto' },
+                    { fetch_format: 'auto' }
+                  ]
+                },
+                (error, result) => {
+                  if (error) reject(error);
+                  else resolve(result);
+                }
+              );
+              uploadStream.end(file.buffer);
+            });
             
-            // Store the relative path in the database
-            documentUrls[fieldName as keyof typeof documentUrls] = relativePath;
+            // Store the Cloudinary URL in the database
+            documentUrls[fieldName as keyof typeof documentUrls] = uploadResult.secure_url;
             
-            console.log(`Successfully stored updated ${fieldName} at ${file.path} (relative: ${relativePath})`);
+            console.log(`Successfully uploaded updated ${fieldName} to Cloudinary: ${uploadResult.secure_url}`);
           }
         }
 
@@ -4613,43 +4617,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Rider not found" });
       }
 
-      let documentPath: string | null = null;
+      let documentUrl: string | null = null;
       switch (documentType) {
         case 'orcr':
-          documentPath = rider.orcrDocument;
+          documentUrl = rider.orcrDocument;
           break;
         case 'motor':
-          documentPath = rider.motorImage;
+          documentUrl = rider.motorImage;
           break;
         case 'id':
-          documentPath = rider.idDocument;
+          documentUrl = rider.idDocument;
           break;
         default:
           return res.status(400).json({ error: "Invalid document type" });
       }
 
-      if (!documentPath) {
+      if (!documentUrl) {
         return res.status(404).json({ error: "Document not found" });
       }
 
-      // Files are stored locally in uploads directory
-      const uploadsBase = path.join(process.cwd(), 'uploads');
-      const fullPath = path.resolve(uploadsBase, documentPath);
-      
-      console.log(`[Admin Document View] Rider: ${riderId}, Type: ${documentType}, DB Path: ${documentPath}, Full Path: ${fullPath}`);
-      
-      // Security: Ensure the resolved path is within the uploads directory (prevent path traversal)
-      if (!fullPath.startsWith(uploadsBase + path.sep) && fullPath !== uploadsBase) {
-        console.error(`[Admin Document View] Path traversal attempt blocked: ${fullPath}`);
-        return res.status(400).json({ error: "Invalid document path" });
-      }
-      
-      if (!fs.existsSync(fullPath)) {
-        console.error(`[Admin Document View] File not found at: ${fullPath}`);
-        return res.status(404).json({ error: "Document file not found" });
-      }
-
-      res.sendFile(fullPath);
+      // Documents are now stored in Cloudinary, redirect to the URL
+      console.log(`[Admin Document View] Rider: ${riderId}, Type: ${documentType}, Cloudinary URL: ${documentUrl}`);
+      res.redirect(documentUrl);
     } catch (error) {
       console.error("Error downloading rider document:", error);
       res.status(500).json({ error: "Failed to download document" });
@@ -4670,43 +4659,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Rider profile not found" });
       }
 
-      let documentPath: string | null = null;
+      let documentUrl: string | null = null;
       switch (documentType) {
         case 'orcr':
-          documentPath = rider.orcrDocument;
+          documentUrl = rider.orcrDocument;
           break;
         case 'motor':
-          documentPath = rider.motorImage;
+          documentUrl = rider.motorImage;
           break;
         case 'id':
-          documentPath = rider.idDocument;
+          documentUrl = rider.idDocument;
           break;
         default:
           return res.status(400).json({ error: "Invalid document type" });
       }
 
-      if (!documentPath) {
+      if (!documentUrl) {
         return res.status(404).json({ error: "Document not found" });
       }
 
-      // Files are stored locally in uploads directory
-      const uploadsBase = path.join(process.cwd(), 'uploads');
-      const fullPath = path.resolve(uploadsBase, documentPath);
-      
-      console.log(`[Rider Document View] User: ${req.user.id}, Type: ${documentType}, DB Path: ${documentPath}, Full Path: ${fullPath}`);
-      
-      // Security: Ensure the resolved path is within the uploads directory (prevent path traversal)
-      if (!fullPath.startsWith(uploadsBase + path.sep) && fullPath !== uploadsBase) {
-        console.error(`[Rider Document View] Path traversal attempt blocked: ${fullPath}`);
-        return res.status(400).json({ error: "Invalid document path" });
-      }
-      
-      if (!fs.existsSync(fullPath)) {
-        console.error(`[Rider Document View] File not found at: ${fullPath}`);
-        return res.status(404).json({ error: "Document file not found" });
-      }
-
-      res.sendFile(fullPath);
+      // Documents are now stored in Cloudinary, redirect to the URL
+      console.log(`[Rider Document View] User: ${req.user.id}, Type: ${documentType}, Cloudinary URL: ${documentUrl}`);
+      res.redirect(documentUrl);
     } catch (error) {
       console.error("Error viewing rider document:", error);
       res.status(500).json({ error: "Failed to view document" });
