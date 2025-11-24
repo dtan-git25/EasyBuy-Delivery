@@ -1,0 +1,200 @@
+merchants:
+
+REQUIREMENT:
+
+Admin can create announcements that display to selected user types (customers, riders, merchants). Users can dismiss announcements, and once dismissed, they won't see it again.
+
+FEATURES:
+
+1. ADMIN - CREATE ANNOUNCEMENT:
+   
+   Location: Admin Dashboard → Management tab → "Announcements" card
+   
+   Create Announcement Form:
+   - Title (required): Short headline
+   - Message (required): Full announcement text
+   - Target Audience (required): Checkboxes
+     ☐ Customers
+     ☐ Riders  
+     ☐ Merchants
+   - Priority: 
+     * Normal (default)
+     * Important (highlighted styling)
+     * Urgent (red/critical styling)
+   - Start Date (add 'Immediately' option or select time): When to start showing
+   - Active Toggle: Enable/disable announcement
+   
+   [Cancel] [Create Announcement]
+
+2. ADMIN - MANAGE ANNOUNCEMENTS:
+   
+   Announcements List View:
+   ┌─────────────────────────────────────────────────────────────┐
+   │ Active Announcements                    [+ New Announcement] │
+   ├─────────────────────────────────────────────────────────────┤
+   │ 📢 System Maintenance Tomorrow                    [Edit] [🗑️]│
+   │    Targets: Customers, Riders, Merchants                     │
+   │    Priority: Important                                       │
+   │    Active: ✓ | Ends: Nov 25, 2025                          │
+   ├─────────────────────────────────────────────────────────────┤
+   │ 📢 New Menu Features Available                   [Edit] [🗑️]│
+   │    Targets: Merchants                                        │
+   │    Priority: Normal                                          │
+   │    Active: ✓ | No end date                                  │
+   └─────────────────────────────────────────────────────────────┘
+
+3. DATABASE SCHEMA:
+   
+   Create tables:
+   
+   announcements:
+   - id (UUID, primary key)
+   - title (VARCHAR 200)
+   - message (TEXT)
+   - target_customers (BOOLEAN)
+   - target_riders (BOOLEAN)
+   - target_merchants (BOOLEAN)
+   - priority (ENUM: 'normal', 'important', 'urgent')
+   - start_date (TIMESTAMP, nullable)
+   - is_active (BOOLEAN, default true)
+   - created_at (TIMESTAMP)
+   - created_by (UUID, references admin user)
+   
+   announcement_dismissals:
+   - id (UUID, primary key)
+   - announcement_id (UUID, references announcements)
+   - user_id (UUID, references users)
+   - dismissed_at (TIMESTAMP)
+   - UNIQUE(announcement_id, user_id)
+
+4. DISPLAY ANNOUNCEMENTS TO USERS:
+   
+   Show as banner/modal at top of dashboard or homepage:
+   
+   Customer View:
+   ┌─────────────────────────────────────────────────────────────┐
+   │ 📢 System Maintenance Tomorrow                          [✕]  │
+   │ We'll be performing maintenance on Nov 25 from 2-4 AM.      │
+   │ Service may be temporarily unavailable.                      │
+   └─────────────────────────────────────────────────────────────┘
+   
+   Styling based on priority:
+   - Normal: Blue background
+   - Important: Orange background
+   - Urgent: Red background
+
+5. DISMISS FUNCTIONALITY:
+   
+   When user clicks [✕] close button:
+```javascript
+   async function dismissAnnouncement(announcementId) {
+     await fetch('/api/announcements/dismiss', {
+       method: 'POST',
+       body: JSON.stringify({ announcement_id: announcementId })
+     });
+     
+     // Hide announcement from UI
+     // Save to local state to prevent showing again
+   }
+```
+   
+   Backend saves to announcement_dismissals table:
+   - Records user_id + announcement_id
+   - Won't show this announcement to this user again
+
+6. ANNOUNCEMENT DISPLAY LOGIC:
+   
+   Query announcements for user:
+```sql
+   SELECT a.* FROM announcements a
+   WHERE a.is_active = true
+     AND (a.start_date IS NULL OR a.start_date <= NOW())
+     AND (a.end_date IS NULL OR a.end_date >= NOW())
+     AND (
+       (a.target_customers = true AND user.role = 'customer')
+       OR (a.target_riders = true AND user.role = 'rider')
+       OR (a.target_merchants = true AND user.role = 'merchant')
+     )
+     AND NOT EXISTS (
+       SELECT 1 FROM announcement_dismissals d
+       WHERE d.announcement_id = a.id AND d.user_id = user.id
+     )
+   ORDER BY a.priority DESC, a.created_at DESC
+```
+
+7. DISPLAY POSITIONS:
+   
+   Customer: Top of home page
+   Rider: Top of home page
+   Merchant: Top of home page
+   
+   Banner style (non-intrusive):
+      - Sticky at top of page
+      - Can scroll content below
+      - Close button on right
+
+
+8. MULTIPLE ANNOUNCEMENTS:
+   
+   If user has multiple active announcements:
+   - Show highest priority first
+   - show as stacked banners
+
+9. API ENDPOINTS:
+   
+   Admin:
+   - POST /api/admin/announcements - Create
+   - GET /api/admin/announcements - List all
+   - PUT /api/admin/announcements/:id - Update
+   - DELETE /api/admin/announcements/:id - Delete
+   - GET /api/admin/announcements/:id/stats - View/dismiss stats
+   
+   Users:
+   - GET /api/announcements - Get active for current user
+   - POST /api/announcements/:id/dismiss - Dismiss announcement
+
+10. NOTIFICATIONS INTEGRATION:
+    
+    Send as notification too
+    - In-app notification bell
+
+12. EDIT/DELETE SAFEGUARDS:
+    
+    - Can't delete active announcement
+    - Can edit, but preserves dismissal records
+    - Option to "re-send" edited announcement (resets dismissals)
+    - Confirm before deleting
+
+13. ANNOUNCEMENT TEMPLATES:
+    
+    Pre-made templates for common announcements:
+    - System maintenance
+    - New features
+    - Policy updates
+    - Holiday hours
+    - Emergency alerts
+
+14. STYLING EXAMPLES:
+    
+    Normal Priority (Blue):
+background: #3B82F6
+border-left: 4px solid #1D4ED8
+    
+    Important Priority (Orange):
+background: #F59E0B
+border-left: 4px solid #D97706
+    
+    Urgent Priority (Red):
+background: #EF4444
+border-left: 4px solid #DC2626
+animation: pulse
+
+15. RESPONSIVE DESIGN:
+    
+    Mobile:
+    - Full-width banner
+    - Compact text
+    - Large close button
+    - Swipe to dismiss option
+
+This creates a comprehensive announcement system allowing admin to communicate important updates to all user types with proper targeting and dismissal tracking.

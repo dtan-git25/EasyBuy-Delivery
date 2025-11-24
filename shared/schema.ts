@@ -31,6 +31,8 @@ export const notificationTypeEnum = pgEnum('notification_type', [
   'system_alert'
 ]);
 
+export const announcementPriorityEnum = pgEnum('announcement_priority', ['normal', 'important', 'urgent']);
+
 // Users table - Enhanced for Philippine standards
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -424,6 +426,29 @@ export const notifications = pgTable("notifications", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Announcements table
+export const announcements = pgTable("announcements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title", { length: 200 }).notNull(),
+  message: text("message").notNull(),
+  targetCustomers: boolean("target_customers").default(false).notNull(),
+  targetRiders: boolean("target_riders").default(false).notNull(),
+  targetMerchants: boolean("target_merchants").default(false).notNull(),
+  priority: announcementPriorityEnum("priority").default('normal').notNull(),
+  startDate: timestamp("start_date"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdBy: varchar("created_by").notNull().references(() => users.id, { onDelete: 'cascade' }),
+});
+
+// Announcement dismissals table
+export const announcementDismissals = pgTable("announcement_dismissals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  announcementId: varchar("announcement_id").notNull().references(() => announcements.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  dismissedAt: timestamp("dismissed_at").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many, one }) => ({
   restaurants: many(restaurants),
@@ -437,6 +462,16 @@ export const usersRelations = relations(users, ({ many, one }) => ({
 
 export const notificationsRelations = relations(notifications, ({ one }) => ({
   user: one(users, { fields: [notifications.userId], references: [users.id] }),
+}));
+
+export const announcementsRelations = relations(announcements, ({ one, many }) => ({
+  createdByUser: one(users, { fields: [announcements.createdBy], references: [users.id] }),
+  dismissals: many(announcementDismissals),
+}));
+
+export const announcementDismissalsRelations = relations(announcementDismissals, ({ one }) => ({
+  announcement: one(announcements, { fields: [announcementDismissals.announcementId], references: [announcements.id] }),
+  user: one(users, { fields: [announcementDismissals.userId], references: [users.id] }),
 }));
 
 export const savedAddressesRelations = relations(savedAddresses, ({ one }) => ({
@@ -595,6 +630,16 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
   createdAt: true,
 });
 
+export const insertAnnouncementSchema = createInsertSchema(announcements).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertAnnouncementDismissalSchema = createInsertSchema(announcementDismissals).omit({
+  id: true,
+  dismissedAt: true,
+});
+
 // Role-specific Registration Schemas - Philippine Standards
 
 // Customer Registration Schema - Simplified (no address fields required)
@@ -738,3 +783,7 @@ export type Rating = typeof ratings.$inferSelect;
 export type InsertRating = z.infer<typeof insertRatingSchema>;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type Announcement = typeof announcements.$inferSelect;
+export type InsertAnnouncement = z.infer<typeof insertAnnouncementSchema>;
+export type AnnouncementDismissal = typeof announcementDismissals.$inferSelect;
+export type InsertAnnouncementDismissal = z.infer<typeof insertAnnouncementDismissalSchema>;

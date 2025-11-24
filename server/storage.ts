@@ -1,4 +1,4 @@
-import { users, restaurants, menuItems, categories, riders, wallets, orders, chatMessages, systemSettings, walletTransactions, orderStatusHistory, riderLocationHistory, optionTypes, menuItemOptionValues, menuGroups, menuGroupItems, savedAddresses, ratings, notifications, type User, type InsertUser, type Restaurant, type RestaurantWithOwner, type InsertRestaurant, type MenuItem, type InsertMenuItem, type Category, type InsertCategory, type Rider, type InsertRider, type Order, type InsertOrder, type ChatMessage, type InsertChatMessage, type Wallet, type SystemSettings, type WalletTransaction, type InsertWalletTransaction, type OrderStatusHistory, type InsertOrderStatusHistory, type RiderLocationHistory, type InsertRiderLocationHistory, type OptionType, type InsertOptionType, type MenuItemOptionValue, type InsertMenuItemOptionValue, type MenuGroup, type InsertMenuGroup, type MenuGroupItem, type InsertMenuGroupItem, type SavedAddress, type InsertSavedAddress, type Rating, type InsertRating, type Notification, type InsertNotification } from "@shared/schema";
+import { users, restaurants, menuItems, categories, riders, wallets, orders, chatMessages, systemSettings, walletTransactions, orderStatusHistory, riderLocationHistory, optionTypes, menuItemOptionValues, menuGroups, menuGroupItems, savedAddresses, ratings, notifications, announcements, announcementDismissals, type User, type InsertUser, type Restaurant, type RestaurantWithOwner, type InsertRestaurant, type MenuItem, type InsertMenuItem, type Category, type InsertCategory, type Rider, type InsertRider, type Order, type InsertOrder, type ChatMessage, type InsertChatMessage, type Wallet, type SystemSettings, type WalletTransaction, type InsertWalletTransaction, type OrderStatusHistory, type InsertOrderStatusHistory, type RiderLocationHistory, type InsertRiderLocationHistory, type OptionType, type InsertOptionType, type MenuItemOptionValue, type InsertMenuItemOptionValue, type MenuGroup, type InsertMenuGroup, type MenuGroupItem, type InsertMenuGroupItem, type SavedAddress, type InsertSavedAddress, type Rating, type InsertRating, type Notification, type InsertNotification, type Announcement, type InsertAnnouncement, type AnnouncementDismissal, type InsertAnnouncementDismissal } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, like, desc, asc } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
@@ -166,6 +166,16 @@ export interface IStorage {
   markNotificationAsRead(id: string): Promise<Notification | undefined>;
   markAllNotificationsAsRead(userId: string): Promise<void>;
   deleteNotification(id: string): Promise<void>;
+
+  // Announcement operations
+  getAnnouncements(): Promise<Announcement[]>;
+  getActiveAnnouncementsForUser(userId: string, userRole: string): Promise<Announcement[]>;
+  getAnnouncement(id: string): Promise<Announcement | undefined>;
+  createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement>;
+  updateAnnouncement(id: string, updates: Partial<Announcement>): Promise<Announcement | undefined>;
+  deleteAnnouncement(id: string): Promise<void>;
+  dismissAnnouncement(announcementId: string, userId: string): Promise<AnnouncementDismissal>;
+  isAnnouncementDismissed(announcementId: string, userId: string): Promise<boolean>;
 
   // Session management
   clearAllSessions(): Promise<void>;
@@ -1929,6 +1939,108 @@ export class DatabaseStorage implements IStorage {
 
   async deleteNotification(id: string): Promise<void> {
     await db.delete(notifications).where(eq(notifications.id, id));
+  }
+
+  // Announcement operations
+  async getAnnouncements(): Promise<Announcement[]> {
+    const allAnnouncements = await db
+      .select()
+      .from(announcements)
+      .orderBy(desc(announcements.createdAt));
+    return allAnnouncements;
+  }
+
+  async getActiveAnnouncementsForUser(userId: string, userRole: string): Promise<Announcement[]> {
+    const { notExists } = await import('drizzle-orm');
+    const { sql } = await import('drizzle-orm');
+    
+    // Build conditions based on user role
+    const roleCondition = 
+      userRole === 'customer' ? eq(announcements.targetCustomers, true) :
+      userRole === 'rider' ? eq(announcements.targetRiders, true) :
+      userRole === 'merchant' ? eq(announcements.targetMerchants, true) :
+      sql`false`;
+
+    const activeAnnouncements = await db
+      .select()
+      .from(announcements)
+      .where(
+        and(
+          eq(announcements.isActive, true),
+          or(
+            eq(announcements.startDate, null),
+            sql`${announcements.startDate} <= NOW()`
+          ),
+          roleCondition,
+          notExists(
+            db
+              .select()
+              .from(announcementDismissals)
+              .where(
+                and(
+                  eq(announcementDismissals.announcementId, announcements.id),
+                  eq(announcementDismissals.userId, userId)
+                )
+              )
+          )
+        )
+      )
+      .orderBy(
+        sql`CASE ${announcements.priority} WHEN 'urgent' THEN 1 WHEN 'important' THEN 2 WHEN 'normal' THEN 3 END`,
+        desc(announcements.createdAt)
+      );
+
+    return activeAnnouncements;
+  }
+
+  async getAnnouncement(id: string): Promise<Announcement | undefined> {
+    const [announcement] = await db
+      .select()
+      .from(announcements)
+      .where(eq(announcements.id, id));
+    return announcement || undefined;
+  }
+
+  async createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement> {
+    const [newAnnouncement] = await db
+      .insert(announcements)
+      .values(announcement)
+      .returning();
+    return newAnnouncement;
+  }
+
+  async updateAnnouncement(id: string, updates: Partial<Announcement>): Promise<Announcement | undefined> {
+    const [updated] = await db
+      .update(announcements)
+      .set(updates)
+      .where(eq(announcements.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteAnnouncement(id: string): Promise<void> {
+    await db.delete(announcements).where(eq(announcements.id, id));
+  }
+
+  async dismissAnnouncement(announcementId: string, userId: string): Promise<AnnouncementDismissal> {
+    const [dismissal] = await db
+      .insert(announcementDismissals)
+      .values({ announcementId, userId })
+      .returning();
+    return dismissal;
+  }
+
+  async isAnnouncementDismissed(announcementId: string, userId: string): Promise<boolean> {
+    const [dismissal] = await db
+      .select()
+      .from(announcementDismissals)
+      .where(
+        and(
+          eq(announcementDismissals.announcementId, announcementId),
+          eq(announcementDismissals.userId, userId)
+        )
+      );
+    return !!dismissal;
   }
 
   // Session management
