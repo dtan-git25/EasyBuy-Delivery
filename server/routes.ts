@@ -3562,6 +3562,148 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Announcement Routes
+  // Admin - Get all announcements
+  app.get("/api/announcements", async (req, res) => {
+    if (!req.isAuthenticated() || !isAdminOrOwner(req.user?.role)) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const announcements = await storage.getAnnouncements();
+      res.json(announcements);
+    } catch (error) {
+      console.error("Error fetching announcements:", error);
+      res.status(500).json({ error: "Failed to fetch announcements" });
+    }
+  });
+
+  // User - Get active announcements for current user
+  app.get("/api/announcements/active", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const announcements = await storage.getActiveAnnouncementsForUser(
+        req.user.id,
+        req.user.role
+      );
+      res.json(announcements);
+    } catch (error) {
+      console.error("Error fetching active announcements:", error);
+      res.status(500).json({ error: "Failed to fetch active announcements" });
+    }
+  });
+
+  // Admin - Get single announcement
+  app.get("/api/announcements/:id", async (req, res) => {
+    if (!req.isAuthenticated() || !isAdminOrOwner(req.user?.role)) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const announcement = await storage.getAnnouncement(req.params.id);
+      if (!announcement) {
+        return res.status(404).json({ error: "Announcement not found" });
+      }
+      res.json(announcement);
+    } catch (error) {
+      console.error("Error fetching announcement:", error);
+      res.status(500).json({ error: "Failed to fetch announcement" });
+    }
+  });
+
+  // Admin - Create announcement
+  app.post("/api/announcements", async (req, res) => {
+    if (!req.isAuthenticated() || !isAdminOrOwner(req.user?.role)) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const announcementData = {
+        title: req.body.title,
+        message: req.body.message,
+        targetCustomers: req.body.targetCustomers || false,
+        targetRiders: req.body.targetRiders || false,
+        targetMerchants: req.body.targetMerchants || false,
+        priority: req.body.priority || 'normal',
+        startDate: req.body.startDate ? new Date(req.body.startDate) : null,
+        isActive: req.body.isActive !== undefined ? req.body.isActive : true,
+        createdBy: req.user.id
+      };
+
+      // Validate at least one target is selected
+      if (!announcementData.targetCustomers && !announcementData.targetRiders && !announcementData.targetMerchants) {
+        return res.status(400).json({ error: "At least one target audience must be selected" });
+      }
+
+      const announcement = await storage.createAnnouncement(announcementData);
+      res.status(201).json(announcement);
+    } catch (error) {
+      console.error("Error creating announcement:", error);
+      res.status(500).json({ error: "Failed to create announcement" });
+    }
+  });
+
+  // Admin - Update announcement
+  app.patch("/api/announcements/:id", async (req, res) => {
+    if (!req.isAuthenticated() || !isAdminOrOwner(req.user?.role)) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const updates: any = {};
+      if (req.body.title !== undefined) updates.title = req.body.title;
+      if (req.body.message !== undefined) updates.message = req.body.message;
+      if (req.body.targetCustomers !== undefined) updates.targetCustomers = req.body.targetCustomers;
+      if (req.body.targetRiders !== undefined) updates.targetRiders = req.body.targetRiders;
+      if (req.body.targetMerchants !== undefined) updates.targetMerchants = req.body.targetMerchants;
+      if (req.body.priority !== undefined) updates.priority = req.body.priority;
+      if (req.body.startDate !== undefined) updates.startDate = req.body.startDate ? new Date(req.body.startDate) : null;
+      if (req.body.isActive !== undefined) updates.isActive = req.body.isActive;
+
+      const announcement = await storage.updateAnnouncement(req.params.id, updates);
+      if (!announcement) {
+        return res.status(404).json({ error: "Announcement not found" });
+      }
+      res.json(announcement);
+    } catch (error) {
+      console.error("Error updating announcement:", error);
+      res.status(500).json({ error: "Failed to update announcement" });
+    }
+  });
+
+  // Admin - Delete announcement
+  app.delete("/api/announcements/:id", async (req, res) => {
+    if (!req.isAuthenticated() || !isAdminOrOwner(req.user?.role)) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      await storage.deleteAnnouncement(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting announcement:", error);
+      res.status(500).json({ error: "Failed to delete announcement" });
+    }
+  });
+
+  // User - Dismiss announcement
+  app.post("/api/announcements/:id/dismiss", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    try {
+      const dismissal = await storage.dismissAnnouncement(req.params.id, req.user.id);
+      res.json(dismissal);
+    } catch (error) {
+      console.error("Error dismissing announcement:", error);
+      res.status(500).json({ error: "Failed to dismiss announcement" });
+    }
+  });
+
   // Admin User Management Routes  
   app.get("/api/users", async (req, res) => {
     if (!req.isAuthenticated() || !isAdminOrOwner(req.user?.role)) {
