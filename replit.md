@@ -21,7 +21,7 @@ The frontend is built with React and TypeScript (Vite), utilizing Shadcn/ui (Rad
 - **Form Handling**: React Hook Form with Zod validation.
 - **Routing**: Wouter.
 - **Database Design**: Relational schema with Users, Restaurants, Orders, Riders, Wallets, and many-to-many relationships, utilizing enums and foreign key constraints.
-- **Real-time Features**: Custom WebSocket server for live updates, order-specific chat, real-time order status tracking, and rider information visibility. Supports multi-merchant order chat.
+- **Real-time Features**: Custom WebSocket server for live updates, order-specific chat, real-time order status tracking, and rider information visibility. Supports multi-merchant order chat. Audio notifications for riders on new orders and chat messages using Web Audio API with singleton AudioContext.
 - **Location Services**: Browser Geolocation API, OpenStreetMap Nominatim API for geocoding, Haversine formula for delivery fees, and saved addresses. Merchants use Leaflet maps for store location.
 
 ### Feature Specifications
@@ -36,6 +36,7 @@ The frontend is built with React and TypeScript (Vite), utilizing Shadcn/ui (Rad
 - **Rider Booking Restrictions**: Admin-configurable limits on rider order capacity with specific rules for multi-merchant orders (e.g., riders can only accept one multi-merchant order at a time).
 - **Admin Management**: Owner portal includes comprehensive admin account management (list, view details, delete) with owner-only access.
 - **Analytics & Reporting**: Admin dashboard for revenue, orders, users, delivery, and product analytics with date range filtering.
+- **Announcement System**: Admin-managed announcements with role-based targeting (customers, riders, merchants), priority levels (normal, important, urgent), per-user dismissal tracking, and visual priority indicators. Active announcements display in targeted portals with dismissal functionality.
 
 ## External Dependencies
 
