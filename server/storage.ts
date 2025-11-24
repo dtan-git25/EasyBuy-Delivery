@@ -1951,7 +1951,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getActiveAnnouncementsForUser(userId: string, userRole: string): Promise<Announcement[]> {
-    const { notExists } = await import('drizzle-orm');
+    const { notExists, isNull } = await import('drizzle-orm');
     const { sql } = await import('drizzle-orm');
     
     // Build conditions based on user role
@@ -1968,7 +1968,7 @@ export class DatabaseStorage implements IStorage {
         and(
           eq(announcements.isActive, true),
           or(
-            eq(announcements.startDate, null),
+            isNull(announcements.startDate),
             sql`${announcements.startDate} <= NOW()`
           ),
           roleCondition,
