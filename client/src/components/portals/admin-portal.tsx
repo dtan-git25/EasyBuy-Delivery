@@ -2708,6 +2708,15 @@ export default function AdminPortal() {
 
                               const data = await response.json();
                               queryClient.invalidateQueries({ queryKey: ['/api/settings'] });
+                              queryClient.invalidateQueries({ queryKey: ['/api/settings/public'] });
+                              
+                              // Update favicon and dispatch logo-updated event
+                              if (data.logoUrl) {
+                                window.dispatchEvent(new CustomEvent('logo-updated', {
+                                  detail: { logoUrl: data.logoUrl }
+                                }));
+                              }
+                              
                               toast({
                                 title: "Success",
                                 description: "Logo uploaded successfully",

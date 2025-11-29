@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/use-auth";
 import { CartProvider } from "@/contexts/cart-context";
 import { ProtectedRoute } from "./lib/protected-route";
+import { useFavicon } from "@/hooks/use-favicon";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import ResetPasswordPage from "@/pages/reset-password";
@@ -22,9 +23,15 @@ function Router() {
   );
 }
 
+function FaviconManager() {
+  useFavicon();
+  return null;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <FaviconManager />
       <AuthProvider>
         <CartProvider>
           <TooltipProvider>

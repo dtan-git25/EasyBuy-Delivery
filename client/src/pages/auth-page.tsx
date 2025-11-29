@@ -45,9 +45,9 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
 
-  // Fetch system settings for app logo
-  const { data: settings } = useQuery<SystemSettings>({
-    queryKey: ['/api/settings'],
+  // Fetch public settings for app logo (accessible without auth)
+  const { data: settings } = useQuery<{ logo?: string; appName?: string }>({
+    queryKey: ['/api/settings/public'],
   });
 
   // Initialize login form

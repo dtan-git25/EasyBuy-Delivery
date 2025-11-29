@@ -2664,6 +2664,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // System settings routes
+  // GET public settings - accessible without authentication (for logo, app name on login page)
+  app.get("/api/settings/public", async (req, res) => {
+    try {
+      const settings = await storage.getSystemSettings();
+      // Only return non-sensitive public settings
+      res.json({
+        logo: settings?.logo || null,
+        appName: settings?.appName || 'EasyBuy',
+      });
+    } catch (error) {
+      console.error("Error fetching public settings:", error);
+      res.status(500).json({ error: "Failed to fetch settings" });
+    }
+  });
+
   // GET: All authenticated users can read settings (customers need multi-merchant config)
   app.get("/api/settings", async (req, res) => {
     if (!req.isAuthenticated()) {
