@@ -1,6 +1,10 @@
 export function updateFavicon(logoUrl: string) {
   try {
-    const faviconUrl = logoUrl ? `${logoUrl}?v=${Date.now()}` : '/icons/favicon-32x32.png';
+    let faviconUrl = '/icons/favicon-32x32.png';
+    if (logoUrl) {
+      const separator = logoUrl.includes('?') ? '&' : '?';
+      faviconUrl = `${logoUrl}${separator}v=${Date.now()}`;
+    }
     
     document.querySelectorAll("link[rel*='icon']").forEach(link => link.remove());
     
