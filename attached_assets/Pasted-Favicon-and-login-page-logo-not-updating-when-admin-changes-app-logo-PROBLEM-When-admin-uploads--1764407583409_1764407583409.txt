@@ -1,0 +1,229 @@
+Favicon and login page logo not updating when admin changes app logo:
+
+PROBLEM:
+
+When admin uploads new logo in Admin > Settings > App Logo:
+- ✅ Logo updates in some places
+- ❌ Favicon (browser tab icon) doesn't update
+- ❌ Login page logo doesn't update
+
+Both still show old logo even after new logo uploaded.
+
+REQUIRED FIXES:
+
+1. UPDATE FAVICON DYNAMICALLY:
+   
+   When logo is uploaded/changed, update the favicon in the HTML:
+```typescript
+   // After logo upload success
+   function updateFavicon(logoUrl: string) {
+     // Remove old favicon links
+     const oldLinks = document.querySelectorAll("link[rel*='icon']");
+     oldLinks.forEach(link => link.remove());
+     
+     // Add new favicon
+     const link = document.createElement('link');
+     link.rel = 'icon';
+     link.type = 'image/png';
+     link.href = logoUrl;
+     document.head.appendChild(link);
+     
+     // Also update apple-touch-icon
+     const appleLink = document.createElement('link');
+     appleLink.rel = 'apple-touch-icon';
+     appleLink.href = logoUrl;
+     document.head.appendChild(appleLink);
+   }
+```
+
+2. UPDATE LOGIN PAGE LOGO:
+   
+   Login page should fetch current logo from database/settings:
+```typescript
+   // In login page component
+   const [appLogo, setAppLogo] = useState('/default-logo.png');
+   
+   useEffect(() => {
+     // Fetch current logo from settings
+     async function fetchLogo() {
+       try {
+         const response = await fetch('/api/settings/logo');
+         const data = await response.json();
+         if (data.logo_url) {
+           setAppLogo(data.logo_url);
+         }
+       } catch (error) {
+         console.error('Error fetching logo:', error);
+       }
+     }
+     
+     fetchLogo();
+   }, []);
+   
+   // In JSX
+   <img src={appLogo} alt="Easy Buy Delivery" />
+```
+
+3. CREATE LOGO SETTINGS ENDPOINT:
+   
+   Add API endpoint to get current logo:
+```typescript
+   // GET /api/settings/logo
+   app.get('/api/settings/logo', async (req, res) => {
+     try {
+       const settings = await db.query(
+         'SELECT logo_url FROM settings WHERE id = 1'
+       );
+       
+       if (settings.rows[0]?.logo_url) {
+         res.json({ logo_url: settings.rows[0].logo_url });
+       } else {
+         res.json({ logo_url: '/default-logo.png' });
+       }
+     } catch (error) {
+       res.status(500).json({ error: 'Failed to fetch logo' });
+     }
+   });
+```
+
+4. UPDATE INDEX.HTML FAVICON:
+   
+   In index.html, use dynamic favicon:
+```html
+   <head>
+     <!-- Other meta tags -->
+     <link rel="icon" id="favicon" type="image/png" href="/api/settings/logo">
+     <link rel="apple-touch-icon" href="/api/settings/logo">
+     <!-- Or load dynamically via script -->
+   </head>
+```
+
+5. CACHE BUSTING FOR LOGO:
+   
+   Add cache-busting parameter to logo URL:
+```typescript
+   const logoUrlWithCacheBust = `${logoUrl}?v=${Date.now()}`;
+```
+   
+   This forces browser to reload the logo image.
+
+6. UPDATE ALL LOGO REFERENCES:
+   
+   Find all places where logo is displayed and ensure they use dynamic logo from settings:
+   
+   - Login page header
+   - Register page header
+   - Auth pages
+   - Favicon
+   - Email templates (if applicable)
+   - Mobile app install prompt
+   
+   All should fetch from: /api/settings/logo or from database
+
+7. REFRESH LOGO ON UPLOAD SUCCESS:
+   
+   In Admin > Settings > App Logo upload handler:
+```typescript
+   async function handleLogoUpload(file: File) {
+     try {
+       // Upload to Cloudinary
+       const formData = new FormData();
+       formData.append('logo', file);
+       
+       const response = await fetch('/api/admin/upload-logo', {
+         method: 'POST',
+         body: formData
+       });
+       
+       const data = await response.json();
+       
+       if (data.success) {
+         // Update favicon
+         updateFavicon(data.url);
+         
+         // Force reload logo everywhere
+         window.dispatchEvent(new CustomEvent('logo-updated', { 
+           detail: { logoUrl: data.url } 
+         }));
+         
+         // Show success message
+         toast.success('Logo updated successfully');
+       }
+     } catch (error) {
+       toast.error('Failed to upload logo');
+     }
+   }
+```
+
+8. LISTEN FOR LOGO UPDATES:
+   
+   In components that display logo:
+```typescript
+   useEffect(() => {
+     const handleLogoUpdate = (event: CustomEvent) => {
+       setAppLogo(event.detail.logoUrl);
+     };
+     
+     window.addEventListener('logo-updated', handleLogoUpdate);
+     
+     return () => {
+       window.removeEventListener('logo-updated', handleLogoUpdate);
+     };
+   }, []);
+```
+
+9. ENSURE DATABASE STORES CLOUDINARY URL:
+   
+   When logo is uploaded:
+   - Save Cloudinary URL to database (settings table)
+   - Not local file path
+   - Update logo_url column with new URL
+
+10. DEFAULT LOGO FALLBACK:
+    
+    If no logo in database, use default:
+```typescript
+    const DEFAULT_LOGO = '/assets/default-logo.png';
+    const appLogo = settings?.logo_url || DEFAULT_LOGO;
+```
+
+11. PRELOAD LOGO ON APP LOAD:
+    
+    In main app component, preload logo:
+```typescript
+    // In App.tsx or main layout
+    const { data: appSettings } = useQuery({
+      queryKey: ['app-settings'],
+      queryFn: async () => {
+        const res = await fetch('/api/settings/logo');
+        return res.json();
+      }
+    });
+    
+    // Provide logo to all components via context
+    <LogoContext.Provider value={appSettings?.logo_url}>
+      {children}
+    </LogoContext.Provider>
+```
+
+12. CLEAR BROWSER CACHE FOR FAVICON:
+    
+    Add meta tag to prevent favicon caching:
+```html
+    <meta http-equiv="cache-control" content="no-cache">
+    <meta http-equiv="expires" content="0">
+    <meta http-equiv="pragma" content="no-cache">
+```
+
+TESTING:
+
+After implementation:
+1. Upload new logo in Admin > Settings
+2. Check favicon in browser tab updates immediately
+3. Check login page logo updates
+4. Hard refresh browser (Ctrl+Shift+R)
+5. Check favicon persists after page reload
+6. Test in different browsers
+7. Test on mobile devices
+
+The logo should update everywhere immediately after upload, including favicon and login page.
