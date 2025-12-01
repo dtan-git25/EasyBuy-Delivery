@@ -2679,6 +2679,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GET dynamic logo with optional Cloudinary resizing
+  app.get("/api/settings/logo", async (req, res) => {
+    try {
+      const settings = await storage.getSystemSettings();
+      let logoUrl = settings?.logo;
+      
+      if (!logoUrl) {
+        // Redirect to default icon if no logo set
+        return res.redirect('/icons/icon-192x192.png');
+      }
+      
+      // If size parameter provided and using Cloudinary, apply transformation
+      const size = req.query.size as string;
+      if (size && logoUrl.includes('cloudinary.com')) {
+        const sizeNum = parseInt(size);
+        if (!isNaN(sizeNum) && sizeNum > 0 && sizeNum <= 1024) {
+          logoUrl = logoUrl.replace(
+            '/upload/',
+            `/upload/w_${sizeNum},h_${sizeNum},c_fill,f_png/`
+          );
+        }
+      }
+      
+      // Redirect to the logo URL
+      res.redirect(logoUrl);
+    } catch (error) {
+      console.error("Error fetching logo:", error);
+      res.redirect('/icons/icon-192x192.png');
+    }
+  });
+
+  // GET dynamic manifest.json for PWA
+  app.get("/manifest.json", async (req, res) => {
+    try {
+      const settings = await storage.getSystemSettings();
+      const logoUrl = settings?.logo;
+      
+      // Use dynamic logo or fall back to static icons
+      const iconBase = logoUrl && logoUrl.includes('cloudinary.com') 
+        ? logoUrl.replace('/upload/', '/upload/w_192,h_192,c_fill,f_png/')
+        : '/icons/icon-192x192.png';
+      
+      const iconLarge = logoUrl && logoUrl.includes('cloudinary.com')
+        ? logoUrl.replace('/upload/', '/upload/w_512,h_512,c_fill,f_png/')
+        : '/icons/icon-512x512.png';
+      
+      const manifest = {
+        name: settings?.appName || 'Easy Buy Delivery',
+        short_name: settings?.appName || 'EasyBuy',
+        description: 'Online Food Delivery Services - Order delicious food delivered fast to your doorstep',
+        start_url: '/',
+        display: 'standalone',
+        background_color: '#ffffff',
+        theme_color: '#3b82f6',
+        orientation: 'portrait-primary',
+        icons: [
+          {
+            src: iconBase,
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: iconLarge,
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: iconBase,
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'maskable'
+          },
+          {
+            src: iconLarge,
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
+          }
+        ],
+        categories: ['food', 'lifestyle', 'shopping'],
+        prefer_related_applications: false
+      };
+      
+      res.setHeader('Content-Type', 'application/manifest+json');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.json(manifest);
+    } catch (error) {
+      console.error("Error generating manifest:", error);
+      res.status(500).json({ error: "Failed to generate manifest" });
+    }
+  });
+
   // GET: All authenticated users can read settings (customers need multi-merchant config)
   app.get("/api/settings", async (req, res) => {
     if (!req.isAuthenticated()) {

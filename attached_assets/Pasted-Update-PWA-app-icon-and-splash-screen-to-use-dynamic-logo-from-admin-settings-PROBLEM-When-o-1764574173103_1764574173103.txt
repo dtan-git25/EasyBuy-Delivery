@@ -1,0 +1,249 @@
+Update PWA app icon and splash screen to use dynamic logo from admin settings:
+
+PROBLEM:
+
+When opening app from Google search, home screen, or bookmark, a logo/icon appears before login page. This logo doesn't update when admin changes the app logo in settings.
+
+CURRENT SITUATION:
+- Static logo hardcoded in manifest.json
+- Shows old/default logo on app launch
+- Doesn't reflect admin's uploaded logo
+
+REQUIRED FIXES:
+
+1. FIND MANIFEST FILE:
+   
+   Locate: /public/manifest.json or /public/site.webmanifest
+   
+   Current structure likely looks like:
+```json
+   {
+     "name": "Easy Buy Delivery",
+     "short_name": "EasyBuy",
+     "icons": [
+       {
+         "src": "/logo192.png",
+         "sizes": "192x192",
+         "type": "image/png"
+       },
+       {
+         "src": "/logo512.png",
+         "sizes": "512x512",
+         "type": "image/png"
+       }
+     ],
+     "start_url": "/",
+     "display": "standalone",
+     "theme_color": "#10b981",
+     "background_color": "#ffffff"
+   }
+```
+
+2. CREATE DYNAMIC MANIFEST ENDPOINT:
+   
+   Generate manifest.json dynamically with current logo:
+```typescript
+   // GET /manifest.json
+   app.get('/manifest.json', async (req, res) => {
+     try {
+       // Fetch current logo from settings
+       const settings = await db.query(
+         'SELECT logo_url FROM settings WHERE id = 1'
+       );
+       
+       const logoUrl = settings.rows[0]?.logo_url || '/default-logo.png';
+       
+       const manifest = {
+         name: 'Easy Buy Delivery',
+         short_name: 'EasyBuy',
+         description: 'Online Food Delivery Services',
+         start_url: '/',
+         display: 'standalone',
+         background_color: '#ffffff',
+         theme_color: '#10b981',
+         icons: [
+           {
+             src: logoUrl,
+             sizes: '192x192',
+             type: 'image/png',
+             purpose: 'any maskable'
+           },
+           {
+             src: logoUrl,
+             sizes: '512x512',
+             type: 'image/png',
+             purpose: 'any maskable'
+           }
+         ]
+       };
+       
+       res.setHeader('Content-Type', 'application/json');
+       res.json(manifest);
+     } catch (error) {
+       console.error('Error generating manifest:', error);
+       res.status(500).json({ error: 'Failed to generate manifest' });
+     }
+   });
+```
+
+3. UPDATE INDEX.HTML MANIFEST LINK:
+   
+   In /client/index.html:
+```html
+   <head>
+     <!-- Update manifest link -->
+     <link rel="manifest" href="/manifest.json">
+     
+     <!-- PWA meta tags -->
+     <meta name="theme-color" content="#10b981">
+     <meta name="apple-mobile-web-app-capable" content="yes">
+     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+     <meta name="apple-mobile-web-app-title" content="EasyBuy">
+     
+     <!-- Dynamic app icons -->
+     <link rel="apple-touch-icon" href="/api/settings/logo">
+     <link rel="icon" type="image/png" href="/api/settings/logo">
+   </head>
+```
+
+4. UPDATE APP ICONS IN PUBLIC FOLDER:
+   
+   When admin uploads new logo:
+```typescript
+   // After successful logo upload to Cloudinary
+   async function updateAppIcons(cloudinaryUrl: string) {
+     try {
+       // Optionally generate different sizes
+       // Or use Cloudinary transformations for different sizes
+       
+       const sizes = [192, 512];
+       
+       for (const size of sizes) {
+         // Use Cloudinary to resize
+         const resizedUrl = cloudinaryUrl.replace(
+           '/upload/',
+           `/upload/w_${size},h_${size},c_fill/`
+         );
+         
+         // Could save these URLs to database for manifest
+       }
+       
+       // Force manifest refresh
+       // Browser will cache old manifest, so add version
+       const manifestUrl = `/manifest.json?v=${Date.now()}`;
+       
+     } catch (error) {
+       console.error('Error updating app icons:', error);
+     }
+   }
+```
+
+5. ADD META TAGS FOR SPLASH SCREEN:
+```html
+   <!-- Apple iOS splash screens -->
+   <link rel="apple-touch-startup-image" href="/api/settings/logo">
+   
+   <!-- Android splash screen -->
+   <meta name="mobile-web-app-capable" content="yes">
+```
+
+6. UPDATE FAVICON REFERENCES:
+   
+   Ensure all icon references use dynamic logo:
+```html
+   <head>
+     <!-- Multiple sizes for different devices -->
+     <link rel="icon" type="image/png" sizes="32x32" href="/api/settings/logo?size=32">
+     <link rel="icon" type="image/png" sizes="16x16" href="/api/settings/logo?size=16">
+     <link rel="apple-touch-icon" sizes="180x180" href="/api/settings/logo?size=180">
+     <link rel="manifest" href="/manifest.json">
+   </head>
+```
+
+7. HANDLE LOGO RESIZING:
+   
+   Create endpoint that serves logo in different sizes:
+```typescript
+   // GET /api/settings/logo?size=192
+   app.get('/api/settings/logo', async (req, res) => {
+     try {
+       const settings = await db.query('SELECT logo_url FROM settings');
+       let logoUrl = settings.rows[0]?.logo_url || '/default-logo.png';
+       
+       // If size parameter provided and using Cloudinary
+       const size = req.query.size;
+       if (size && logoUrl.includes('cloudinary')) {
+         logoUrl = logoUrl.replace(
+           '/upload/',
+           `/upload/w_${size},h_${size},c_fill/`
+         );
+       }
+       
+       // Redirect to actual logo URL
+       res.redirect(logoUrl);
+     } catch (error) {
+       res.redirect('/default-logo.png');
+     }
+   });
+```
+
+8. CACHE BUSTING FOR MANIFEST:
+   
+   Add version to manifest to force reload:
+```html
+   <link rel="manifest" href="/manifest.json?v=<?= time() ?>">
+```
+   
+   Or in React:
+```typescript
+   const manifestUrl = `/manifest.json?v=${Date.now()}`;
+```
+
+9. UPDATE SERVICE WORKER (if exists):
+   
+   If using service worker, update to cache new logo:
+```javascript
+   // In service-worker.js
+   const CACHE_VERSION = 'v1.0.1'; // Increment when logo changes
+   
+   self.addEventListener('install', (event) => {
+     event.waitUntil(
+       caches.open(CACHE_VERSION).then((cache) => {
+         return cache.addAll([
+           '/',
+           '/manifest.json',
+           '/api/settings/logo'
+         ]);
+       })
+     );
+   });
+```
+
+10. TESTING AFTER IMPLEMENTATION:
+    
+    A. Desktop/Mobile Browser:
+       - Clear browser cache
+       - Visit site
+       - Add to home screen
+       - Close browser
+       - Open from home screen icon
+       - Should show new logo
+    
+    B. PWA Install:
+       - Install as PWA app
+       - Check app icon on desktop/home screen
+       - Open app
+       - Check splash screen logo
+    
+    C. Search Results:
+       - Google search for site
+       - Check favicon in search results
+       - Click result
+       - Check if correct logo shows
+
+11. PROVIDE ADMIN FEEDBACK:
+    
+    After logo upload, show message:
+    "Logo updated! Users may need to reinstall the app or clear cache to see changes on their home screen icon."
+
+This ensures the PWA app icon, splash screen, and all icon references use the admin's uploaded logo instead of hardcoded static images.
