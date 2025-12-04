@@ -1619,14 +1619,6 @@ export default function RiderPortal() {
                         {/* Actions */}
                         {isGroupedOrder ? (
                           <div className="space-y-3">
-                            <div className="flex items-start justify-between mb-2">
-                              <div>
-                                <h5 className="font-semibold text-foreground">Update Order Status</h5>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  Update each merchant order independently
-                                </p>
-                              </div>
-                            </div>
                             {order.merchantOrders.map((merchantOrder: any, index: number) => {
                               console.log(`Merchant Order ${index}:`, {
                                 id: merchantOrder.id,
