@@ -1557,7 +1557,7 @@ export default function RiderPortal() {
                                 <span>₱{parseFloat(order.convenienceFee || '0').toFixed(2)}</span>
                               </div>
                             )}
-                            <div className="flex justify-between pt-2 mt-2 border-t">
+                            <div className="flex justify-between pt-2 mt-2 border-t text-base">
                               <span className="font-semibold text-foreground">Total to Collect from Customer:</span>
                               <span className="font-semibold">₱{order.total}</span>
                             </div>
