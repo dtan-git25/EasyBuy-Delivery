@@ -1559,7 +1559,7 @@ export default function RiderPortal() {
                             )}
                             <div className="flex justify-between pt-2 mt-2 border-t">
                               <span className="font-semibold text-foreground">Total to Collect from Customer:</span>
-                              <span className="font-bold text-primary">₱{order.total}</span>
+                              <span className="font-semibold">₱{order.total}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">Payment Method:</span>
@@ -1574,7 +1574,7 @@ export default function RiderPortal() {
                         <div className="bg-green-50 dark:bg-green-950 p-3 rounded-lg">
                           <div className="flex justify-between items-center mb-2">
                             <span className="font-semibold text-foreground">YOUR EARNINGS:</span>
-                            <span className="text-xl font-bold text-green-600">₱{order.riderEarningsAmount || riderEarnings}</span>
+                            <span className="font-semibold">₱{order.riderEarningsAmount || riderEarnings}</span>
                           </div>
                           {order.riderEarningsAmount ? (
                             <div className="space-y-1 text-sm text-muted-foreground">
