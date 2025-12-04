@@ -1564,13 +1564,17 @@ export default function RiderPortal() {
 
                         {/* Collection Summary */}
                         <div className="bg-primary/5 p-3 rounded-lg">
-                          <div className="flex justify-between items-center">
-                            <span className="font-semibold text-foreground">Total to Collect from Customer:</span>
-                            <span className="text-xl font-bold text-primary">₱{order.total}</span>
+                          <h5 className="font-semibold text-foreground mb-2">Total to Collect from Customer</h5>
+                          <div className="space-y-1 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Amount:</span>
+                              <span className="font-bold text-primary">₱{order.total}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Payment Method:</span>
+                              <span>{order.paymentMethod === 'cash' ? 'Cash on Delivery (COD)' : order.paymentMethod}</span>
+                            </div>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {order.paymentMethod === 'cash' ? 'Cash on Delivery (COD)' : `Paid via ${order.paymentMethod}`}
-                          </p>
                         </div>
 
                         <Separator />
