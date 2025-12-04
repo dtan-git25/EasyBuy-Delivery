@@ -1322,19 +1322,17 @@ export default function RiderPortal() {
                         {/* Customer Details */}
                         <div>
                           <h5 className="font-semibold text-foreground mb-2">Customer Details</h5>
-                          <div className="space-y-1 text-sm">
-                            <div>
+                          <div className="text-sm leading-6">
+                            <p>
                               <span className="text-muted-foreground">Customer Name: </span>
                               <span className="font-medium">{order.customerName}</span>
-                            </div>
-                            <div className="flex items-center gap-1 flex-wrap">
-                              <span className="text-muted-foreground shrink-0">Delivery Address: </span>
+                            </p>
+                            <p>
+                              <span className="text-muted-foreground">Delivery Address: </span>
                               <span className="font-medium">{order.deliveryAddress}</span>
                               {order.deliveryLatitude && order.deliveryLongitude && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-5 w-5 p-0 shrink-0 ml-1"
+                                <button
+                                  className="inline-flex items-center justify-center ml-1 align-middle"
                                   onClick={() => {
                                     setSelectedOrderForMap(order);
                                     setMapLocationType('delivery');
@@ -1344,69 +1342,67 @@ export default function RiderPortal() {
                                   title="View on map"
                                 >
                                   <MapPin className="h-4 w-4 text-primary" />
-                                </Button>
+                                </button>
                               )}
-                            </div>
+                            </p>
                             {order.landmark && (
-                              <div>
+                              <p>
                                 <span className="text-muted-foreground">Landmark: </span>
                                 <span className="font-medium">{order.landmark}</span>
-                              </div>
+                              </p>
                             )}
                             {order.customerNotes && (
-                              <div>
+                              <p>
                                 <span className="text-muted-foreground">Special Instructions: </span>
                                 <span className="font-medium">{order.customerNotes}</span>
-                              </div>
+                              </p>
                             )}
                             {isGroupedOrder ? (
-                              <div>
+                              <p>
                                 <span className="text-muted-foreground">Pickup Locations:</span>
-                                <div className="ml-4 mt-1">
-                                  {order.merchantOrders.map((merchantOrder: any) => (
-                                    <div key={merchantOrder.id} className="flex items-center gap-1 flex-wrap">
-                                      <span className="font-medium text-foreground">{merchantOrder.restaurantName}</span>
-                                      <span className="text-muted-foreground">-</span>
-                                      <span className="text-muted-foreground">{merchantOrder.restaurantAddress}</span>
-                                      {merchantOrder.restaurantLatitude && merchantOrder.restaurantLongitude && (
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-5 w-5 p-0 shrink-0 ml-1"
-                                          onClick={() => {
-                                            setSelectedOrderForMap({
-                                              id: merchantOrder.id,
-                                              orderNumber: merchantOrder.orderNumber,
-                                              restaurantLatitude: merchantOrder.restaurantLatitude,
-                                              restaurantLongitude: merchantOrder.restaurantLongitude,
-                                              restaurantName: merchantOrder.restaurantName,
-                                              restaurantAddress: merchantOrder.restaurantAddress,
-                                              deliveryLatitude: order.deliveryLatitude,
-                                              deliveryLongitude: order.deliveryLongitude,
-                                              deliveryAddress: order.deliveryAddress
-                                            });
-                                            setMapLocationType('pickup');
-                                            setShowMapViewer(true);
-                                          }}
-                                          data-testid={`button-view-pin-pickup-${merchantOrder.id}`}
-                                          title="View on map"
-                                        >
-                                          <MapPin className="h-4 w-4 text-green-600" />
-                                        </Button>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
+                              </p>
+                            ) : null}
+                            {isGroupedOrder ? (
+                              <div className="ml-4">
+                                {order.merchantOrders.map((merchantOrder: any) => (
+                                  <p key={merchantOrder.id}>
+                                    <span className="font-medium text-foreground">{merchantOrder.restaurantName}</span>
+                                    <span className="text-muted-foreground"> - </span>
+                                    <span className="text-muted-foreground">{merchantOrder.restaurantAddress}</span>
+                                    {merchantOrder.restaurantLatitude && merchantOrder.restaurantLongitude && (
+                                      <button
+                                        className="inline-flex items-center justify-center ml-1 align-middle"
+                                        onClick={() => {
+                                          setSelectedOrderForMap({
+                                            id: merchantOrder.id,
+                                            orderNumber: merchantOrder.orderNumber,
+                                            restaurantLatitude: merchantOrder.restaurantLatitude,
+                                            restaurantLongitude: merchantOrder.restaurantLongitude,
+                                            restaurantName: merchantOrder.restaurantName,
+                                            restaurantAddress: merchantOrder.restaurantAddress,
+                                            deliveryLatitude: order.deliveryLatitude,
+                                            deliveryLongitude: order.deliveryLongitude,
+                                            deliveryAddress: order.deliveryAddress
+                                          });
+                                          setMapLocationType('pickup');
+                                          setShowMapViewer(true);
+                                        }}
+                                        data-testid={`button-view-pin-pickup-${merchantOrder.id}`}
+                                        title="View on map"
+                                      >
+                                        <MapPin className="h-4 w-4 text-green-600" />
+                                      </button>
+                                    )}
+                                  </p>
+                                ))}
                               </div>
                             ) : (
-                              <div className="flex items-start gap-1">
-                                <span className="text-muted-foreground shrink-0">Pickup Location: </span>
+                              <p>
+                                <span className="text-muted-foreground">Pickup Location: </span>
                                 <span className="font-medium">{order.restaurantAddress}</span>
                                 {order.restaurantLatitude && order.restaurantLongitude && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 w-6 p-0 shrink-0"
+                                  <button
+                                    className="inline-flex items-center justify-center ml-1 align-middle"
                                     onClick={() => {
                                       setSelectedOrderForMap(order);
                                       setMapLocationType('pickup');
@@ -1416,20 +1412,20 @@ export default function RiderPortal() {
                                     title="View on map"
                                   >
                                     <MapPin className="h-4 w-4 text-green-600" />
-                                  </Button>
+                                  </button>
                                 )}
-                              </div>
+                              </p>
                             )}
-                            <div>
+                            <p>
                               <span className="text-muted-foreground">Payment Method: </span>
                               <span className="font-medium capitalize">{order.paymentMethod}</span>
-                            </div>
-                            <div>
+                            </p>
+                            <p>
                               <span className="text-muted-foreground">Contact: </span>
                               <a href={`tel:${order.customerPhone}`} className="text-primary hover:underline font-medium">
                                 {order.customerPhone}
                               </a>
-                            </div>
+                            </p>
                           </div>
                         </div>
 
