@@ -1341,7 +1341,7 @@ export default function RiderPortal() {
                                   data-testid={`button-view-pin-${order.id}`}
                                   title="View on map"
                                 >
-                                  <MapPin className="h-4 w-4 text-primary" />
+                                  <MapPin className="h-4 w-4 text-green-600" />
                                 </button>
                               )}
                             </p>
@@ -1422,7 +1422,7 @@ export default function RiderPortal() {
                             </p>
                             <p>
                               <span className="text-muted-foreground">Contact: </span>
-                              <a href={`tel:${order.customerPhone}`} className="text-primary hover:underline font-medium">
+                              <a href={`tel:${order.customerPhone}`} className="text-green-600 hover:underline font-medium">
                                 {order.customerPhone}
                               </a>
                             </p>
