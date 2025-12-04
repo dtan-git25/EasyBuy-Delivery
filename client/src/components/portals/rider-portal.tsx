@@ -36,6 +36,8 @@ interface PendingOrder {
   markup: string;
   distance: string;
   createdAt: string;
+  landmark?: string | null;
+  customerNotes?: string | null;
   // Multi-merchant group order fields
   orderGroupId?: string | null;
   merchantCount?: number;

@@ -1689,14 +1689,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate order number
       const orderNumber = `EBD-${Date.now()}`;
       
+      // Map specialInstructions to customerNotes for database compatibility
+      const { specialInstructions, ...restOfBody } = req.body;
+      
       let orderData = {
-        ...req.body,
+        ...restOfBody,
         customerId: req.user.id,
-        orderNumber
+        orderNumber,
+        customerNotes: specialInstructions || null,
       };
       
       console.log('=== ORDER DATA AFTER SPREAD ===');
       console.log('Landmark in orderData:', orderData.landmark);
+      console.log('CustomerNotes in orderData:', orderData.customerNotes);
       console.log('OrderData keys:', Object.keys(orderData));
 
       // Calculate delivery fee based on distance

@@ -1,0 +1,153 @@
+Landmark and special instructions still not displaying correctly after multiple fix attempts - need systematic debugging:
+
+CRITICAL ISSUE:
+
+After multiple attempts, the problem persists:
+- Multi-merchant orders: Special instructions showing ✓, Landmark NOT showing ✗
+- Single merchant orders: Both special instructions AND landmark NOT showing ✗
+
+STOP AND DEBUG SYSTEMATICALLY:
+
+Before making any more changes, we need to trace the entire data flow to find where the breakdown is happening.
+
+STEP 1 - VERIFY DATABASE HAS THE DATA:
+
+Add a test/debug endpoint to check raw database data:
+
+Create endpoint: GET /api/debug/order/:orderId
+
+This endpoint should:
+- Query the orders table and get the full order record including special_instructions
+- Query the addresses table and get the delivery address including landmark
+- Return the raw data as JSON
+- Log everything to console
+
+Test with both a single merchant order ID and multi-merchant order ID.
+
+Share the JSON response so we can confirm:
+- Does special_instructions exist in orders table?
+- Does landmark exist in addresses table?
+- Are the fields populated or NULL?
+
+STEP 2 - CHECK WHAT API RETURNS TO RIDER:
+
+Find the actual endpoint that the rider order details page calls:
+- Open browser DevTools
+- Go to Network tab
+- Load the rider order details page
+- Find the API request that fetches order data
+- Share the full URL of the endpoint
+- Share the complete JSON response
+
+This will show us exactly what data the frontend is receiving.
+
+STEP 3 - IDENTIFY THE EXACT COMPONENT FILE:
+
+Find the specific component file that renders the rider order details view shown in the screenshot:
+- Search codebase for "Customer Details" heading
+- Search for "Delivery Address:" label
+- Search for "Pickup Locations:" text
+- Search for "Multi-Merchant Order" text
+- Search for order ID display pattern
+
+Share the exact file path of the component (e.g., /client/src/pages/RiderOrderDetails.tsx).
+
+STEP 4 - ADD CONSOLE LOGGING IN COMPONENT:
+
+In the component identified in Step 3, add extensive logging at the top:
+
+Log these values:
+- The complete order object received
+- order.special_instructions value specifically
+- order.landmark value specifically
+- order.delivery_address object if nested
+- order.delivery_address.landmark if nested differently
+
+Share the console output when viewing both order types.
+
+STEP 5 - CHECK FOR CONDITIONAL RENDERING:
+
+In the same component, search for:
+- Any "if" statements that check order type
+- Any ternary operators checking merchant count
+- Any variables like "isMultiMerchant" or "isSingleMerchant"
+- Code that says "Multi-Merchant Order (1 stores)" or similar
+
+These conditionals are likely causing different code paths to execute.
+
+STEP 6 - SHOW THE ACTUAL RENDERING CODE:
+
+Share the exact JSX/code that renders:
+- The "Customer Details" section
+- The "Delivery Address" section  
+- The "Multi-Merchant Order" section
+- Any code between these sections
+
+We need to see the actual component code to understand why the fields aren't rendering.
+
+STEP 7 - VERIFY FIELD NAMES MATCH:
+
+The data might exist but with different field names:
+- Backend might call it "special_instructions"
+- Frontend might be looking for "specialInstructions" (camelCase)
+- Backend might have "landmark" in addresses table
+- Frontend might be looking for it nested differently
+
+Check if there's a field name mismatch or data structure difference.
+
+STEP 8 - CREATE MINIMAL TEST CASE:
+
+Temporarily add this simple code directly in the component as a test:
+
+Right after the "Delivery Address" section, add hardcoded test sections:
+
+Test Landmark Section (hardcoded):
+- Blue box
+- Text: "TEST LANDMARK: This should always show"
+
+Test Special Instructions Section (hardcoded):  
+- Amber box
+- Text: "TEST INSTRUCTIONS: This should always show"
+
+If these hardcoded sections show up, the problem is data access.
+If these hardcoded sections don't show up, the problem is component structure/rendering.
+
+STEP 9 - CHECK FOR RENDERING BLOCKS:
+
+Look for code that might prevent rendering:
+- Early returns that exit before landmark/instructions sections
+- Conditional wrappers that hide content
+- CSS that might be hiding elements (display: none, visibility: hidden)
+- Z-index or positioning issues
+
+STEP 10 - PROVIDE COMPLETE INFORMATION:
+
+To fix this properly, share:
+1. The exact API endpoint URL that loads order data for riders
+2. The complete JSON response from that endpoint for both order types
+3. The exact component file path that renders this view
+4. The relevant code from that component (Customer Details through Multi-Merchant Order sections)
+5. Console logs showing what data the component receives
+6. Database schema for orders and addresses tables showing column names
+
+WITHOUT THIS INFORMATION, WE'RE MAKING BLIND CHANGES.
+
+ALTERNATIVE APPROACH - FRESH START:
+
+If debugging proves too complex, consider:
+
+1. Create a completely NEW "DeliveryInformation" component
+2. Pass it the order data
+3. Have it display delivery address, landmark, and special instructions
+4. Insert this component in the rider order details view
+5. Use it for BOTH single and multi-merchant orders
+
+This bypasses whatever existing logic is causing the problem.
+
+TEMPORARY WORKAROUND FOR TESTING:
+
+As a test, try adding the landmark and special instructions sections to the absolute bottom of the page after all existing content. If they appear there, we know the data is accessible but something about the current placement/structure is blocking them.
+
+The repeated failures suggest we're not addressing the root cause. We need to stop making changes and start systematically investigating what's actually happening with the data flow and component rendering.
+
+Please execute the debugging steps above and share the findings so we can identify the actual problem rather than guessing at solutions.
