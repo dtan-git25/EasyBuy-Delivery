@@ -1322,7 +1322,7 @@ export default function RiderPortal() {
                         {/* Customer Details */}
                         <div>
                           <h5 className="font-semibold text-foreground mb-2">Customer Details</h5>
-                          <div className="text-sm leading-6">
+                          <div className="text-sm leading-7">
                             <p>
                               <span className="text-muted-foreground">Customer Name: </span>
                               <span className="font-medium">{order.customerName}</span>
