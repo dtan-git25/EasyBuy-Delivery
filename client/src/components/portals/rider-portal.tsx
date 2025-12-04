@@ -1323,60 +1323,54 @@ export default function RiderPortal() {
                         <div>
                           <h5 className="font-semibold text-foreground mb-2">Customer Details</h5>
                           <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Customer Name:</span>
+                            <div>
+                              <span className="text-muted-foreground">Customer Name: </span>
                               <span className="font-medium">{order.customerName}</span>
                             </div>
-                            <div className="space-y-2">
-                              <div className="flex justify-between items-start">
-                                <span className="text-muted-foreground">Delivery Address:</span>
-                                <div className="flex items-center gap-2 flex-1 justify-end">
-                                  <span className="font-medium text-right">{order.deliveryAddress}</span>
-                                  {order.deliveryLatitude && order.deliveryLongitude && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 w-6 p-0 shrink-0"
-                                      onClick={() => {
-                                        setSelectedOrderForMap(order);
-                                        setMapLocationType('delivery');
-                                        setShowMapViewer(true);
-                                      }}
-                                      data-testid={`button-view-pin-${order.id}`}
-                                      title="View on map"
-                                    >
-                                      <MapPin className="h-4 w-4 text-primary" />
-                                    </Button>
-                                  )}
-                                </div>
-                              </div>
+                            <div className="flex items-start gap-1">
+                              <span className="text-muted-foreground shrink-0">Delivery Address: </span>
+                              <span className="font-medium">{order.deliveryAddress}</span>
+                              {order.deliveryLatitude && order.deliveryLongitude && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 shrink-0"
+                                  onClick={() => {
+                                    setSelectedOrderForMap(order);
+                                    setMapLocationType('delivery');
+                                    setShowMapViewer(true);
+                                  }}
+                                  data-testid={`button-view-pin-${order.id}`}
+                                  title="View on map"
+                                >
+                                  <MapPin className="h-4 w-4 text-primary" />
+                                </Button>
+                              )}
                             </div>
                             
                             {order.landmark && (
-                              <div className="flex justify-between items-start">
-                                <span className="text-muted-foreground">Landmark:</span>
-                                <span className="font-medium text-right">{order.landmark}</span>
+                              <div>
+                                <span className="text-muted-foreground">Landmark: </span>
+                                <span className="font-medium">{order.landmark}</span>
                               </div>
                             )}
                             
                             {order.customerNotes && (
-                              <div className="flex justify-between items-start">
-                                <span className="text-muted-foreground">Special Instructions:</span>
-                                <span className="font-medium text-right">{order.customerNotes}</span>
+                              <div>
+                                <span className="text-muted-foreground">Special Instructions: </span>
+                                <span className="font-medium">{order.customerNotes}</span>
                               </div>
                             )}
                             
                             {isGroupedOrder ? (
-                              <div className="space-y-2">
-                                <span className="text-muted-foreground text-sm">Pickup Locations:</span>
-                                <div className="space-y-1 ml-2">
+                              <div className="space-y-1">
+                                <span className="text-muted-foreground">Pickup Locations:</span>
+                                <div className="space-y-1 ml-4">
                                   {order.merchantOrders.map((merchantOrder: any) => (
-                                    <div key={merchantOrder.id} className="flex items-start justify-between gap-2">
+                                    <div key={merchantOrder.id} className="flex items-start gap-1">
                                       <div className="flex-1">
-                                        <div className="text-sm">
-                                          <p className="font-medium text-foreground">{merchantOrder.restaurantName}</p>
-                                          <p className="text-xs text-muted-foreground">{merchantOrder.restaurantAddress}</p>
-                                        </div>
+                                        <p className="font-medium text-foreground">{merchantOrder.restaurantName}</p>
+                                        <p className="text-xs text-muted-foreground">{merchantOrder.restaurantAddress}</p>
                                       </div>
                                       {merchantOrder.restaurantLatitude && merchantOrder.restaurantLongitude && (
                                         <Button
@@ -1409,35 +1403,33 @@ export default function RiderPortal() {
                                 </div>
                               </div>
                             ) : (
-                              <div className="flex justify-between items-start">
-                                <span className="text-muted-foreground">Pickup Location:</span>
-                                <div className="flex items-center gap-2 flex-1 justify-end">
-                                  <span className="font-medium text-right">{order.restaurantAddress}</span>
-                                  {order.restaurantLatitude && order.restaurantLongitude && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 w-6 p-0 shrink-0"
-                                      onClick={() => {
-                                        setSelectedOrderForMap(order);
-                                        setMapLocationType('pickup');
-                                        setShowMapViewer(true);
-                                      }}
-                                      data-testid={`button-view-pin-pickup-${order.id}`}
-                                      title="View on map"
-                                    >
-                                      <MapPin className="h-4 w-4 text-green-600" />
-                                    </Button>
-                                  )}
-                                </div>
+                              <div className="flex items-start gap-1">
+                                <span className="text-muted-foreground shrink-0">Pickup Location: </span>
+                                <span className="font-medium">{order.restaurantAddress}</span>
+                                {order.restaurantLatitude && order.restaurantLongitude && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0 shrink-0"
+                                    onClick={() => {
+                                      setSelectedOrderForMap(order);
+                                      setMapLocationType('pickup');
+                                      setShowMapViewer(true);
+                                    }}
+                                    data-testid={`button-view-pin-pickup-${order.id}`}
+                                    title="View on map"
+                                  >
+                                    <MapPin className="h-4 w-4 text-green-600" />
+                                  </Button>
+                                )}
                               </div>
                             )}
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Payment Method:</span>
+                            <div>
+                              <span className="text-muted-foreground">Payment Method: </span>
                               <span className="font-medium capitalize">{order.paymentMethod}</span>
                             </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Contact:</span>
+                            <div>
+                              <span className="text-muted-foreground">Contact: </span>
                               <a href={`tel:${order.customerPhone}`} className="text-primary hover:underline font-medium">
                                 {order.customerPhone}
                               </a>
