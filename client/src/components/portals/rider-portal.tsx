@@ -1353,18 +1353,16 @@ export default function RiderPortal() {
                                 <span className="font-medium">{order.landmark}</span>
                               </div>
                             )}
-                            
                             {order.customerNotes && (
                               <div>
                                 <span className="text-muted-foreground">Special Instructions: </span>
                                 <span className="font-medium">{order.customerNotes}</span>
                               </div>
                             )}
-                            
                             {isGroupedOrder ? (
-                              <div className="space-y-1">
+                              <div>
                                 <span className="text-muted-foreground">Pickup Locations:</span>
-                                <div className="space-y-1 ml-4">
+                                <div className="ml-4 mt-1">
                                   {order.merchantOrders.map((merchantOrder: any) => (
                                     <div key={merchantOrder.id} className="flex items-center gap-1 flex-wrap">
                                       <span className="font-medium text-foreground">{merchantOrder.restaurantName}</span>
