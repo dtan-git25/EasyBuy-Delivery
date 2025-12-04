@@ -1417,10 +1417,6 @@ export default function RiderPortal() {
                               </p>
                             )}
                             <p>
-                              <span className="text-muted-foreground">Payment Method: </span>
-                              <span className="font-medium capitalize">{order.paymentMethod}</span>
-                            </p>
-                            <p>
                               <span className="text-muted-foreground">Contact: </span>
                               <a href={`tel:${order.customerPhone}`} className="text-green-600 hover:underline font-medium">
                                 {order.customerPhone}
