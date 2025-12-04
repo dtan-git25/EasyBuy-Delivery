@@ -1327,14 +1327,14 @@ export default function RiderPortal() {
                               <span className="text-muted-foreground">Customer Name: </span>
                               <span className="font-medium">{order.customerName}</span>
                             </div>
-                            <div className="flex items-start gap-1">
+                            <div className="flex items-center gap-1 flex-wrap">
                               <span className="text-muted-foreground shrink-0">Delivery Address: </span>
                               <span className="font-medium">{order.deliveryAddress}</span>
                               {order.deliveryLatitude && order.deliveryLongitude && (
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-6 w-6 p-0 shrink-0"
+                                  className="h-5 w-5 p-0 shrink-0 ml-1"
                                   onClick={() => {
                                     setSelectedOrderForMap(order);
                                     setMapLocationType('delivery');
@@ -1347,7 +1347,6 @@ export default function RiderPortal() {
                                 </Button>
                               )}
                             </div>
-                            
                             {order.landmark && (
                               <div>
                                 <span className="text-muted-foreground">Landmark: </span>
