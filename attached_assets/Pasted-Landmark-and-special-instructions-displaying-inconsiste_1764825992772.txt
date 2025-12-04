@@ -1,0 +1,158 @@
+Landmark and special instructions displaying inconsistently across order types:
+
+PROBLEM DETAILS:
+
+Current behavior:
+- Multi-merchant orders: Special instructions showing ✓, Landmark missing ✗
+- Single merchant orders: Both special instructions AND landmark missing ✗
+
+This indicates there are TWO different components/code paths for displaying orders:
+1. Multi-merchant order component
+2. Single merchant order component
+
+REQUIRED FIXES:
+
+1. IDENTIFY THE TWO SEPARATE COMPONENTS:
+   
+   There are clearly two different order display components:
+   - Component A: Handles multi-merchant orders (shows special instructions but not landmark)
+   - Component B: Handles single merchant orders (shows neither)
+   
+   Find both components in the codebase. Likely locations:
+   - RiderOrderDetails component with conditional rendering
+   - Or separate MultiMerchantOrderView and SingleMerchantOrderView components
+   - Or different sections within same component based on order type
+
+2. FIX MULTI-MERCHANT ORDERS (ADD LANDMARK):
+   
+   In the multi-merchant order display component:
+   - Special instructions already working (keep this)
+   - ADD landmark display section
+   - Place it near delivery address or above special instructions
+   - Use blue highlighted styling with MapPin icon
+   - Label as "Landmark:"
+   - Only show if landmark exists
+
+3. FIX SINGLE MERCHANT ORDERS (ADD BOTH):
+   
+   In the single merchant order display component:
+   - ADD special instructions display section
+   - ADD landmark display section
+   - Use the SAME implementation that's working in multi-merchant view
+   - Copy the exact styling and logic from multi-merchant component
+   - Ensure both only show when data exists
+
+4. ENSURE CONSISTENT STYLING:
+   
+   Both order types should display identically:
+   
+   Landmark section:
+   - Blue background highlight
+   - MapPin icon
+   - "Landmark:" label
+   - Display landmark text
+   - Same positioning in both views
+   
+   Special Instructions section:
+   - Amber/yellow background highlight
+   - MessageSquare or AlertCircle icon
+   - "Special Instructions:" label
+   - Display instructions text
+   - Same positioning in both views
+
+5. VERIFY DATA FLOW FOR BOTH ORDER TYPES:
+   
+   Check that backend API returns complete data for both:
+   
+   Multi-merchant orders endpoint:
+   - Verify includes special_instructions from orders table ✓ (working)
+   - Verify includes landmark from addresses table ✗ (needs fix)
+   - Add landmark to the JOIN query
+   
+   Single merchant orders endpoint:
+   - Verify includes special_instructions from orders table ✗ (needs fix)
+   - Verify includes landmark from addresses table ✗ (needs fix)
+   - Add both fields to the query
+
+6. CHECK THE ORDER TYPE DETECTION:
+   
+   Find where code determines if order is multi-merchant vs single:
+   - Likely checks number of merchants or stores
+   - Ensure both code paths receive same order data structure
+   - Ensure both have access to landmark and special_instructions
+
+7. UNIFY THE COMPONENTS IF POSSIBLE:
+   
+   Consider consolidating to avoid duplication:
+   - Create shared components for landmark display
+   - Create shared components for special instructions display
+   - Reuse these in both multi-merchant and single merchant views
+   - This prevents future inconsistencies
+
+8. ADD DELIVERY DETAILS SECTION:
+   
+   Consider grouping these together:
+   
+   Create a "Delivery Details" or "Delivery Information" section that includes:
+   - Delivery Address (already exists)
+   - Landmark (if exists)
+   - Special Instructions (if exists)
+   
+   Use this same section in BOTH order types.
+
+9. POSITIONING IN LAYOUT:
+   
+   Place the sections consistently in both views:
+   - After "Delivery Address"
+   - Before "Pickup Locations"
+   - Or group all together in "Delivery Details" section
+
+10. TESTING CHECKLIST:
+    
+    After implementation, test both scenarios:
+    
+    Multi-merchant order with:
+    - Landmark only → Should show landmark ✓
+    - Special instructions only → Should show instructions ✓
+    - Both → Should show both ✓
+    - Neither → Should show neither (empty state) ✓
+    
+    Single merchant order with:
+    - Landmark only → Should show landmark ✓
+    - Special instructions only → Should show instructions ✓
+    - Both → Should show both ✓
+    - Neither → Should show neither (empty state) ✓
+
+11. LOOK FOR CONDITIONAL RENDERING:
+    
+    Search for code like:
+    - "if order is multi-merchant then..."
+    - "if stores.length > 1 then..."
+    - "multi merchant" or "multiMerchant" variables
+    
+    These conditionals likely branch to different display logic that needs to be unified.
+
+12. ENSURE SAME DATA STRUCTURE:
+    
+    Both order types should have:
+    - order.special_instructions field
+    - order.landmark field (or order.delivery_address.landmark)
+    - Same field names and structure
+    - Consistent access pattern
+
+IMMEDIATE PRIORITY:
+
+Focus on these two fixes:
+
+Priority 1: Add landmark to multi-merchant order display
+- Find where special instructions is shown (which works)
+- Add landmark section right above or below it
+- Use similar styling and structure
+
+Priority 2: Add both to single merchant order display
+- Find the single merchant order component
+- Copy the working special instructions code from multi-merchant view
+- Add landmark section as well
+- Test thoroughly
+
+The goal is to have identical appearance and functionality regardless of whether the order has one merchant or multiple merchants. The rider needs to see landmark and special instructions in ALL cases.
