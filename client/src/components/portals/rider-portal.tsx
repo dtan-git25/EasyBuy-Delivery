@@ -1259,6 +1259,30 @@ export default function RiderPortal() {
                         )}
                       </div>
 
+                      {/* Landmark & Special Instructions Preview */}
+                      {(order.landmark || order.customerNotes) && (
+                        <div className="space-y-2 mb-4">
+                          {order.landmark && (
+                            <div className="flex items-start text-sm bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md px-3 py-2">
+                              <MapPin className="mr-2 h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+                              <div>
+                                <span className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase">Landmark:</span>
+                                <span className="ml-1 text-blue-900 dark:text-blue-100">{order.landmark}</span>
+                              </div>
+                            </div>
+                          )}
+                          {order.customerNotes && (
+                            <div className="flex items-start text-sm bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md px-3 py-2">
+                              <FileText className="mr-2 h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                              <div>
+                                <span className="text-xs font-semibold text-amber-700 dark:text-amber-300 uppercase">Notes:</span>
+                                <span className="ml-1 text-amber-900 dark:text-amber-100">{order.customerNotes}</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       <div className="flex justify-end">
                         <Button 
                           onClick={() => acceptOrder(order.orderGroupId || order.id)}
@@ -1429,6 +1453,37 @@ export default function RiderPortal() {
                             </div>
                           </div>
                         </div>
+
+                        {/* Landmark & Special Instructions */}
+                        {(order.landmark || order.customerNotes) && (
+                          <>
+                            <Separator />
+                            <div className="space-y-3">
+                              {order.landmark && (
+                                <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                                  <div className="flex items-start gap-2">
+                                    <MapPin className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+                                    <div>
+                                      <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide">Landmark</p>
+                                      <p className="text-sm text-blue-900 dark:text-blue-100 mt-1 break-words">{order.landmark}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                              {order.customerNotes && (
+                                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                                  <div className="flex items-start gap-2">
+                                    <FileText className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                                    <div>
+                                      <p className="text-xs font-semibold text-amber-700 dark:text-amber-300 uppercase tracking-wide">Special Instructions</p>
+                                      <p className="text-sm text-amber-900 dark:text-amber-100 mt-1 break-words">{order.customerNotes}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </>
+                        )}
 
                         <Separator />
 

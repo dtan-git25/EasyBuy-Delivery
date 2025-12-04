@@ -1,0 +1,68 @@
+Add landmark and special instructions to Rider's Active Order card:
+
+REQUIREMENT:
+
+Riders need to see customer's delivery details in their Active Order card:
+- Landmark (from customer's saved address)
+- Special Instructions (from customer's checkout notes)
+
+Currently these details are missing from rider's order view, making it harder to find and deliver orders.
+
+IMPLEMENTATION:
+
+1. LOCATE RIDER ACTIVE ORDERS COMPONENT:
+   
+   Find the component that displays active orders for riders (likely RiderDashboard or RiderOrders component).
+
+2. UPDATE ORDER QUERY TO INCLUDE DETAILS:
+   
+   Ensure backend API returns landmark and special instructions when fetching active orders for riders. The query should join with addresses table to get landmark field and include special_instructions from orders table.
+
+3. ADD FIELDS TO ORDER CARD UI:
+   
+   Update Active Order card to display:
+   - ADD: Landmark section with visual styling
+   
+   Special Instructions:
+   - ADD: Special instructions section with visual styling
+
+4. HANDLE EMPTY STATES:
+   
+   Only show sections if data exists:
+   - If no landmark, don't show landmark section
+   - If no special instructions, don't show instructions section
+
+5. MOBILE RESPONSIVE DESIGN:
+   
+   Ensure sections are readable on mobile devices:
+   - Use responsive padding and text sizes
+   - Ensure text wraps properly
+   - Make text breakable for long instructions
+
+6. UPDATE DATABASE SCHEMA (if needed):
+   
+   Ensure these fields exist:
+   - orders table has special_instructions column (TEXT)
+   - addresses table has landmark column (VARCHAR)
+
+7. SAVE SPECIAL INSTRUCTIONS AT CHECKOUT:
+    
+    Ensure checkout process saves special instructions from customer input to the orders table when creating the order.
+
+8. TESTING:
+    
+    After implementation verify:
+    - Create order with landmark in address
+    - Add special instructions at checkout
+    - Assign order to rider
+    - Check rider's active orders view
+    - Verify landmark displays correctly
+    - Verify special instructions display correctly
+    - Test orders without landmark still work
+    - Test orders without instructions still work
+    - Test on mobile device for responsiveness
+
+
+Both sections should be clearly visible and easy to read at a glance while the rider is driving or looking for the delivery location.
+
+This gives riders all the information they need to find the customer and complete delivery successfully, reducing delivery time and customer support calls.

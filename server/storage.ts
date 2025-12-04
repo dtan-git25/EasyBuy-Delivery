@@ -1099,6 +1099,8 @@ export class DatabaseStorage implements IStorage {
         multiMerchantFee: multiMerchantFee.toFixed(2),
         convenienceFee: convenienceFee.toFixed(2),
         deliveryAddress: firstOrder.deliveryAddress,
+        landmark: firstOrder.landmark,
+        customerNotes: firstOrder.customerNotes,
         phoneNumber: customerUser?.phone || firstOrder.phoneNumber,
         createdAt: firstOrder.createdAt,
         customer: {
