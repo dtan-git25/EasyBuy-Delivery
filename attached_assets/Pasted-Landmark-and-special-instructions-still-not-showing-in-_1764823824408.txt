@@ -1,0 +1,136 @@
+Landmark and special instructions still not showing in rider's order details after previous fix attempt:
+
+PROBLEM:
+
+After implementing the landmark and special instructions feature, they are still not visible in the rider's order view. Looking at the current order details page, there is no landmark or special instructions section displayed.
+
+DEBUGGING STEPS NEEDED:
+
+1. VERIFY DATABASE HAS THE DATA:
+   
+   Check if the order actually has landmark and special instructions saved:
+   - Query the orders table for this specific order (EBD-1763962121875)
+   - Check if special_instructions column has data
+   - Query the addresses table for the delivery address
+   - Check if landmark column has data
+   
+   Log the results to console to confirm data exists in database.
+
+2. CHECK BACKEND API RESPONSE:
+   
+   Verify the API endpoint that fetches order details for riders includes these fields:
+   - Find the endpoint that loads this order (likely GET /api/riders/orders/:id or similar)
+   - Add console.log to see what data is being returned
+   - Ensure the SQL query joins with addresses table to get landmark
+   - Ensure special_instructions is included in SELECT statement
+   - Log the full order object being sent to frontend
+
+3. CHECK FRONTEND DATA RECEPTION:
+   
+   Verify the frontend is receiving the data:
+   - In the rider order details component, add console.log to show the order data
+   - Check if order.landmark exists in the data
+   - Check if order.special_instructions exists in the data
+   - Look in browser console for any errors
+
+4. LOCATE THE CORRECT COMPONENT:
+   
+   Find where this order details view is rendered:
+   - This appears to be a detailed order view page (not the card in active orders list)
+   - Look for the component that renders order ID "EBD-1763962121875"
+   - Find where "Customer Details" section is rendered
+   - Find where "Pickup Locations" section is rendered
+   - The landmark and instructions should be added near delivery address section
+
+5. ADD THE DISPLAY SECTIONS:
+   
+   After verifying data exists and is being passed to frontend, add the UI sections:
+   
+   Add after "Delivery Address" section and before "Pickup Locations":
+   
+   Landmark section (only show if order.landmark exists):
+   - Blue highlighted box
+   - MapPin icon
+   - Label "Landmark:"
+   - Display the landmark text
+   
+   Special Instructions section (only show if order.special_instructions exists):
+   - Amber highlighted box
+   - MessageSquare or AlertCircle icon
+   - Label "Special Instructions:"
+   - Display the instructions text
+   
+   Add them in the same card/container as Customer Details.
+
+6. CHECK IF CUSTOMER ACTUALLY SET THESE VALUES:
+   
+   Verify that when this specific order was created:
+   - Did the customer's address have a landmark saved?
+   - Did the customer enter special instructions at checkout?
+   - If neither were provided, sections correctly won't show (empty state working as intended)
+
+7. TEST WITH NEW ORDER:
+   
+   Create a test order with known landmark and instructions:
+   - Go to customer account
+   - Ensure saved address has landmark filled in
+   - At checkout, add special instructions in the notes/instructions field
+   - Complete the order
+   - Assign to rider
+   - Check if rider can see both landmark and instructions
+
+8. CHECK ORDER CREATION FLOW:
+   
+   Verify checkout saves special instructions:
+   - Find the checkout/place order endpoint
+   - Ensure it takes special_instructions from request body
+   - Ensure it saves to orders table
+   - Add logging to confirm it's being saved
+
+9. CHECK ADDRESS FLOW:
+   
+   Verify addresses include landmark:
+   - When customer adds/edits address, is landmark field available?
+   - Is landmark being saved to addresses table?
+   - Add logging to confirm landmark is being saved
+
+10. PROVIDE DETAILED LOGS:
+    
+    Add comprehensive logging throughout the flow:
+    - "Order data from database:" + full order object
+    - "Address data from database:" + full address object
+    - "Landmark value:" + landmark value
+    - "Special instructions value:" + special_instructions value
+    - "Order data received in frontend:" + order object
+    
+    Share these logs so we can see exactly where the data is missing.
+
+CURRENT STATUS OBSERVATION:
+
+Looking at the screenshot, the order details page shows:
+- Customer Details section ✓
+- Delivery Address section ✓
+- Pickup Locations section ✓
+- Payment Method section ✓
+- Contact section ✓
+- Multi-Merchant Order section ✓
+- Order Breakdown section ✓
+- Your Earnings section ✓
+- Update Order Status section ✓
+
+But MISSING:
+- Landmark section ✗
+- Special Instructions section ✗
+
+These should appear between "Delivery Address" and "Pickup Locations" or right after "Delivery Address".
+
+IMMEDIATE ACTION:
+
+First, confirm whether this specific order (EBD-1763962121875) actually has:
+1. A landmark in the delivery address
+2. Special instructions from customer
+
+If yes, then we need to fix the display.
+If no, then we need to test with an order that has these fields populated.
+
+Please add the debugging logs mentioned above and share the console output when loading this order in the rider view. This will help identify exactly where in the flow the data is getting lost.

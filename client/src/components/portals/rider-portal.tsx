@@ -1373,6 +1373,33 @@ export default function RiderPortal() {
                                 </div>
                               </div>
                             </div>
+                            
+                            {/* Landmark - prominent display for delivery navigation */}
+                            {order.landmark && (
+                              <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                                <div className="flex items-start gap-2">
+                                  <MapPin className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+                                  <div>
+                                    <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide">Landmark</p>
+                                    <p className="text-sm text-blue-900 dark:text-blue-100 mt-1 break-words">{order.landmark}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Special Instructions - important customer notes */}
+                            {order.customerNotes && (
+                              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                                <div className="flex items-start gap-2">
+                                  <FileText className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                                  <div>
+                                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-300 uppercase tracking-wide">Special Instructions</p>
+                                    <p className="text-sm text-amber-900 dark:text-amber-100 mt-1 break-words">{order.customerNotes}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                            
                             {isGroupedOrder ? (
                               <div className="space-y-2">
                                 <span className="text-muted-foreground text-sm">Pickup Locations:</span>
