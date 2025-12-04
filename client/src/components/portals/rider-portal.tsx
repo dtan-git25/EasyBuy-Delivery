@@ -1366,16 +1366,15 @@ export default function RiderPortal() {
                                 <span className="text-muted-foreground">Pickup Locations:</span>
                                 <div className="space-y-1 ml-4">
                                   {order.merchantOrders.map((merchantOrder: any) => (
-                                    <div key={merchantOrder.id} className="flex items-start gap-1">
-                                      <div className="flex-1">
-                                        <p className="font-medium text-foreground">{merchantOrder.restaurantName}</p>
-                                        <p className="text-xs text-muted-foreground">{merchantOrder.restaurantAddress}</p>
-                                      </div>
+                                    <div key={merchantOrder.id} className="flex items-center gap-1 flex-wrap">
+                                      <span className="font-medium text-foreground">{merchantOrder.restaurantName}</span>
+                                      <span className="text-muted-foreground">-</span>
+                                      <span className="text-muted-foreground">{merchantOrder.restaurantAddress}</span>
                                       {merchantOrder.restaurantLatitude && merchantOrder.restaurantLongitude && (
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          className="h-6 w-6 p-0 shrink-0"
+                                          className="h-5 w-5 p-0 shrink-0 ml-1"
                                           onClick={() => {
                                             setSelectedOrderForMap({
                                               id: merchantOrder.id,
